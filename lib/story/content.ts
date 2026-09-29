@@ -34,8 +34,6 @@ export type Photo = {
   id: string;
   caption: string;
   days: number;
-  /** placeholder tone until the AI photos exist */
-  tone: [string, string];
   key?: boolean;
   /** only listed from this stage on */
   fromStage?: 2 | 3;
@@ -243,23 +241,26 @@ export const BOOKS = [
 
 // ─── Photos ──────────────────────────────────────────────────────────────────
 
+/** Every photo but the key one is a file in public/photos named after its id. */
+export const photoSrc = (id: string) => `/photos/${id}.jpg`;
+
 export const PHOTOS: Photo[] = [
-  { id: "IMG_0419", caption: "source: unknown device", days: 0, tone: ["#1c2230", "#07090d"], fromStage: 2 },
-  { id: "IMG_0418", caption: "window across, night (6/12)", days: 8, tone: ["#0c1018", "#05070a"], key: true },
-  { id: "IMG_0417", caption: "window across (5/12)", days: 8, tone: ["#111723", "#06080d"] },
-  { id: "IMG_0416", caption: "cat on the wall, no. 14", days: 9, tone: ["#2a2f3a", "#0e1118"] },
-  { id: "IMG_0413", caption: "Harrow St (4/12)", days: 10, tone: ["#151b27", "#07090d"] },
-  { id: "IMG_0411", caption: "self-portrait, hallway mirror", days: 10, tone: ["#3a3f4a", "#12151c"] },
-  { id: "IMG_0407", caption: "Harrow St (3/12)", days: 11, tone: ["#1a2130", "#080a0f"] },
-  { id: "IMG_0404", caption: "Harrow St (2/12)", days: 12, tone: ["#1d2433", "#090b10"] },
-  { id: "IMG_0401", caption: "Harrow St, dusk (1/12)", days: 12, tone: ["#2c3445", "#0b0e15"] },
-  { id: "IMG_0397", caption: "bus window, rain", days: 14, tone: ["#36404f", "#10131a"] },
-  { id: "IMG_0392", caption: "my desk, finally tidy", days: 16, tone: ["#4a4e57", "#16181e"] },
-  { id: "IMG_0390", caption: "rooftop, Mara, two fingers up. “the only sign that opens anything”", days: 17, tone: ["#565c68", "#1a1d24"] },
-  { id: "IMG_0385", caption: "flowers, Saturday market", days: 19, tone: ["#5b5f68", "#1c1e24"] },
-  { id: "IMG_0380", caption: "Theo's dog, refusing the bath", days: 22, tone: ["#4f535c", "#17191f"] },
-  { id: "IMG_0374", caption: "Mara, laughing at something I said", days: 24, tone: ["#60646d", "#1d1f25"] },
-  { id: "IMG_0371", caption: "kitchen, morning light", days: 26, tone: ["#6b6f77", "#212329"] },
+  { id: "IMG_0419", caption: "source: unknown device", days: 0, fromStage: 2 },
+  { id: "IMG_0418", caption: "window across, night (6/12)", days: 8, key: true },
+  { id: "IMG_0417", caption: "window across (5/12)", days: 8 },
+  { id: "IMG_0416", caption: "cat on the wall, no. 14", days: 9 },
+  { id: "IMG_0413", caption: "Harrow St (4/12)", days: 10 },
+  { id: "IMG_0411", caption: "self-portrait, hallway mirror", days: 10 },
+  { id: "IMG_0407", caption: "Harrow St (3/12)", days: 11 },
+  { id: "IMG_0404", caption: "Harrow St (2/12)", days: 12 },
+  { id: "IMG_0401", caption: "Harrow St, dusk (1/12)", days: 12 },
+  { id: "IMG_0397", caption: "bus window, rain", days: 14 },
+  { id: "IMG_0392", caption: "my desk, finally tidy", days: 16 },
+  { id: "IMG_0390", caption: "rooftop, Mara, two fingers up. “the only sign that opens anything”", days: 17 },
+  { id: "IMG_0385", caption: "flowers, Saturday market", days: 19 },
+  { id: "IMG_0380", caption: "Theo's dog, refusing the bath", days: 22 },
+  { id: "IMG_0374", caption: "Mara, laughing at something I said", days: 24 },
+  { id: "IMG_0371", caption: "kitchen, morning light", days: 26 },
 ];
 
 // ─── Messages ────────────────────────────────────────────────────────────────

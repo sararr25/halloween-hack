@@ -1,8 +1,10 @@
 <Rive version="1" kind="fragment">
     <!--
         IMG_0418 — "the window across, night". Taken from E.V.'s flat.
-        The whole photo is drawn by photo_lens.wgsl (lens.luau runs it over the artboard):
-        the web runtime has no offscreen 2D canvas for scripts, so the scene lives in the shader.
+        A real photo (plate_*.jpg, the IMG_0413 view) and the figure as a cut-out
+        (figure_*.png), drawn by lens.luau; the lit window, grain and lens rim come from
+        photo_lens.wgsl. The images are made from public/photos/IMG_0413.jpg by hand-drawn
+        mask (see docs/tech-setup.md).
           lensX, lensY  0..1  lens centre (host: cursor, or head when the camera is on)
           lens          0..1  lens strength (host fades it in on hover)
           figure        0..1  where the figure on the street stands; the host swaps it
@@ -51,4 +53,10 @@
     </ViewModel>
 
     <ScriptAsset file="lens.luau" name="lens" id="0:80"/>
+    <!-- the photo: IMG_0413's view without the figure, sharp for the lens, pre-blurred for
+         the rest; the figure itself as a cut-out, both ways -->
+    <ImageAsset file="plate_sharp.jpg" name="plate_sharp" id="0:90"/>
+    <ImageAsset file="plate_soft.jpg" name="plate_soft" id="0:91"/>
+    <ImageAsset file="figure_sharp.png" name="figure_sharp" id="0:92"/>
+    <ImageAsset file="figure_soft.png" name="figure_soft" id="0:93"/>
 </Rive>

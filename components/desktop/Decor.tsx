@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { CALENDAR, POLAROID } from "@/lib/story/content";
 import { usePresenceEvent } from "@/lib/presence/context";
+import { photoSrc } from "@/lib/story/content";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { useFill } from "./views/shared";
@@ -144,17 +146,36 @@ export function Polaroid() {
   const { state, dispatch } = useStory();
   return (
     <button className={styles.polaroid} onClick={() => dispatch({ type: "open", id: "photos" })} aria-label="Polaroid: open Photos">
-      <svg viewBox="0 0 120 90" aria-hidden="true">
-        <rect width="120" height="90" fill="#07090d" />
-        <rect x="18" y="4" width="84" height="76" fill="#0e131c" />
-        {[30, 46, 62, 78, 94].flatMap((x) =>
-          [16, 34, 52].map((y) => (
-            <rect key={`${x}-${y}`} x={x - 5} y={y - 6} width="10" height="12" fill={x === 78 && y === 34 ? "#8f9aac" : "#0a0d14"} />
-          )),
-        )}
-        <rect x="0" y="80" width="120" height="10" fill="#050608" />
-      </svg>
+      <Image src={photoSrc("polaroid")} alt="" width={300} height={300} sizes="150px" />
       <span>{POLAROID[state.stage]}</span>
     </button>
   );
+}
+
+// Seconds into stage 3 after which the wallpaper changes anyway (a mouse user may never
+// leave the window), always under a glitch.
+const WALLPAPER_SWAP_S = 25;
+
+/**
+ * E.V.'s own photo as the wallpaper. At stage 3 it changes: in the house across, a window
+ * is lit and someone stands in it. It changes the first time the user looks away.
+ */
+export function Wallpaper() {
+  const { state } = useStory();
+  const [swapped, setSwapped] = useState(false);
+  const due = state.stage >= 3 && !swapped;
+
+  usePresenceEvent("change", (s) => {
+    if (due && s.lookingAway) setSwapped(true);
+  });
+  useEffect(() => {
+    if (!due) return;
+    const t = setTimeout(() => {
+      glitchNow(0.9);
+      setSwapped(true);
+    }, WALLPAPER_SWAP_S * 1000);
+    return () => clearTimeout(t);
+  }, [due]);
+
+  return <div className={styles.wallpaper} data-swapped={swapped} aria-hidden="true" />;
 }

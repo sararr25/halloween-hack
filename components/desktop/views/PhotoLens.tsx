@@ -8,12 +8,12 @@ import type { Stage } from "@/lib/story/store";
 
 RuntimeLoader.setWasmUrl("/rive/rive.wasm");
 
-// Scene coordinates in rive/photo/photo_lens.wgsl: the figure stands at x 330 or 820 of
-// 1200, its body spans y 640–782 of 800.
-const FIGURE_X = (figure: number) => (330 + figure * 490) / 1200;
-const FIGURE_Y = 0.87;
-const HIT_X = 0.045;
-const HIT_Y = 0.1;
+// Photo pixels in rive/photo (1536 x 1024, the IMG_0413 view): the figure stands at x 909
+// or 259 px to its left (figure 1), its body spans y 680-825.
+const FIGURE_X = (figure: number) => (909 - figure * 259) / 1536;
+const FIGURE_Y = 752 / 1024;
+const HIT_X = 0.03;
+const HIT_Y = 0.09;
 const FOUND_AFTER_MS = 700;
 
 const SILHOUETTE: Record<Stage, number> = { 1: 0.12, 2: 0.45, 3: 0.9 };
