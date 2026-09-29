@@ -61,8 +61,17 @@ La CLI compila e mostra tutto bene; sul web lo shader passa per GLSL ES 300 e al
 | Identificatori riservati in GLSL (`half`, e per prudenza `window`, `sample`, `input`, `output`) | rinominare (`hs`, `pane`, …) |
 | Colori decodificati da `u32` con shift (`(h >> 16u) & 255u`) | costanti `vec3<f32>` già calcolate |
 | `GPUSampler.new` nel costruttore dello script | crearlo in `init` (prima non esiste il contesto GPU) |
+| `target` come nome di variabile | è riservato in WGSL stesso (la CLI dà errore): rinominare (`aim`) |
+| `sed` con `\b` per rinominare identificatori sul Mac | il `sed` di macOS non supporta `\b`: usare Python/`re` |
 
 Test rapido quando lo schermo resta nero: `clearColor` rosso nel render pass. Rosso visibile = il pass gira e il problema è nello shader.
+
+### Ciclo di vita delle istanze Rive con GPU canvas (web)
+
+- Con `enableGPUCanvas: true`, `rive.cleanup()` può lanciare `Cannot read properties of undefined (reading 'deleteTexture')`. L'errore smonta la pagina React e la camera si spegne.
+- Regola: **mai distruggere a metà sessione** un'istanza che usa GPU canvas. L'overlay è montato una volta sola in `Experience.tsx`; la foto IMG_0418 è un singleton (`lensInstance()` in `PhotoLens.tsx`) il cui canvas viene staccato dal DOM con `stopRendering()`, non distrutto.
+- I valori che cambiano a ogni frame (posizione della testa per il faro) si scrivono direttamente nel view model (`vm.number("fx/headX").value = …`), non passando dallo stato React.
+- Gli strappi di glitch sono decisi dalla pagina: cambia `fx/pulse` e lo script Luau fa partire lo strappo. Così shader, pagina e suono sono sincronizzati.
 
 ## 3. MediaPipe (testa + gesture)
 
@@ -89,6 +98,10 @@ Come è implementato (vedi `lib/presence/tracker.ts` e `public/presence-worker.j
 
 Gesture predefinite: `Open_Palm`, `Closed_Fist`, `Pointing_Up`, `Thumb_Up`, `Thumb_Down`, `Victory`, `ILoveYou`, `None`.
 Regole: richiede HTTPS (Vercel ok, `localhost` ok). I frame non lasciano mai il browser. Si caricano i modelli solo dopo il consenso alla camera. Se la camera viene rifiutata, il fallback è il mouse.
+
+## 3b. Audio
+
+Nessuna dipendenza e nessun file: `lib/audio/sfx.ts` genera tutto con la Web Audio API (rumore filtrato, oscillatori, un compressore sul master). Il browser tiene l'audio bloccato fino a un gesto dell'utente: lo sblocca il clic su "Open" (`unlockAudio()`). Saltando le fasi con `Alt+D` l'audio resta bloccato. Il mute è salvato in `localStorage` (`recovery.muted`). Il browser integrato di Claude non ha audio: i suoni vanno provati su un browser vero.
 
 ## 4. GSAP
 

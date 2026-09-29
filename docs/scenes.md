@@ -19,24 +19,24 @@ Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e r
 | Chiusura finestra | 180 ms | `power2.in` | solo opacità (l'uscita è più sobria dell'entrata) |
 | "Qualcosa ti segue" (occhio, silhouette) | lag ~300 ms (tarato sul Mac) | EMA α 0.3 + interpolatore cubic Rive | il ritardo è l'inquietudine: mai 1:1 |
 | Testo riscritto | 28–45 ms/char | `steps()` | SplitText + caret; stage 3 con errori corretti |
-| Glitch | 60–140 ms | `none` | frequenza per stage (HANDOVER) |
+| Glitch | 60–140 ms | `none` | visivo ogni 6–11 / 2.5–5 / 0.8–2 s per stage; il **suono** molto più raro (30–50 / 18–30 / 10–16 s), a rotazione su 4 suoni |
 | Transizione di stage | 1.2–2 s | `sine.inOut` | uniform shader via GSAP, mai un taglio netto |
 
 `prefers-reduced-motion`: niente glitch né shiver, i follow diventano statici, il testo appare intero. La storia resta completa.
 
-## Stato di implementazione (2026-09-29, sera)
+## Stato di implementazione (2026-09-29, notte)
 
 | Pezzo | Stato | Dove |
 |---|---|---|
-| Occhio Rive (`Presence`: headX/headY, lookingAway, blink) | ✅ provato sul Mac | `rive/presence/`, `components/PresenceEye.tsx` |
-| Tracking testa, battito, sguardo altrove | ✅ provato sul Mac | `lib/presence/tracker.ts`, `public/presence-worker.js` |
-| Gesture + risposta (battito dell'occhio + riga di stato) | ✅ provato sul Mac (la mano aperta è la più fragile) | `app/lab/Boot.tsx` (`GESTURE_LINES`, testi segnaposto) |
-| S1 minimale: richiesta camera diegetica, calibrazione 2 s, rifiuto salvato | ✅ | `app/lab/Boot.tsx` |
-| Overlay WGSL (grain, vignette, scanline, strappi glitch) | ✅ firmato, visibile nel browser con `enableGPUCanvas: true` | `rive/effects/`, `components/FxOverlay.tsx` |
-| Shader `lens` (S3) | ✅ la foto IMG_0418 è disegnata interamente nello shader, con la lente | `rive/photo/`, `components/desktop/views/PhotoLens.tsx` |
+| Occhio Rive (`Presence`: headX/headY, lookingAway, blink) | ✅ provato sul Mac; ora solo in `/lab` | `rive/presence/` (artboard `Eye`) |
+| Obiettivo di sorveglianza (finestra Camera) | ✅ ghiera che ruota con la testa, diaframma che si chiude se guardi altrove, otturatore sul battito (o sul clic senza camera) | `rive/presence/` (artboard `Lens`), `views/Camera.tsx` |
+| Tracking testa, battito, sguardo altrove, gesture | ✅ provato sul Mac (la mano aperta è la più fragile) | `lib/presence/` |
+| Overlay WGSL (grain, vignette, scanline, strappi glitch sincronizzati, faro) | ✅ visibile nel browser con `enableGPUCanvas: true` | `rive/effects/`, `Experience.tsx` (`Overlay`) |
+| Foto IMG_0418 + lente (S3) | ✅ la foto è disegnata interamente nello shader | `rive/photo/`, `views/PhotoLens.tsx` |
 | Shader `corruption`, `mirror_dither` | ⬜ da fare (S9) | — |
-| S1 dentro `/` (camera + microfono) | ✅ percorso "rifiuto"; percorso "consenso" da provare sul Mac | `components/desktop/Boot.tsx` |
-| Desktop OS, finestre GSAP, S2–S7 con contenuti | ✅ | `components/desktop/`, `lib/story/content.ts` |
+| S1 dentro `/` (camera + microfono, silhouette) | ✅ percorso "rifiuto"; percorso "consenso" da riprovare sul Mac | `components/desktop/Boot.tsx` |
+| S2–S7 con contenuti, progressione 1 → 2 → 3 | ✅ | `components/desktop/`, `lib/story/content.ts` |
+| Suono procedurale | ✅ scritto, mix nuovo non ancora ascoltato | `lib/audio/sfx.ts` |
 | S8–S10 | ⬜ da fare | — |
 
 ### Taratura attuale (in `lib/presence/tracker.ts`)
@@ -79,7 +79,8 @@ Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e r
 |---|---|---|
 | `grain_vignette` | `time, grain, vignette` | sempre attivo, intensità per stage |
 | `glitch_rgb` | `time, amount, seed, neon` | colpi di glitch; `neon` = 1 in stage 3 (split cyan) |
-| `lens` | `center, radius, strength, time` | zoom "Rear Window" sulle foto; centro = cursore o testa |
+| *(realizzati insieme)* | `overlay_fx.wgsl`: `time, grain, vignette, glitch, neon, width, height, seed, headX, headY, beam` | un solo shader a tutto schermo; gli strappi partono quando la pagina cambia `pulse`; il **faro** (`beam`) segue `headX/headY` con 0.6 s di ritardo |
+| `lens` | `center, radius, strength, time` | zoom "Rear Window" sulle foto; centro = cursore o testa. **Realizzato** come `rive/photo/photo_lens.wgsl`: la foto intera è disegnata nello shader (`lensX, lensY, lens, figure, silhouette`), il centro segue il cursore |
 | `corruption` | `amount, time, blockSize` | displacement a blocchi + smear verticale (S9) |
 | `mirror_dither` | `threshold, tint` | feed webcam in dither 1-bit cyan (S9, solo locale) |
 
@@ -105,6 +106,7 @@ L'escalation va dal subliminale all'esplicito:
 - **Interazione:** click su "Avvia recupero". Prompt camera diegetico. La finta calibrazione ("mantieni la posizione", 2 s) registra il baseline di yaw/pitch.
 - **Dati reali:** timestamp di apertura salvato; flag `cameraDenied`.
 - **Uscita:** desktop visibile.
+- **Realizzato:** niente artboard `boot` e **niente iride/occhio** (richiesta della proprietaria: mostrare il tracking qui lo svela). Log battuto con suono di tastiera, `session opened HH:MM:SS` in chiaro (è la futura password). Camera e microfono in un'unica richiesta. Un mirino vuoto; su "hold still" viene tracciata la silhouette dell'operatore (contorno, linea di scansione, punti di riferimento). Se rifiuta: "verification refused" e la silhouette viene disegnata comunque, "operator · reconstructed". Passaggio al desktop con un timer, non con la fine del tween. Il mittente anonimo arriva sul desktop dopo 2.5 s.
 
 ### S2 · Email · stage 1
 - **GSAP:** app Mail con apertura Flip dall'icona, lista con stagger 30 ms.
@@ -112,40 +114,47 @@ L'escalation va dal subliminale all'esplicito:
 - **Shader:** `glitch_rgb` subliminale (ogni 9–16 s).
 - **Interazione:** click sulle mail; l'allegato non si apre ("formato non supportato").
 - **Uscita:** aperta almeno la mail "per dopo", oppure 3 mail qualsiasi.
+- **Realizzato:** l'allegato non è Rive: è il nome del file che si "sgretola" in glifi mentre guardi altrove. Mail ridisegnata: font serif (Newsreader), intestazione vera, un tipo di mail diverso per ogni mittente con blocchi disegnati (accesso "a 40 m da casa", consumi notturni, pacco firmato "E.V." al 4A, provino con il fotogramma 6 bruciato, mail "for later" programmata per arrivare oggi all'ora d'ingresso, ricevuta di lettura a Mara). La clue è aprire "for later"; non cambia lo stage.
 
 ### S3 · Foto · stage 1 → 2
 - **Rive** artboard `photo_street`: la foto contiene la finestra di fronte come nodo animabile.
 - **Shader:** `lens` segue il cursore; con camera attiva si sposta di poco anche con la testa (sporgerti in avanti = zoom? da testare con la scala dei landmark).
 - **Interazione:** zoom su 10 foto. Nella foto chiave, lo sfondo sfocato **cambia posizione quando distogli lo sguardo** (lookingAway → swap di frame in Rive).
 - **Uscita:** zoom sulla figura sfocata → passaggio a **stage 2** (transizione uniform 1.5 s) e compare la cartella `backup_you` (primo neon, respiro Rive 4 s).
+- **Realizzato:** IMG_0418 è interamente nello shader (il runtime web non ha canvas 2D offscreen per gli script). Foto morbida e con grana ovunque, nitida e ingrandita ×2.4 sotto la lente. La figura in strada cambia posto (x 330 ↔ 820) solo mentre guardi altrove; la silhouette nella finestra illuminata cresce con lo stage (0.12 / 0.45 / 0.9). Lente ferma 700 ms sulla figura → stage 2. Le altre 15 foto sono in attesa delle immagini AI (`docs/image-prompts.md`). Il respiro di `backup_you` è CSS, non Rive.
 
 ### S4 · Chat · stage 2 · scelta finta
 - **GSAP:** bolle in entrata con typing indicator. La scelta "chat con Marco / con l'amica" porta alla stessa informazione chiave.
 - **Rive** artboard `webcam_widget`: compare la finestrina webcam con un indicatore REC. L'"occhio" della lente segue `headX/headY` con un lag di 500 ms.
 - **Interazione:** se l'utente guarda via durante una chat, all'ultimo messaggio si aggiunge "…ci sei ancora?".
 - **Uscita:** entrambe le chat, o una più la nota collegata.
+- **Realizzato:** Mara e Theo (più R. Hale). La finestrina webcam non è qui: la **Camera si apre da sola all'ingresso nello stage 2** con l'obiettivo di sorveglianza Rive (`Lens`, lag 0.45 s). Chat con "last seen", "Read HH:MM", un messaggio eliminato che Mara nota, la foto IMG_0418 inviata a Theo (apre Foto), vocali con trascrizione; dallo stage 2 Mara "sta scrivendo…" e non invia nulla. "…are you still there?" in inglese.
 
 ### S5 · Note · stage 2
 - **GSAP SplitText:** una nota riporta la **data reale di oggi** (`Date()`), scritta come se fosse stata digitata a mano (typewriter con un errore corretto).
 - **Interazione:** blink → la riga sotto il cursore sfarfalla per 80 ms (glitch sincronizzato al battito).
 - **Uscita:** aperta la nota datata.
+- **Realizzato:** typewriter GSAP (non SplitText) con un errore corretto, e suono di tastiera. La nota "backup" contiene l'indizio della password ("Four digits, like a clock. The time they come in").
 
 ### S6 · Cronologia browser · stage 2
 - **GSAP:** lista con stagger. Le ricerche compaiono "in tempo reale" mentre le leggi, come se qualcuno stesse ancora cercando.
 - **Rive** `ghost_cursor`: un secondo cursore bone-white scorre la lista mezzo secondo prima del tuo. Con camera attiva segue lo sguardo.
 - **Toast:** "foto scattata dall'esterno" (HANDOVER stage 2).
 - **Uscita:** click sull'ultima ricerca → indizio della password del backup.
+- **Realizzato:** niente cursore fantasma per ora. Dallo stage 2 compaiono tre ricerche "just now" battute a tastiera (una contiene l'ora d'ingresso). Il toast "foto dall'esterno" è di sistema: "IMG_0419 added · source: unknown device".
 
 ### S7 · Cartella Backup · stage 2 → 3
 - **Rive** `backup_you`: la password sbaglia → shake orizzontale 6 px (niente bounce). Password giusta → apertura.
 - **Gesture (camera attiva):** nei file precedenti compare un indizio visivo, una foto con la mano a `Victory` / `Pointing_Up`. Se l'utente fa quel gesto alla camera, la cartella si apre da sola, **senza che gli sia mai stato detto che la camera guarda le mani**. È il momento del "come ha fatto?".
 - **Uscita:** passaggio a **stage 3**.
+- **Realizzato:** 4 cifre = ora locale d'apertura della pagina (`HHMM`), rivedibile nel menu Recovery. Shake CSS/GSAP da 6 px. Dopo 2 errori il mittente anonimo scrive "…check her notes.". Con camera: `Victory` apre la cartella (indizio nella foto IMG_0390). Contenuto: readme di E.V. e tre log, `session_0418.log · in progress` con l'ora di apertura e il tempo impiegato.
 
 ### S8 · Primo colpo dati reali · stage 3
 - **Rive** artboard `session_log`: log tecnico con `sessionSeconds` legato in data binding ("Sessione attiva da 6m 42s. Ultima interruzione: 12s fa", dove l'interruzione viene da `lookingAway`/`document.hidden`).
 - **Shader:** `glitch_rgb` con `neon=1`, ogni 0.9–2.6 s; `grain_vignette` alto.
 - **Gesture:** se l'utente copre la camera o mostra `Open_Palm`, lo schermo si oscura per 1 s e appare in mono: "non serve coprirti". Con camera negata: stesso effetto su un click fuori dalla finestra.
 - **Uscita:** chiusura del log (o dopo 20 s il log si chiude da solo).
+- **Realizzato in parte:** il palmo aperto nello stage 3 fa partire un glitch e il mittente anonimo scrive "no need to cover yourself." (una volta). Il log di sessione è ancora da fare.
 
 ### S9 · Reveal · stage 3
 - **Timeline GSAP master** (≈12 s): `corruption` 0→1, le finestre si chiudono da sole in ordine inverso di apertura, il testo della nota si riscrive in seconda persona usando i dati reali (ora locale, tempo per trovare il backup, ritorni indietro da `localStorage`).
@@ -159,6 +168,12 @@ L'escalation va dal subliminale all'esplicito:
 - Nessun'altra spiegazione. La digitazione è libera; con Invio lo schermo torna a S1 con "non è la prima volta" (flag in `localStorage`).
 
 ---
+
+## Aggiunte non previste nella spec (2026-09-29)
+
+- **Faro** (overlay WGSL): un fascio freddo dall'alto il cui cerchio segue la testa (il mouse senza camera), con anelli concentrici dentro. 25 % / 60 % / 100 % per stage, ciano nello stage 3.
+- **Decorazioni del desktop** (dettaglio in `docs/desktop.md`): il Segno, `viewers 1/2/3`, vetro incrinato, invito "Parallax", manuale dell'operatore, screenshot del tuo schermo, polaroid, calendario.
+- **Glitch sincronizzati:** ogni glitch fa partire insieme lo strappo nello shader, uno sfasamento RGB della pagina e (più raramente) un suono.
 
 ## Rischi e verifiche
 - **Permesso camera:** va chiesto dopo un gesto dell'utente e solo su HTTPS. Su Safari va testato `delegate: "GPU"`; fallback `CPU`.

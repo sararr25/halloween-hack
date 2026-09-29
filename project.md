@@ -98,18 +98,35 @@ Tre agganci reali, tutti banali in JS vanilla, zero backend:
 
 ## 8. Stato del progetto / prossimi passi
 
+Aggiornato il 2026-09-29 (sera). Dettagli in `HANDOVER.md`.
+
+**Fatto**
+
 - [x] Concept, riferimenti, twist scelti
 - [x] Scaletta scena-per-scena (Atto 1-3 + finale)
-- [x] Direzione visiva: palette Ink + neon cyan, 3 stage (`HANDOVER.md`, `prototype/design-mockup.html`)
+- [x] Direzione visiva: palette Ink + neon cyan, 3 stage (`HANDOVER.md`)
 - [x] Spec scene/animazioni/interazioni (`docs/scenes.md`) e setup Rive CLI · WGSL · MediaPipe · GSAP (`docs/tech-setup.md`)
-- [x] Tesi di interazione validata (2026-09-29)
-- [x] Rete aperta per `*.rive.app`, Rive CLI installata (container + Mac)
+- [x] Tesi di interazione validata
 - [x] Setup tecnico: Next.js 16 + TS + pnpm, Rive, MediaPipe in Web Worker, GSAP
-- [x] S1 minimale in `/lab`: occhio Rive che segue la testa, battito, sguardo altrove, gesture con risposta. Provata sul Mac
-- [ ] Firmare gli shader (`rive login` + `pnpm rive:publish` sul Mac) e vedere l'overlay WGSL nel browser
-- [ ] Tono e voce dei testi (quanto letterario vs secco/clinico); le risposte alle gesture sono segnaposto
-- [ ] Lista precisa degli asset da produrre (quante foto, mail, note, messaggi chat)
-- [ ] Desktop OS vero: finestre trascinabili, app (Mail, Foto, Chat, Note, Cronologia, Backup)
-- [ ] Build delle 10 schermate
+- [x] S1 minimale in `/lab`, provata sul Mac
+- [x] Shader firmati e visibili nel browser (serviva `enableGPUCanvas: true`)
+- [x] Desktop OS vero: finestre trascinabili, apertura con un clic, app Mail, Foto, Messaggi, Note, Cronologia, Telefono, Cestino, backup_you, Camera
+- [x] S1 dentro l'esperienza: log di recupero, camera + microfono in un'unica richiesta, silhouette dell'operatore disegnata (niente occhio, non si svela il tracking)
+- [x] S2–S7 con contenuti veri (`lib/story/content.ts`), progressione stage 1 → 2 → 3, mittente anonimo, password = ora di ingresso
+- [x] IMG_0418 disegnata in WGSL con lente (Rear Window)
+- [x] Decorazioni del desktop a tema (Black Mirror, The Game, Memento): il Segno, contatore `viewers`, schermo incrinato, invito "Parallax", manuale dell'operatore, screenshot del tuo schermo, polaroid, calendario
+- [x] Camera come obiettivo di sorveglianza in Rive; faro WGSL che segue la testa; risposta al palmo aperto
+- [x] Sound design procedurale (tastiera, 4 glitch sonori rari, otturatore, notifica, drone) con mute
+- [x] Mail e Messaggi ridisegnati, font serif per le mail, niente trattini lunghi nei testi
+- [x] Prompt per le immagini AI (`docs/image-prompts.md`)
+
+**Da fare**
+
+- [ ] Generare le immagini AI e collegarle (foto, wallpaper, polaroid)
+- [ ] Test sul Mac con webcam e cuffie del percorso completo (consenso camera, faro, otturatore, palmo, volumi)
+- [ ] Rilettura dei testi da parte della proprietaria (tono)
+- [ ] S8 log di sessione, S9 reveal (shader `corruption` + `mirror_dither`, audio ambientale), S10 login + lista casi + spegnimento CRT
+- [ ] Voci TTS per memo vocali e segreterie
+- [ ] Decidere il piano Rive (watermark)
 - [ ] Deploy su Vercel
-- [ ] Playtest e tuning del ritmo/degli indizi
+- [ ] Playtest e tuning del ritmo/degli indizi, Safari/Firefox, `prefers-reduced-motion`

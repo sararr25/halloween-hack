@@ -1,24 +1,17 @@
 # Handover
 
-Status as of 2026-09-29 (evening) · branch `claude/youthful-pascal-m6eofy` · no PR opened yet.
+Status as of 2026-09-29 (night) · branch `claude/youthful-pascal-m6eofy` · no PR opened yet · last code commit `f7a1ba8`.
 
-Read in this order: this file → `project.md` (concept, twist, scene outline) → `docs/desktop.md` (experience decisions, desktop structure, the Sign) → `docs/scenes.md` (per-scene animation/interaction spec, implementation status, tuning) → `docs/tech-setup.md` (install, Rive CLI, MediaPipe, troubleshooting).
+Read in this order: this file → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
 
 ## TL;DR
 
-- Hackathon: Contra × Rive Halloween challenge, solo, 18 days. Psychological thriller on a fake desktop OS; twist = "you are the one being watched", built from real session data.
-- **Working today at `/`:** premise → **S1 boot** (English recovery log, camera + microphone asked in one prompt as "operator verification", calibration, Rive eye) → **desktop with all apps filled** (Mail, Photos, Messages, Notes, History, Phone, Trash, backup_you, Camera). Story content lives in `lib/story/content.ts`.
-- **Progression works end to end:** holding the lens on the figure in IMG_0418 → stage 2 (REC, Camera opens by itself, `backup_you`, IMG_0419, E.V.'s voicemail, live searches) → code = entry time `HHMM` (or Victory gesture with camera) → stage 3. The anonymous sender nudges ("Start with the mail", "…check her notes" after 2 wrong codes, one idle nudge per stage).
-- **WGSL:** IMG_0418 is drawn entirely by a WGSL shader in Rive (`rive/photo`), with a lens that sharpens and magnifies under the cursor. The overlay shader (`rive/effects`) now really renders on the web: it needed `enableGPUCanvas: true` (before, only the watermark showed).
-- **Sound (procedural, `lib/audio/sfx.ts`):** Web Audio only, no files: keystrokes on every typed text (boot log, anonymous notes, E.V.'s dated note, live searches), glitch sounds, soft notification, room-tone drone that thickens per stage. Unlocked by the "Open" click; mute toggle (menubar, or bottom right before the desktop), saved in `localStorage`.
-- **Glitch:** scheduled by the page (`Overlay` in `Experience.tsx`): each one fires the shader tear (`fx/pulse`), a 140 ms RGB split of the page (`[data-glitch]`) and the sound together. Cadence 6–11 s / 2.5–5 s / 0.8–2 s per stage. Story moments call `glitchNow()`.
-- **Boot:** no eye (it would reveal the head tracking). A viewfinder; on "hold still" the operator's silhouette is traced with a scan line and reference points ("reconstructed" when the camera is refused).
-- **Desktop decor** (`Decor.tsx`, content in `content.ts`): the Sign on the wallpaper (moves only while you look away), calendar widget with events that appear by themselves, Memento polaroid (rewritten at stage 3), files `invitation.pdf` (The Game), `operator_manual.pdf`, `Screenshot 23.02.png` (shows *your* open windows), `viewers 1→3` in the menubar, cracked glass at stage 2–3. Icons open with a single click.
-- **Camera window:** Rive artboard `Lens` in `rive/presence` (surveillance lens: focus ring turns with the head, diaphragm narrows when you look away, shutter fires on a blink, or on every click without camera).
-- **Searchlight:** in `overlay_fx.wgsl`: a cold beam from above whose spot follows the head (mouse without camera) with a 0.6 s lag, faint rings inside, cyan at stage 3. `fx/headX`, `fx/headY`, `fx/beam` are written straight to the view model (no React re-render).
-- **Glitch sound:** much rarer than the visual glitch (30–50 s / 18–30 s / 10–16 s) and rotates between four sounds.
-- **Photos to generate:** prompts in `docs/image-prompts.md` (names and folders included).
-- **Next:** wire the AI photos when they exist; S8 session log, S9 reveal, S10 login.
+- **What it is:** Contra × Rive Halloween challenge, solo, 18 days. A psychological thriller on a fake desktop OS. The user "recovers" the files of E.V., missing for 7 days; the twist is that the user is the one being watched, built from real session data (entry time, time to each clue, camera answer).
+- **Playable today at `/`, end to end up to stage 3:** premise → S1 boot → desktop with every app filled → stage 1 → 2 → 3. S8 (session log), S9 (reveal) and S10 (login) are still placeholders.
+- **Rive + WGSL in use:** three Rive projects. `presence` (Eye for `/lab`, Lens for the Camera window, no scripts), `effects` (full-screen overlay: grain, vignette, glitch tears, searchlight), `photo` (IMG_0418 drawn entirely in a WGSL shader, with a magnifying lens).
+- **Sound:** procedural Web Audio, no files. Keystrokes, four glitch sounds (rare), notification, shutter, room tone.
+- **Not verified yet:** the grant path with a real camera + microphone after the latest changes (head-following searchlight, Lens shutter on blink, palm answer), and the new sound mix.
+- **Waiting on the owner:** the AI photos (`docs/image-prompts.md`), a Mac test with webcam and headphones, a read of the copy in `lib/story/content.ts`, the Rive plan decision (watermark).
 
 ## How to run
 
@@ -26,162 +19,186 @@ Read in this order: this file → `project.md` (concept, twist, scene outline) �
 git checkout claude/youthful-pascal-m6eofy
 corepack enable && corepack prepare pnpm@10.33.0 --activate   # project pins pnpm 10.33
 pnpm install        # also runs scripts/sync-assets.mjs (wasm + MediaPipe models → public/)
-pnpm dev            # http://localhost:3000 (experience) · /lab (S1 eye test bench)
+pnpm dev            # http://localhost:3000 (experience) · /lab (eye test bench)
 ```
 
-At `/`: Open → Start recovery → double-click icons. Dev only: Alt+1/2/3 = stage, Alt+P/B/D/R/L = phase (premise/boot/desktop/reveal/login).
-
-If `pnpm dev` says "Another next dev server is already running", use the existing one on :3000 or `kill <PID>` it.
-
-In `/lab`: "Avvia recupero" → allow camera → hold still 2 s. Press `D` for the debug overlay (source, headX/Y, lookingAway, faceLost, gesture, hands status, raw gesture).
-
-Other scripts:
+- At `/`: Open (unlocks audio) → Start recovery → allow camera + microphone → desktop. **One click** opens icons and files.
+- Dev only: `Alt+1/2/3` = stage, `Alt+P/B/D/R/L` = phase (premise/boot/desktop/reveal/login). Jumping straight to the desktop skips the boot, so audio stays locked until the first click.
+- Best test: an **incognito window** (extensions add `bis_skin_checked` attributes and a hydration warning that is not ours) with **headphones**.
+- If `pnpm dev` says "Another next dev server is already running", open the existing one on :3000 or `kill <PID>` it.
+- `/lab`: "Avvia recupero" → allow camera → hold still 2 s. `D` shows the debug overlay (source, headX/Y, lookingAway, faceLost, gesture, hands status, raw gesture).
 
 | Script | Does |
 |---|---|
-| `pnpm rive:build` | compiles `rive/presence` → `public/rive/presence.riv` (no scripts, unsigned is fine, works in the cloud container) |
-| `pnpm rive:publish` | signs `rive/effects` and `rive/photo` → `public/rive/*.riv` (**Mac only**, needs `rive login`; commit the output; the CLI sometimes segfaults while signing: rerun) |
+| `pnpm rive:build` | compiles `rive/presence` → `public/rive/presence.riv` (no scripts, unsigned is fine) |
+| `pnpm rive:publish` | signs `rive/effects` and `rive/photo` → `public/rive/*.riv` (**Mac only**, needs `rive login`; commit the output). The Rive CLI 1.2.0 sometimes segfaults while signing: rerun |
 | `pnpm lint` / `pnpm build` | both clean at the last commit |
+
+## The experience today, step by step
+
+| Phase | What happens | Where |
+|---|---|---|
+| Premise | "E.V. has been missing for 7 days…", Open, "best with headphones", sound toggle bottom right | `Experience.tsx` |
+| S1 boot | Recovery log typed with keystrokes, including `session opened HH:MM:SS` (the future password). Camera + mic in **one** prompt as "operator verification". A viewfinder: on "hold still" the operator's silhouette is traced (scan line, reference points). Refused: "verification refused", the silhouette is drawn anyway as "operator · reconstructed". No eye: it would reveal the head tracking | `Boot.tsx` |
+| Desktop, stage 1 | Anonymous sender: "She kept everything. Start with the mail." Apps on the left, files on the right, calendar, polaroid, the Sign on the wallpaper, searchlight at 25 % | `Desktop.tsx`, `Decor.tsx` |
+| → stage 2 | Hold the lens on the figure in the street in IMG_0418 for 700 ms. REC, `viewers 2`, Camera opens by itself (Rive Lens), `backup_you` (neon), IMG_0419 "source: unknown device", E.V.'s voicemail dated after she vanished, searches typed live, Mara "typing…" that never sends, calendar event "23:02 leave the light on", cracked glass, searchlight 60 % | `PhotoLens.tsx`, `useDirector` |
+| → stage 3 | `backup_you` code = the local time the page was opened, `HHMM` (or two fingers up with the camera on). Two wrong codes → "…check her notes." Contents: E.V.'s readme + `session_0418.log · in progress`. Toast "you spent Ns getting here", `viewers 3` in neon, full crack, polaroid rewritten "it was never the window", calendar "HH:MM operator", cyan searchlight. Open palm → "no need to cover yourself." | `Backup.tsx`, `useDirector` |
+| S8 / S9 / S10 | placeholders | `Experience.tsx` |
+
+Idle help: one nudge per stage after 100 s without progress ("…look at her photos. Closely." / "…it's a time. Four digits."). The Recovery menu in the menubar shows the session log again (entry time, camera answer).
 
 ## Architecture
 
 ```
-webcam ─▶ tracker.ts (main) ──ImageBitmap──▶ presence-worker.js (MediaPipe FaceLandmarker + GestureRecognizer)
-                ▲                                         │ numbers only (matrix m8/m9/m10, blink score, top gesture)
-                └──────────── apply(): yaw/pitch, EMA, lookingAway, blink, gesture hold ◀─┘
-                │ PresenceState + onBlink/onGesture
-                ▼
-Boot.tsx (S1) ─▶ PresenceEye.tsx ─▶ Rive view model "Presence" (headX, headY, lookingAway, blink)
-             └─▶ FxOverlay.tsx  ─▶ Rive view model "Overlay.fx" (grain, vignette, glitch, neon) → WGSL
+webcam ─▶ tracker.ts ──ImageBitmap──▶ presence-worker.js (MediaPipe face + gestures, numbers only)
+             │ PresenceState, onBlink, onGesture
+             ▼
+PresenceProvider (lib/presence/context.tsx) · one tracker for the whole session, hidden <video>
+   ├─▶ Camera window ─▶ PresenceEye artboard="Lens" (rive/presence)
+   ├─▶ Overlay (Experience.tsx) ─▶ FxOverlay ─▶ effects.riv fx/headX, fx/headY, fx/beam (searchlight)
+   ├─▶ PhotoLens (figure swaps while lookingAway)
+   ├─▶ TheSign (moves while lookingAway), Messages ("…are you still there?"), Mail (attachment scrambles)
+   └─▶ useDirector (palm at stage 3), Backup (Victory gesture)
+
+StoryProvider (lib/story/store.tsx): phase, stage, windows, clues, openedAt, session, notices, wrongCodes
+   └─▶ useDirector (Desktop.tsx): clues → stages, anonymous nudges
+
+Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.glitching (DOM split) + glitchSound()
 ```
 
 | Path | What |
 |---|---|
-| `app/lab/Boot.tsx`, `lab.module.css` | S1: diegetic camera request, calibration, status line (GSAP typewriter), gesture replies (`GESTURE_LINES`, placeholder copy), debug overlay |
-| `lib/presence/tracker.ts` | `PresenceTracker`: public API `startMouse()`, `startCamera(video)`, `calibrate()`, `stop()`, events `onChange/onBlink/onGesture`. All tuning constants at the top |
-| `public/presence-worker.js` | classic worker, `importScripts('/mediapipe/vision_bundle.js')` (IIFE global `Vision`). One frame in flight |
-| `components/PresenceEye.tsx` | loads `/rive/presence.riv` with `@rive-app/webgl2`, writes the view model |
-| `components/FxOverlay.tsx` | mounts `/rive/effects.riv` only if it exists (HEAD check); a 404 in the console until it is signed is expected |
-| `rive/presence/` | Rive CLI project, the eye: RML only, data binding + state machine (Blink, Attention layers), cubic lag converters |
-| `rive/effects/` | Rive CLI project: `overlay_fx.wgsl` + `fx.luau` (ScriptedLayout → GPUCanvas → drawImage). `shaderOutputs: [glsl, wgsl]` |
-| `scripts/sync-assets.mjs` | copies MediaPipe/Rive wasm and IIFE bundle into `public/`, downloads models (gitignored) |
-| `.claude/hooks/session-setup.sh` | cloud SessionStart: genjutsu skill, Rive CLI + EGL libs, `pnpm install` |
-| `lib/story/store.tsx` | `StoryProvider` + `useStory()`: reducer with `phase`, `stage`, `windows` (open order kept for S9), `clues` (ms since start), `openedAt`, `session` (camera/mic answer + time), `notices`, `wrongCodes`. Dev shortcuts |
-| `lib/story/content.ts` | **all story text**: mails, photos, chats, notes, searches, calls/voicemails, trash, backup readme. Tokens `{{entry}}`, `{{now}}`, `{{today}}` are filled with the user's session data |
+| `lib/story/content.ts` | **All story text**: mails (+ sign-in, usage, tracking, contact sheet, books blocks), photos, chats, notes, searches, calls/voicemails, trash, backup readme, invitation, manual, calendar, polaroid. Tokens `{{entry}}`, `{{now}}`, `{{today}}` |
+| `lib/story/store.tsx` | reducer: `phase`, `stage`, `windows` (open order kept for S9), `clues` (ms since start), `openedAt`, `session` (camera/mic answer + time), `notices`, `wrongCodes`. Dev shortcuts |
 | `lib/story/time.ts` | `clock`, `entryCode` (backup password), `duration`, `daysAgo`, `today` |
-| `lib/presence/context.tsx` | `PresenceProvider`: one `PresenceTracker` for the whole experience, hidden `<video>`, `usePresenceEvent`, `useLookingAway` |
-| `components/desktop/Experience.tsx` | phase switch (premise, S1 boot, desktop, reveal/login placeholders) + small-screen diegetic block |
-| `components/desktop/Boot.tsx` | S1: recovery log (typewriter), camera + mic request, calibration, Rive eye; timer-based hand-off to the desktop |
-| `components/desktop/Desktop.tsx` | menubar (E.V., **Recovery** menu with the session log = where the entry time can be read again, clock, REC), icons, windows, `useDirector` (clues → stages, anonymous nudges), Notices, FxOverlay |
-| `components/desktop/views/*` | one file per app. `PhotoLens.tsx` drives `photo.riv` (lens, figure swap while `lookingAway`, silhouette per stage, "found" after 700 ms on the figure) |
-| `rive/photo/` | IMG_0418: `photo_lens.wgsl` draws the whole night photo + the lens; `lens.luau` feeds uniforms from the `Photo` view model |
-| `components/desktop/Window.tsx` | glass window: GSAP open from icon, fade close, drag by title bar, focus/z-order |
-| `components/desktop/apps.tsx` | app registry (title, glyph, size, `iconFrom` stage, placeholder body) |
-| `prototype/design-mockup.html` | static visual mockup of the desktop in the 3 stages (reference only) |
+| `lib/story/glitch.ts` | `glitchNow(strength, { sound })`: story moments ask for a glitch now |
+| `lib/audio/sfx.ts` | Web Audio engine: `unlockAudio`, `key`, `glitch`, `staticSwell`, `tapeWarble`, `subThud`, `glitchSound` (rotates the four), `shutter`, `blip`, `drone`, mute (`recovery.muted` in localStorage) |
+| `lib/presence/tracker.ts` | `PresenceTracker`: `startMouse()`, `startCamera(video, { withMic })`, `calibrate()`, `stop()`. Tuning constants at the top |
+| `lib/presence/context.tsx` | `PresenceProvider`, `usePresence`, `usePresenceEvent`, `useLookingAway` |
+| `components/desktop/Experience.tsx` | phase switch, the single persistent `Overlay` (glitch scheduler, drone, searchlight), `FloatingSound`, small-screen block |
+| `components/desktop/Boot.tsx` + `boot.module.css` | S1 |
+| `components/desktop/Desktop.tsx` | menubar (E.V., Recovery menu, `viewers N`, REC, sound, battery, clock), app icons, files, `useDirector`, windows, Notices, Crack |
+| `components/desktop/Decor.tsx` | `SignGlyph`, `TheSign`, `Crack`, `CalendarWidget`, `Polaroid` |
+| `components/desktop/apps.tsx` | app registry: title, glyph, size, `iconFrom` stage, `place: "file"` for desktop files, body |
+| `components/desktop/views/*` | one file per app: `Mail` (+ `mail.module.css`), `Messages` (+ `messages.module.css`), `Photos`, `PhotoLens`, `Notes`, `History`, `Phone`, `Trash`, `Backup`, `Camera`, `Docs` (invitation, manual, screenshot), `shared` |
+| `components/desktop/Window.tsx` | glass window: open from icon, fade close, drag, focus/z-order |
+| `components/desktop/Notices.tsx` | notifications; the anonymous sender types with keystrokes |
+| `components/desktop/SoundToggle.tsx` | mute toggle (`useSyncExternalStore`) |
+| `components/FxOverlay.tsx` | mounts `effects.riv`; `levels` prop + `onVm` for per-frame values |
+| `components/PresenceEye.tsx` | `presence.riv`, `artboard="Eye"` or `"Lens"` |
+| `rive/presence/` | Eye + Lens artboards, RML only, `Presence` view model |
+| `rive/effects/` | `overlay_fx.wgsl` + `fx.luau`: grain, vignette, scanlines, tears on `pulse`, searchlight |
+| `rive/photo/` | `photo_lens.wgsl` draws IMG_0418 + lens; `lens.luau` feeds uniforms |
+| `app/lab/` | the original eye test bench (own overlay, no glitch scheduler) |
+| `docs/image-prompts.md` | prompts, names and folders for every AI image |
 
-Key decisions and why:
+### Key decisions and why
 
-- **Eye has no scripts** → unsigned `.riv` plays on the web, so it can be built in the cloud. Anything needing Luau/WGSL lives in a separate Rive project that is signed on the Mac.
-- **MediaPipe in a classic worker, not bundled** → Next/Turbopack module workers break MediaPipe's `importScripts` loader. The worker kept the animations at 60 fps: on a CPU-only container, fps with tracking went from 3 to about 27.
-- **Self-hosted wasm/models** → no runtime CDN (jsdelivr is blocked in cloud containers, and self-hosting is more robust).
-- **Camera asked for inside the fiction, with a mouse fallback for everything.** A refusal is stored (`localStorage recovery.cameraDenied`) for the story to use. Frames never leave the browser.
+- **Rive GPU instances are never destroyed mid-session.** With `enableGPUCanvas` the runtime's `cleanup()` can crash (`glDeleteTextures` on an undefined context); the error unmounted the page and switched the camera off. So: one overlay for the whole experience, and the photo lens is a singleton whose canvas is detached, not destroyed.
+- **IMG_0418 lives in the shader**, not in a Rive artboard sampled as a texture: script 2D canvases (`context:canvas()`) don't work in the web runtime.
+- **Glitches are scheduled by the page**, not by Luau: that's the only way the shader tear, the DOM split and the sound land on the same frame.
+- **Glitch sound is much rarer than the visual glitch** (owner feedback: it broke reading) and rotates between four sounds.
+- **Presence values that change every frame go straight to the view model** (`onVm` setter), not through React state.
+- **No eye in the boot** (owner feedback): showing tracking that early spoils it. Tracking becomes visible in stage 2 (Camera Lens, searchlight) and explicit in stage 3 (palm).
+- **One click opens** icons: people expect a web page to answer a single click.
+- **MediaPipe in a classic worker, self-hosted assets, camera asked inside the fiction, mouse fallback for everything**: unchanged.
 
 ## Verified vs not
 
 | | Status |
 |---|---|
-| Eye follow / blink / look-away in Rive (CLI screenshots) | ✅ |
-| Worker pipeline loads and runs (Playwright + fake camera) | ✅ |
-| Real face + gestures on the owner's Mac (Chrome) | ✅ head direction correct, blink OK, look-away OK, gestures OK (open palm weakest) |
-| Head sensitivity after retune (18°/12°) and faster lag (0.3 s) | ✅ owner confirmed "funziona" |
-| WGSL overlay in a browser | ✅ renders (grain, vignette, glitch tears) since `enableGPUCanvas: true`; **Rive free-plan watermark** on top |
-| WGSL photo + lens (IMG_0418) in a browser | ✅ in-app browser (Chrome): lens, found → stage 2 |
-| S1 boot inside `/` | ✅ refusal path (camera blocked in the in-app browser). ❌ **grant path with a real camera + mic not tested yet** |
-| Apps S2–S7, stages 1→2→3, nudges, wrong codes, entry-time password | ✅ in-app browser |
-| Desktop skeleton: open/drag/close/focus windows, stage 1→2→3, Camera opens once | ✅ in-app browser (Chrome) |
+| Real face + gestures on the owner's Mac (Chrome), `/lab` | ✅ |
+| S1 boot with real camera + mic on the owner's Mac | ✅ ran; the teardown crash it caused is fixed (`c101230`). ⚠️ not re-tested after the silhouette boot |
+| Refusal path, whole flow to stage 3 (in-app browser, camera blocked) | ✅ |
+| WGSL overlay (grain, tears, searchlight following the mouse) in a browser | ✅ |
+| WGSL photo + lens, found → stage 2 | ✅ |
+| Rive Lens in the Camera window (follow, narrow on look-away) | ✅ CLI renders + in-app browser |
+| Lens shutter on a real blink, searchlight on a real head, palm answer | ❌ needs the owner's webcam |
+| Sound (keystrokes, glitch rotation, shutter, drone) | ⚠️ the owner heard an earlier version (too much glitch, fixed); the new mix is unheard |
+| Mail and Messages redesign | ✅ in-app browser |
 | Safari / Firefox, low-end hardware | ❌ untested |
 | Vercel deploy | ❌ not done |
 
 ## Owner actions pending
 
-1. Decide the Rive plan: the watermark is visible now; removing it needs Cadet or higher (paid).
-2. Decide tone and voice of the copy (replaces the placeholder gesture replies).
+1. **Generate the images** with `docs/image-prompts.md` and drop them into `public/photos/` and `public/wallpaper/` with the exact names. Then ask to wire them.
+2. **Test on the Mac with webcam and headphones**, incognito: boot grant path, searchlight on the head, Lens shutter on a blink, palm at stage 3 (`Alt+3` to jump), sound levels.
+3. **Read the copy** in `lib/story/content.ts` (mails, chats, notes, invitation, manual) and mark what's off in tone.
+4. **Rive plan:** the free-plan watermark shows on every Rive canvas. Removing it needs Cadet or higher (paid) plus `rive push` for `rive/photo`.
 
 ## Next steps (recommended order)
 
-1. Owner: test S1 on the Mac with the real camera + mic (one prompt for both), then the whole path to stage 3. Read the content in `lib/story/content.ts` and change the tone where it is off.
-2. S8 session log (Rive `session_log`, real `sessionSeconds`, "no need to cover yourself"), S9 reveal (`corruption` + `mirror_dither` shaders, windows closing in reverse, ~1 s of ambient audio), S10 login + case list + CRT switch-off.
-3. The Sign (design + "moves only when you are not looking"). Photos: AI images for the 15 placeholder tiles (IMG_0418 stays the shader). Audio: TTS for voice memos/voicemails (the Phone app shows a text description of the audio until then).
-4. Gesture polish: per-gesture thresholds (Open_Palm lower), S7 gesture unlock, S8 "non serve coprirti".
-5. Deploy to Vercel (HTTPS needed for camera). Run `pnpm install` in the build so the models are fetched.
-6. Playtest, `prefers-reduced-motion` pass, perf on low-end hardware.
+1. **Wire the AI photos** when they exist: thumbnails and viewer in `Photos.tsx` (IMG_0418 stays the shader), wallpaper `ev-home.jpg` with the `ev-home-3.jpg` swap at stage 3, `polaroid.jpg` in `Decor.tsx`. A listed file that is missing should fail loudly in dev, not fall back silently.
+2. **S8 session log**: a Rive `session_log` with real `sessionSeconds` and "last interruption Ns ago" from `lookingAway` / `document.hidden`; it closes by itself after 20 s.
+3. **S9 reveal**: GSAP master timeline, `corruption` + `mirror_dither` WGSL shaders, windows closing in reverse open order, the silhouette in the lit window copying the user 1:1, ~1 s of the user's own ambient audio (mic permission already asked in S1), then black.
+4. **S10 login**: empty username field, Enter → case list with `Case #0418 · <typed name>`, CRT switch-off, credits line "No frames or audio left your device."
+5. **Audio assets**: TTS for voice memos and voicemails (the Phone app shows a text description of the audio until then). Check licences.
+6. **Ship**: Vercel (HTTPS for the camera; the build must run `pnpm install` so the models are fetched), playtest, `prefers-reduced-motion` pass, Safari/Firefox, low-end hardware.
 
 ## Known issues / gotchas
 
-- The in-app/automation browser pauses `requestAnimationFrame` when the pane is hidden, so GSAP animations (and window close, which completes on animation end) seem stuck. Not a bug: test with the page visible.
+- **Rive web + WGSL** (details and fixes in `docs/tech-setup.md` §2): `enableGPUCanvas: true` is required; never destroy those instances mid-session; no script 2D canvases on the web; some WGSL compiles in the CLI but draws black on WebGL2 (reserved words like `half`; `u32` colour decoding); `target` is reserved in WGSL itself. When a shader draws black, set the render pass `clearColor` to red: red visible = the pass runs and the problem is in the shader.
+- **In-app browser**: the pane is often "hidden", so `requestAnimationFrame` pauses. GSAP, Rive and screenshots look stuck or black until the mouse moves over the page. Phase changes run on timers for this reason. Camera and audio are blocked there.
+- **Hydration warning with `bis_skin_checked` / `bis_register`**: a browser extension, not our code. Use incognito.
+- The first frames of every Rive canvas can show the watermark on black while the file loads.
 - `docs/scenes.md` S10 is superseded by `docs/desktop.md` (case list + CRT switch-off).
-- **Never tear down a Rive instance that uses `enableGPUCanvas` mid-session:** its `cleanup()` can crash (`glDeleteTextures` on an undefined context), the error unmounts the page and the camera stops. The overlay is mounted once in `Experience.tsx`; the photo lens is a singleton whose canvas is detached, not destroyed.
-- **Rive web + WGSL:** `enableGPUCanvas: true` is required; script 2D canvases (`context:canvas()`) do not work on the web; some WGSL compiles in the CLI but draws black on WebGL2 (`half` is reserved, `u32` colour decoding). See `docs/tech-setup.md` §2.
-- In the in-app browser the page is often "hidden": Rive and GSAP draw only when the pane renders frames, so screenshots can look black or stuck. Move the mouse over the canvas / take a second screenshot.
-
-- Dev-only Next overlays from **browser extensions** (`bis_skin_checked` hydration warning, `M_ID` TypeError from `chrome-extension://…`) are not our code. Ignore them, or use incognito.
 - A pnpm error mentioning unrelated packages (alchemy/prisma…) means pnpm is reading another project, or pnpm 11 is in use. See `docs/tech-setup.md` §7.
 - `rive login` cannot complete inside cloud containers (localhost OAuth redirect).
 - `next dev` rewrites the `AGENTS.md` Next block. Commit it as is.
-- The mockup in `prototype/` still has placeholder content (`m.lenhart`, CSS photos).
+- `prototype/design-mockup.html` is the old static mockup (placeholder content), reference only.
 
-## Design direction (unchanged)
+## Design direction
 
 ### Decisions (agreed with the owner)
 
 | Topic | Decision |
 |---|---|
 | Format | Desktop website simulating a computer OS (not mobile) |
-| Mood | Dark, horror-leaning psychological thriller; no Halloween clichés |
-| Main color | **No red or orange** as main color (too common/sloppy) |
-| Palette | **"Ink"** — blue-black base, slate greys, bone-white text |
-| Neon | One blinding neon, **electric cyan `#00f0ff`**, used sparingly |
-| Materials | Frosted glass windows, heavy blur, film grain, vignette, glitch |
-| Narrative arc | Stage A "perfect life" → B surveillance moments → C corruption |
+| Mood | Dark psychological thriller; no Halloween clichés, no gore, no jumpscares |
+| Main color | **No red or orange** as main color |
+| Palette | **"Ink"**: blue-black base, slate greys, bone-white text |
+| Neon | One neon, **electric cyan `#00f0ff`**, used sparingly |
+| Materials | Frosted glass (windows nearly opaque for reading), film grain, vignette, glitch |
+| Narrative arc | Stage 1 "perfect life" → 2 surveillance → 3 corruption |
+| Copy | No AI-sounding copy, **no em dashes** in anything the user reads |
 
 #### Palette tokens
 
 | Token | Value | Use |
 |---|---|---|
 | `--bg` | `#06080d` | Page background |
-| `--glass` | `rgba(15,19,28,.45)` | Window/icon glass fill |
+| `--glass` | `rgba(15,19,28,.45)` | Icon/widget glass fill (windows use `rgba(11,14,21,.96)`) |
 | `--text` | `#d8dce5` | Body text |
-| `--muted` | `#646b7a` | Metadata, timestamps only (low contrast, never body copy) |
-| `--accent` | `#eef0f4` | Neutral highlight (white + grey underline) |
-| `--ghost` | `#8a96b3` | Glitch RGB-split colour (becomes neon in stage 3) |
+| `--muted` | `#646b7a` | Metadata, timestamps only |
+| `--accent` | `#eef0f4` | Neutral highlight |
+| `--ghost` | `#8a96b3` | Glitch RGB-split colour, the Sign |
 | `--neon` | `#00f0ff` | The single neon |
 
-Fonts: Inter Tight (UI) + JetBrains Mono (paths, timestamps, metadata), via Google Fonts.
+Fonts: Inter Tight (UI), JetBrains Mono (metadata, logs), **Newsreader** (mail bodies and subjects), **Nothing You Could Do** (E.V.'s handwriting on the polaroid). All via `next/font/google`.
 
 #### Neon rule
 
-Cyan always means "something that knows about you". Its usage grows with tension:
+Cyan always means "something that knows about you".
 
 - **Stage 1:** none.
-- **Stage 2:** one element only — the newly appeared `backup_you` folder (breathing glow).
-- **Stage 3:** the lit window across the street, lines built from real session data (e.g. "you opened this at HH:MM"), and glitch RGB-split flashes.
+- **Stage 2:** the `backup_you` folder (breathing glow).
+- **Stage 3:** `viewers 3`, `session_0418.log · in progress`, the searchlight tint, glitch RGB-split flashes.
 
-Never more than 1–2 neon elements per screen, otherwise it turns cyberpunk.
-
-#### Stage behaviour
+#### Stage behaviour (as built)
 
 | | Stage 1 · Perfect | Stage 2 · Watched | Stage 3 · Corrupted |
 |---|---|---|---|
-| Grain / vignette | low | medium | high |
-| Glitch frequency | every 9–16 s (subliminal) | every 3.5–7 s | every 0.9–2.6 s + note shivers |
-| New elements | — | webcam window, REC indicator, "photo taken from outside" toast, `backup_you` folder, silhouette in lit window | note text rewritten with real session time, "you spent Ns getting here" toast, face blurred in photo |
+| Overlay grain / vignette / glitch | 0.3 / 0.4 / 0.35 | 0.5 / 0.6 / 0.6 | 0.7 / 0.75 / 0.9, neon |
+| Visual glitch every | 6–11 s | 2.5–5 s | 0.8–2 s |
+| Glitch sound every | 30–50 s | 18–30 s | 10–16 s |
+| Searchlight | 25 % | 60 % | 100 %, cyan tint |
+| Room tone | 0.5 | 0.8 | 1 |
+| Viewers | 1 | 2 | 3 (neon) |
 
-Glitches and animations are disabled under `prefers-reduced-motion`.
+Glitches and motion are reduced under `prefers-reduced-motion` (no DOM glitch, no typing animation in Notes).
 
 ### Design open points
 
-1. Stage 3 glass still carries a faint cool tint — neutralise if it reads purple.
-2. Placeholder content (`m.lenhart`, dates, CSS-drawn photos) is illustrative only; real story assets still to be written/produced.
-3. Monochrome UI can hide what's clickable — solve with motion (hover glow, breathing) rather than colour.
-4. Tokens are ported to CSS variables in `app/globals.css`. Windows still have to become draggable, openable apps (Notes, Photos, Messages, History, Trash, backup folder).
-5. The session-data twist (open time, time to find clues, back-navigation) is still to be built in-app (client-side only, no personal data sent anywhere).
+1. The wallpaper is a CSS placeholder (window frames + bokeh) until `ev-home.jpg` exists.
+2. The Sign is a first design (`SignGlyph` in `Decor.tsx`): an eye that is also a standing figure. Owner to approve or redraw.
+3. A monochrome UI can hide what's clickable: solved with motion (hover glow, breathing) rather than colour; keep checking in playtests.
