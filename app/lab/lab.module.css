@@ -1,0 +1,81 @@
+.screen {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+/* the camera feed is never shown; MediaPipe only needs the element */
+.video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.eye {
+  width: min(70vmin, 640px);
+  aspect-ratio: 1;
+  transition: opacity 1.2s var(--ease-snappy);
+}
+
+.dim {
+  opacity: 0.12;
+}
+
+.panel {
+  position: absolute;
+  bottom: 12vh;
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+}
+
+.status {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cta {
+  padding: 10px 22px;
+  border: 1px solid rgba(216, 220, 229, 0.18);
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.cta:hover {
+  border-color: rgba(238, 240, 244, 0.5);
+  color: var(--accent);
+}
+
+.bar {
+  width: 180px;
+  height: 1px;
+  background: linear-gradient(to right, var(--text) 0 0) no-repeat left / 0% 100%, rgba(216, 220, 229, 0.12);
+  animation: fill 2s linear forwards;
+}
+
+@keyframes fill {
+  to { background-size: 100% 100%, auto; }
+}
+
+.debug {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ghost);
+  background: var(--glass);
+  padding: 10px 12px;
+  border-radius: 4px;
+}

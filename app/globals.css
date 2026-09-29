@@ -1,0 +1,32 @@
+/* Ink palette — see HANDOVER.md */
+:root {
+  --bg: #06080d;
+  --glass: rgba(15, 19, 28, 0.45);
+  --text: #d8dce5;
+  --muted: #646b7a;
+  --accent: #eef0f4;
+  --ghost: #8a96b3;
+  --neon: #00f0ff;
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; background: var(--bg); color: var(--text); }
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

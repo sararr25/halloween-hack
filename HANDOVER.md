@@ -70,3 +70,12 @@ Full spec in `docs/scenes.md`, install/usage in `docs/tech-setup.md`.
 - **GSAP**: OS-layer motion (windows, toasts, typewriter).
 - **MediaPipe Tasks Vision**: head pose + gestures, client-side only. Camera is asked for inside the fiction; every interaction has a mouse fallback.
 - **genjutsu** skill is installed globally and re-installed by the repo SessionStart hook.
+
+## App scaffold (2026-09-29)
+
+- Next.js 16 + TypeScript + pnpm at the repo root. `pnpm dev` → `/lab` (redirect from `/`).
+- `pnpm install` runs `scripts/sync-assets.mjs`: copies MediaPipe + Rive wasm into `public/` and downloads the two MediaPipe models. All of these are gitignored.
+- `rive/presence/`: the eye, a Rive CLI project with no scripts. `pnpm rive:build` compiles it to `public/rive/presence.riv`, which is committed because Vercel has no Rive CLI.
+- `lib/presence/tracker.ts`: `PresenceTracker`, head pose / blink / gestures with mouse fallback and adaptive throttling.
+- `app/lab/Boot.tsx`: minimal S1. Press `D` for the debug overlay.
+- Known: MediaPipe inference runs on the main thread. Next step is to move it to a Web Worker (weak/CPU-only devices drop fps).

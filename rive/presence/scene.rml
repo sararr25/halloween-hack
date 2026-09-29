@@ -1,0 +1,183 @@
+<Rive version="1" kind="fragment">
+    <!--
+        Eye: the object that watches you.
+        Driven entirely by the Presence view model (no scripts, so the .riv plays unsigned on the web).
+          headX, headY  -1..1   head pose from MediaPipe (or mouse fallback)
+          lookingAway   bool    user looked away / tab hidden
+          blink         trigger user blinked
+        Follow is deliberately late (cubic interpolator, 0.55 s): it pretends it did not see you.
+    -->
+    <Artboard viewModelId="0:40" viewModelInstanceId="0:45" defaultStateMachineId="0:7" styleId="0:5" width="500" height="500" name="Eye" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <Fill name="Background">
+            <SolidColor colorValue="FF06080D" name="Color"/>
+        </Fill>
+
+        <Node x="250" y="250" name="Eye" id="0:10">
+            <!-- first declared paints on top: pupil highlight, pupil, iris, sclera -->
+            <Node x="0" y="0" name="Iris" id="0:13">
+                <DataBindContext sourcePathIds="0:40-0:41" propertyKey="13" converterId="0:53"/>
+                <DataBindContext sourcePathIds="0:40-0:42" propertyKey="14" converterId="0:54"/>
+
+                <Shape name="Glint" id="0:17">
+                    <Ellipse x="-14" y="-16" width="7" height="7" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="B3EEF0F4" name="C"/></Fill>
+                </Shape>
+
+                <Shape name="Pupil" id="0:15">
+                    <Ellipse width="44" height="44" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF020305" name="C"/></Fill>
+                </Shape>
+
+                <Shape name="Iris Ring" id="0:14">
+                    <Ellipse width="118" height="118" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF151A24" name="C"/></Fill>
+                    <Stroke thickness="1.5" name="Stroke"><SolidColor colorValue="FF8A96B3" name="C"/></Stroke>
+                </Shape>
+            </Node>
+
+            <Shape name="Sclera" id="0:11">
+                <Ellipse width="380" height="176" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF0C1018" name="C"/></Fill>
+                <Stroke thickness="1.5" name="Stroke"><SolidColor colorValue="FF2A3040" name="C"/></Stroke>
+            </Shape>
+        </Node>
+
+        <StateMachine name="Presence" id="0:7">
+            <!-- Blink: waits for the trigger, closes and reopens the whole eye -->
+            <StateMachineLayer name="Blink" id="0:8">
+                <AnyState x="200" y="-120"/>
+                <ExitState x="400" y="-120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:20"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="0:61" id="0:20">
+                    <StateTransition stateToId="0:21">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:40-0:44" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState x="200" y="120" animationId="0:62" reset="true" id="0:21">
+                    <StateTransition stateToId="0:20" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
+            </StateMachineLayer>
+
+            <!-- Attention: pupil contracts and the iris dims while you are not looking -->
+            <StateMachineLayer name="Attention" id="0:9">
+                <AnyState x="600" y="-120"/>
+                <ExitState x="800" y="-120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:22"/>
+                </EntryState>
+                <AnimationState x="600" y="0" animationId="0:63" id="0:22">
+                    <StateTransition stateToId="0:23" duration="450">
+                        <CubicEaseInterpolator x1="0.2" y1="0" x2="0" y2="1"/>
+                        <TransitionViewModelCondition opValue="equal">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:40-0:43" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState x="600" y="120" animationId="0:64" id="0:23">
+                    <!-- snapping back when you return is faster: it was waiting -->
+                    <StateTransition stateToId="0:22" duration="180">
+                        <TransitionViewModelCondition opValue="equal">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:40-0:43" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <LinearAnimation duration="1" name="Open" id="0:61">
+            <KeyedObject objectId="0:10">
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="hold"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- 11 frames: close fast, open slower -->
+        <LinearAnimation duration="11" name="Blink" id="0:62">
+            <KeyedObject objectId="0:10">
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.4" y1="0" x2="1" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0.04" frame="4" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0" y1="0" x2="0.2" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="11" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="Watching" id="0:63">
+            <KeyedObject objectId="0:15">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:14">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="Away" id="0:64">
+            <KeyedObject objectId="0:15">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0.5" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0.5" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:14">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.55" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+
+    <!-- lag first (per axis, so each bind keeps its own state), then map to pixels -->
+    <DataConverterInterpolator interpolationType="cubic" duration="0.55" name="Lag X" id="0:55">
+        <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterInterpolator interpolationType="cubic" duration="0.55" name="Lag Y" id="0:56">
+        <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="-78" maxOutput="78" clampLower="true" clampUpper="true" name="Head X to px" id="0:51"/>
+    <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="-16" maxOutput="16" clampLower="true" clampUpper="true" name="Head Y to px" id="0:52"/>
+    <DataConverterGroup name="Follow X" id="0:53">
+        <DataConverterGroupItem converterId="0:55"/>
+        <DataConverterGroupItem converterId="0:51"/>
+    </DataConverterGroup>
+    <DataConverterGroup name="Follow Y" id="0:54">
+        <DataConverterGroupItem converterId="0:56"/>
+        <DataConverterGroupItem converterId="0:52"/>
+    </DataConverterGroup>
+
+    <ViewModel defaultInstanceId="0:45" name="Presence" id="0:40">
+        <ViewModelPropertyNumber name="headX" id="0:41"/>
+        <ViewModelPropertyNumber name="headY" id="0:42"/>
+        <ViewModelPropertyBoolean name="lookingAway" id="0:43"/>
+        <ViewModelPropertyTrigger name="blink" id="0:44"/>
+
+        <ViewModelInstance exports="true" name="Default" id="0:45">
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:41"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:42"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:43"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:44"/>
+        </ViewModelInstance>
+    </ViewModel>
+</Rive>

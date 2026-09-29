@@ -8,8 +8,8 @@ I container cloud (Claude Code web, Codex) hanno un'allowlist di rete. Serve:
 
 | Dominio | Perché | Stato qui (2026-09-29) |
 |---|---|---|
-| `releases.rive.app` | installer Rive CLI | ❌ bloccato (403): **da aggiungere** |
-| `api.rive.app` / `*.rive.app` | `rive login`, `--publish`, `push/pull` | ❌ da aggiungere |
+| `releases.rive.app` | installer Rive CLI | ✅ (aperto il 2026-09-29) |
+| `api.rive.app` / `*.rive.app` | `rive login`, `--publish`, `push/pull` | ✅ |
 | `registry.npmjs.org` | pnpm/npm | ✅ |
 | `storage.googleapis.com` | modelli MediaPipe `.task` | ✅ |
 | `github.com` | fallback genjutsu | ✅ |
@@ -19,9 +19,10 @@ Claude Code web: impostazioni dell'environment → Network access (custom allowl
 ## 1. Rive CLI
 
 ```bash
-curl -fsSL https://releases.rive.app/cli/install.sh | sh   # Linux x86_64 / macOS Apple Silicon
+curl -fsSL https://releases.rive.app/cli/install.sh | bash # Linux x86_64 / macOS Apple Silicon (con `sh`=dash su Ubuntu fallisce: usare bash)
 export PATH="$HOME/.rive/bin:$PATH"                       # aggiungilo a ~/.zshrc o ~/.bashrc
 rive doctor
+# Linux headless: servono le librerie EGL/GL → apt-get install libegl1 libgl1 libgles2
 # macOS alternativa: brew install --cask rive-app/tap/rive-cli
 ```
 
@@ -38,6 +39,8 @@ rive docs / rive schema <Type> # documentazione e tipi, offline
 
 - Tutto ciò che è nella cartella viene preso per estensione: `.rml` (scena), `.luau` (script), `.wgsl` (shader), immagini, font.
 - **Script + web = `--publish` obbligatorio.** Le runtime web rifiutano gli script non firmati. `--publish` richiede `rive login`. Per evitare il watermark: progetto legato a un file del tuo account (`rive push`) in un workspace **Cadet o superiore**. → Serve il tuo account Rive: il login lo fai tu (`rive login`) in locale o nel container.
+- **Login nei container cloud:** `rive login` apre un OAuth con redirect su `127.0.0.1` del container, che il tuo browser non raggiunge. Quindi login e `--publish` si fanno **in locale sul Mac**. Nel container si fa tutto il resto (build, verify, screenshot, test).
+- Strategia adottata: gli asset "vivi" (es. `rive/presence`) sono **senza script**, solo RML + data binding, quindi il `.riv` non firmato gira sul web. Gli shader WGSL (che richiedono script Luau) vanno in un progetto Rive separato, firmato dal Mac con `--publish`.
 - `rive create x --from-rev=file.rev` converte un file esportato dall'Editor in progetto testuale; `rive pull` e `rive push` sincronizzano con l'Editor.
 
 ## 2. Shader WGSL in Rive (sintesi operativa)

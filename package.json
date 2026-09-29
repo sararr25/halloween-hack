@@ -1,0 +1,31 @@
+{
+  "name": "halloween-hack",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "node scripts/sync-assets.mjs",
+    "rive:build": "rive rive/presence --once && cp rive/presence/build/presence.riv public/rive/presence.riv"
+  },
+  "dependencies": {
+    "@gsap/react": "^2.1.2",
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "@rive-app/webgl2": "^2.43.1",
+    "gsap": "^3.15.0",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
