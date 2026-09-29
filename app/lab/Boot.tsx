@@ -4,12 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import PresenceEye, { type EyeHandle } from "@/components/PresenceEye";
+import FxOverlay from "@/components/FxOverlay";
 import { PresenceTracker, type PresenceState } from "@/lib/presence/tracker";
 import styles from "./lab.module.css";
 
 type Phase = "idle" | "requesting" | "calibrating" | "watching";
 
 gsap.registerPlugin(useGSAP);
+
+// Stage 1 · perfect: subliminal grain and glitch (see HANDOVER stage table)
+const STAGE1_FX = { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0 };
 
 // S1 · Boot: the camera is asked for inside the fiction, as operator identity verification.
 export default function Boot() {
@@ -117,6 +121,8 @@ export default function Boot() {
         )}
         {phase === "calibrating" && <div className={styles.bar} />}
       </div>
+
+      <FxOverlay levels={STAGE1_FX} />
 
       {debug && snap && (
         <pre className={styles.debug}>

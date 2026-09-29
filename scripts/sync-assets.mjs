@@ -5,6 +5,8 @@ const pub = join(process.cwd(), "public");
 
 const mpWasm = join(join(process.cwd(), "node_modules/@mediapipe/tasks-vision"), "wasm");
 cpSync(mpWasm, join(pub, "mediapipe"), { recursive: true });
+// IIFE bundle for the classic worker in public/presence-worker.js
+cpSync(join(mpWasm, "..", "vision_bundle.js"), join(pub, "mediapipe", "vision_bundle.js"));
 
 const riveDir = join(process.cwd(), "node_modules/@rive-app/webgl2");
 mkdirSync(join(pub, "rive"), { recursive: true });

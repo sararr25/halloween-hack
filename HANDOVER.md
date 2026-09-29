@@ -78,4 +78,5 @@ Full spec in `docs/scenes.md`, install/usage in `docs/tech-setup.md`.
 - `rive/presence/`: the eye, a Rive CLI project with no scripts. `pnpm rive:build` compiles it to `public/rive/presence.riv`, which is committed because Vercel has no Rive CLI.
 - `lib/presence/tracker.ts`: `PresenceTracker`, head pose / blink / gestures with mouse fallback and adaptive throttling.
 - `app/lab/Boot.tsx`: minimal S1. Press `D` for the debug overlay.
-- Known: MediaPipe inference runs on the main thread. Next step is to move it to a Web Worker (weak/CPU-only devices drop fps).
+- MediaPipe runs in `public/presence-worker.js`, a classic worker using the IIFE bundle (copied by sync-assets). It receives `ImageBitmap`s and returns numbers only, with at most one frame in flight.
+- `rive/effects/`: full-screen WGSL overlay (`overlay_fx.wgsl` + `fx.luau`) with grain, vignette, scanlines and glitch tears. View model `Overlay.fx.{grain,vignette,glitch,neon}`. Carries scripts → must be signed on the Mac (`pnpm rive:publish`). `components/FxOverlay.tsx` renders it only when `public/rive/effects.riv` exists.

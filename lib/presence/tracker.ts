@@ -1,10 +1,6 @@
 // Client-side perception: head pose, blinks and hand gestures from the webcam.
-// Frames never leave the browser. Everything degrades to the mouse when the camera is unavailable.
-import {
-  FaceLandmarker,
-  FilesetResolver,
-  GestureRecognizer,
-} from "@mediapipe/tasks-vision";
+// MediaPipe runs in public/presence-worker.js; frames never leave the browser.
+// Everything degrades to the mouse when the camera or the worker is unavailable.
 
 export type Gesture = "none" | "palm" | "fist" | "point" | "victory" | "thumbUp" | "thumbDown" | "love";
 
@@ -44,7 +40,15 @@ const BLINK_ON = 0.5;
 const BLINK_OFF = 0.3;
 const GESTURE_SCORE = 0.7;
 const GESTURE_HOLD_MS = 300;
-const FRAME_BUDGET_MS = 12; // detection time per frame before we start skipping frames
+const MIN_FRAME_MS = 30; // ~33 Hz is plenty for a head
+
+type WorkerResult = {
+  type: "result";
+  ts: number;
+  m: [number, number, number] | null; // facial transformation matrix entries 8, 9, 10
+  blink: number | null;
+  gesture: { name: string; score: number } | null;
+};
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const DEG = 180 / Math.PI;
@@ -59,14 +63,13 @@ export class PresenceTracker {
     gesture: "none",
   };
 
-  private face?: FaceLandmarker;
-  private hands?: GestureRecognizer;
+  private worker?: Worker;
   private video?: HTMLVideoElement;
   private stream?: MediaStream;
-  private raf = 0;
+  private running = false;
+  private busy = false; // one frame in flight at most; frames arriving meanwhile are skipped
   private frame = 0;
-  private stride = 1; // run detection every `stride` animation frames
-  private lastRunAt = 0;
+  private lastSentAt = 0;
   private baseYaw = 0;
   private basePitch = 0;
   private lastFaceAt = 0;
@@ -124,28 +127,23 @@ export class PresenceTracker {
     await video.play();
     this.video = video;
 
-    const fileset = await FilesetResolver.forVisionTasks("/mediapipe");
-    this.face = await createWithFallback((delegate) =>
-      FaceLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: "/models/face_landmarker.task", delegate },
-        runningMode: "VIDEO",
-        numFaces: 1,
-        outputFaceBlendshapes: true,
-        outputFacialTransformationMatrixes: true,
-      }),
-    );
-    this.hands = await createWithFallback((delegate) =>
-      GestureRecognizer.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: "/models/gesture_recognizer.task", delegate },
-        runningMode: "VIDEO",
-        numHands: 1,
-      }),
-    ).catch(() => undefined); // gestures are optional
+    try {
+      this.worker = await startWorker();
+    } catch {
+      this.stream.getTracks().forEach((t) => t.stop());
+      return false;
+    }
+    this.worker.onmessage = ({ data }: MessageEvent<WorkerResult>) => {
+      if (data.type !== "result") return;
+      this.busy = false;
+      this.apply(data);
+    };
 
     this.stopMouse?.();
     this.state.source = "camera";
     this.lastFaceAt = performance.now();
-    this.loop();
+    this.running = true;
+    this.schedule();
     return true;
   }
 
@@ -156,31 +154,46 @@ export class PresenceTracker {
   }
 
   stop() {
-    cancelAnimationFrame(this.raf);
+    this.running = false;
     this.stopMouse?.();
     this.stream?.getTracks().forEach((t) => t.stop());
-    this.face?.close();
-    this.hands?.close();
+    this.worker?.postMessage({ type: "close" });
   }
 
-  private loop = () => {
-    this.raf = requestAnimationFrame(this.loop);
-    const video = this.video;
-    if (!video || video.readyState < 2 || !this.face) return;
-    this.frame++;
-    // adaptive throttle: slow devices track less often, animations keep their frame rate
-    if (this.frame % this.stride !== 0) return;
-    const now = performance.now();
-    if (now - this.lastRunAt < 30) return; // ~33 Hz is plenty for a head
-    this.lastRunAt = now;
+  // Frame pump: follows the camera's own frames when the browser supports it.
+  private schedule() {
+    if (!this.running || !this.video) return;
+    if ("requestVideoFrameCallback" in this.video) this.video.requestVideoFrameCallback(this.pump);
+    else requestAnimationFrame(() => this.pump());
+  }
 
-    const r = this.face.detectForVideo(video, now);
-    const m = r.facialTransformationMatrixes?.[0]?.data;
-    if (m) {
+  private pump = async () => {
+    const video = this.video;
+    if (!this.running || !video) return;
+    const now = performance.now();
+    if (!this.busy && video.readyState >= 2 && now - this.lastSentAt >= MIN_FRAME_MS) {
+      this.busy = true;
+      this.lastSentAt = now;
+      this.frame++;
+      try {
+        const bitmap = await createImageBitmap(video);
+        // gestures at half rate
+        this.worker?.postMessage({ type: "frame", bitmap, ts: now, wantHands: this.frame % 2 === 0 }, [bitmap]);
+      } catch {
+        this.busy = false;
+      }
+    }
+    this.schedule();
+  };
+
+  private apply(r: WorkerResult) {
+    const now = performance.now();
+    if (r.m) {
+      const [m8, m9, m10] = r.m;
       this.lastFaceAt = now;
       // column-major 4x4: yaw around Y, pitch around X
-      const yaw = Math.atan2(m[8], m[10]) * DEG;
-      const pitch = Math.asin(-clamp(m[9])) * DEG;
+      const yaw = Math.atan2(m8, m10) * DEG;
+      const pitch = Math.asin(-clamp(m9)) * DEG;
       // mirrored: turning your head to your right moves things to screen right
       const tx = clamp(-(yaw - this.baseYaw) / YAW_RANGE);
       const ty = clamp((pitch - this.basePitch) / PITCH_RANGE);
@@ -190,14 +203,11 @@ export class PresenceTracker {
       const turned = Math.abs(yaw - this.baseYaw) > AWAY_YAW;
       this.awaySince = turned ? this.awaySince || now : 0;
 
-      const shapes = r.faceBlendshapes?.[0]?.categories;
-      if (shapes) {
-        const score = (name: string) => shapes.find((c) => c.categoryName === name)?.score ?? 0;
-        const blink = (score("eyeBlinkLeft") + score("eyeBlinkRight")) / 2;
-        if (!this.blinking && blink > BLINK_ON) {
+      if (r.blink !== null) {
+        if (!this.blinking && r.blink > BLINK_ON) {
           this.blinking = true;
           this.events.onBlink?.();
-        } else if (this.blinking && blink < BLINK_OFF) {
+        } else if (this.blinking && r.blink < BLINK_OFF) {
           this.blinking = false;
         }
       }
@@ -208,10 +218,9 @@ export class PresenceTracker {
     this.state.faceLost = now - this.lastFaceAt > LOST_AFTER_MS;
     this.state.lookingAway = this.awaySince > 0 && now - this.awaySince > AWAY_AFTER_MS;
 
-    // gestures at half rate; a gesture counts once it is held
-    if (this.hands && this.frame % (2 * this.stride) === 0) {
-      const top = this.hands.recognizeForVideo(video, now).gestures?.[0]?.[0];
-      const g = top && top.score > GESTURE_SCORE ? (GESTURES[top.categoryName] ?? "none") : "none";
+    // a gesture counts once it is held
+    if (r.gesture) {
+      const g = r.gesture.score > GESTURE_SCORE ? (GESTURES[r.gesture.name] ?? "none") : "none";
       if (g !== this.gestureCandidate) {
         this.gestureCandidate = g;
         this.gestureSince = now;
@@ -221,22 +230,28 @@ export class PresenceTracker {
       }
     }
 
-    const cost = performance.now() - now;
-    if (cost > FRAME_BUDGET_MS && this.stride < 8) this.stride++;
-    else if (cost < FRAME_BUDGET_MS / 2 && this.stride > 1) this.stride--;
-
     this.emit();
-  };
+  }
 
   private emit() {
     this.events.onChange?.(this.state);
   }
 }
 
-async function createWithFallback<T>(make: (delegate: "GPU" | "CPU") => Promise<T>): Promise<T> {
-  try {
-    return await make("GPU");
-  } catch {
-    return make("CPU");
-  }
+function startWorker(): Promise<Worker> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker("/presence-worker.js");
+    worker.onmessage = ({ data }) => {
+      if (data.type === "ready") resolve(worker);
+      else if (data.type === "error") {
+        worker.terminate();
+        reject(new Error(data.message));
+      }
+    };
+    worker.onerror = (e) => {
+      worker.terminate();
+      reject(e);
+    };
+    worker.postMessage({ type: "init" });
+  });
 }

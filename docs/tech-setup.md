@@ -107,3 +107,14 @@ Installata globalmente in `~/.agents/skills/genjutsu` con link in `~/.claude/ski
 - In locale (Claude Code sul Mac): `npx skills add https://genjutsu.athevon.dev -g`, oppure `/plugin marketplace add AThevon/genjutsu` seguito da `/plugin install genjutsu` per avere `/genjutsu:cast` e `/genjutsu:paint`.
 - Codex: lo stesso comando npx la installa anche per Codex (supporto "community").
 - Audit senza modello: `python3 ~/.agents/skills/genjutsu/_jutsu/design-audit/scripts/audit.py . --group tells`
+
+## 6. Sul Mac: primo avvio e firma degli shader
+
+1. `git clone https://github.com/sararr25/halloween-hack && cd halloween-hack && git checkout claude/youthful-pascal-m6eofy`
+2. Node 22 (`node -v`), poi `corepack enable && corepack prepare pnpm@10.33.0 --activate`
+3. `pnpm install` (lo script finale scarica i modelli MediaPipe; se fallisce: `pnpm install --ignore-scripts && node scripts/sync-assets.mjs`)
+4. `pnpm dev` → `http://localhost:3000/lab` → "Avvia recupero" → `D` per il pannello debug
+5. `brew install --cask rive-app/tap/rive-cli && rive doctor && rive login`
+6. Una sola volta: `rive push rive/effects` (lega il progetto a un file del tuo account e toglie il watermark se il workspace è Cadet+)
+7. A ogni modifica degli shader: `pnpm rive:publish` e poi commit di `public/rive/effects.riv` (firmato). Finché il file non esiste, l'overlay resta spento e l'app funziona lo stesso.
+8. L'occhio (`rive/presence`) non ha script: basta `pnpm rive:build`, anche nel container.
