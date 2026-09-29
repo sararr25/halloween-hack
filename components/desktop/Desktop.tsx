@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
@@ -70,6 +71,12 @@ function useDirector() {
     say("palm", "anon", "no need to cover yourself.", 400);
   });
 
+  // Stage 3: the log about the user is waiting.
+  useEffect(() => {
+    if (stage === 3 && "backup_open" in clues) say("log", "anon", "one of those files is still being written.", 7000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, clues]);
+
   useEffect(() => {
     if (wrongCodes >= 2) say("code", "anon", "…check her notes.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,10 +87,54 @@ function useDirector() {
     const t = setTimeout(() => {
       if (stage === 1) say("idle1", "anon", "…look at her photos. Closely.");
       if (stage === 2) say("idle2", "anon", "…it's a time. Four digits.");
+      if (stage === 3) say("idle3", "anon", "…open the one in progress.");
     }, IDLE_NUDGE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, Object.keys(clues).length, openedAt]);
+}
+
+const CLOSE_GAP_MS = 420;
+
+/**
+ * S9 starts on the desktop: once session_0418.log has been opened and then closed (by the
+ * user or by itself), every window shuts itself in reverse open order, each one collapsing
+ * like an old screen, then the phase moves to the reveal.
+ */
+function useReveal() {
+  const { state, dispatch } = useStory();
+  const wasOpen = useRef(false);
+  const started = useRef(false);
+  const sessionOpen = state.windows.some((w) => w.id === "session");
+  const order = useRef(state.windows.map((w) => w.id));
+  useEffect(() => {
+    order.current = state.windows.map((w) => w.id);
+  });
+
+  useEffect(() => {
+    if (sessionOpen) wasOpen.current = true;
+    if (sessionOpen || !wasOpen.current || started.current) return;
+    started.current = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const rest = [...order.current].reverse();
+    rest.forEach((id, i) => {
+      timers.push(
+        setTimeout(() => {
+          glitchNow(0.8, { sound: i === 0 });
+          gsap.to(`[data-win="${id}"]`, {
+            scaleY: 0.02,
+            opacity: 0,
+            duration: 0.22,
+            ease: "power2.in",
+            onComplete: () => dispatch({ type: "close", id }),
+          });
+        }, 600 + i * CLOSE_GAP_MS),
+      );
+    });
+    // on a timer, not on the tweens: a throttled tab still reaches the reveal
+    timers.push(setTimeout(() => dispatch({ type: "phase", phase: "reveal" }), 600 + rest.length * CLOSE_GAP_MS + 1200));
+    return () => timers.forEach(clearTimeout);
+  }, [sessionOpen, dispatch]);
 }
 
 /** Menubar "Recovery" menu: the session log, where the entry time can be read again. */
@@ -130,6 +181,7 @@ export default function Desktop() {
   const { state, dispatch } = useStory();
   const { stage, windows } = state;
   useDirector();
+  useReveal();
 
   // Entering stage 2: the camera opens by itself, once. Closing it keeps it closed.
   const prevStage = useRef(stage);

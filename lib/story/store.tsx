@@ -8,7 +8,7 @@ export type Phase = "premise" | "boot" | "desktop" | "reveal" | "login";
 export type Stage = 1 | 2 | 3;
 export type AppId =
   | "mail" | "photos" | "messages" | "notes" | "history" | "phone" | "trash" | "camera" | "backup"
-  | "invitation" | "screenshot" | "manual";
+  | "invitation" | "screenshot" | "manual" | "session";
 
 export type WindowState = { id: AppId; z: number; x: number; y: number };
 
@@ -27,6 +27,8 @@ export type StoryState = {
   notices: Notice[];
   /** Wrong backup codes so far (2 → the anonymous sender nudges). */
   wrongCodes: number;
+  /** Epoch ms of every time the user looked away (or left the page): S8 counts them. */
+  interruptions: number[];
 };
 
 /** "anon" = the anonymous sender (help that is really guidance); "system" = the OS. */
@@ -52,7 +54,8 @@ type Action =
   | { type: "session"; session: Partial<Session> }
   | { type: "notify"; from: Notice["from"]; text: string }
   | { type: "dismiss"; id: number }
-  | { type: "wrongCode" };
+  | { type: "wrongCode" }
+  | { type: "interrupt"; at: number };
 
 function reducer(s: StoryState, a: Action): StoryState {
   switch (a.type) {
@@ -87,6 +90,8 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, notices: s.notices.filter((n) => n.id !== a.id) };
     case "wrongCode":
       return { ...s, wrongCodes: s.wrongCodes + 1 };
+    case "interrupt":
+      return { ...s, interruptions: [...s.interruptions, a.at] };
   }
 }
 
@@ -112,6 +117,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     session: { camera: null, mic: null, verifiedAt: null },
     notices: [],
     wrongCodes: 0,
+    interruptions: [],
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/D/R/L jumps phase.

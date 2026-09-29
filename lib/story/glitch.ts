@@ -9,3 +9,13 @@ export type GlitchRequest = { strength: number; sound: boolean };
 export function glitchNow(strength = 0.8, { sound = true }: { sound?: boolean } = {}) {
   window.dispatchEvent(new CustomEvent<GlitchRequest>(GLITCH_EVENT, { detail: { strength, sound } }));
 }
+
+export const CRT_EVENT = "recovery:crt";
+
+/**
+ * S10: the screen switches off like an old tube (overlay shader `crt`), over `seconds`.
+ * `crtOff(0)` puts the overlay back to normal at once (once the page itself is black).
+ */
+export function crtOff(seconds = 1.4) {
+  window.dispatchEvent(new CustomEvent<number>(CRT_EVENT, { detail: seconds }));
+}

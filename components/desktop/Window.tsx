@@ -52,6 +52,7 @@ export default function Window({ win }: { win: WindowState }) {
       ref={el}
       role="dialog"
       aria-label={app.title}
+      data-win={win.id}
       className={`${styles.window} ${styles.glass}`}
       style={{ left: win.x, top: win.y, width: app.size.w, height: app.size.h, zIndex: win.z }}
       onPointerDown={() => dispatch({ type: "focus", id: win.id })}

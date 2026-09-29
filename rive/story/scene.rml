@@ -9,6 +9,14 @@
           reveal   0..1 overall opacity
           spin     0 hold the pose, 1 slow examination turn
           yaw, pitch  extra rotation from the host, radians (S8: the live head)
+
+        Across: S9, the window across (window_across.wgsl via across.luau).
+          headX, headY  -1..1 the user's head, copied by the figure with no lag
+          zoom          0..1 push-in on the lit window
+          light         0..1 the window lighting up
+          corruption    0..1 blocks and smears at the end
+          figure        0..1 the figure's presence
+          neon          0..1 cyan in the light
     -->
 
     <!-- ============================== Scan ============================== -->
@@ -55,5 +63,50 @@
         </ViewModelInstance>
     </ViewModel>
 
+    <!-- ============================== Across ============================== -->
+    <Artboard defaultStateMachineId="1:7" viewModelId="1:40" viewModelInstanceId="1:41" clip="true" width="1280" height="800" styleId="1:5" name="Across" id="1:2">
+        <LayoutComponentStyle name="Artboard Style" id="1:5"/>
+        <LayoutComponent width="1280" height="800" styleId="1:11" name="Root Layout" id="1:10">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Layout Style" id="1:11"/>
+            <ScriptedLayout scriptAssetId="1:80" name="Across" id="1:12">
+                <ScriptInputViewModelProperty dataBindPathIds="1:40-1:45" name="across" id="1:13"/>
+            </ScriptedLayout>
+        </LayoutComponent>
+        <StateMachine name="Across" id="1:7">
+            <StateMachineLayer name="Layer 1" id="1:8">
+                <AnyState x="200" y="-120" id="1:82"/>
+                <ExitState x="400" y="-120" id="1:83"/>
+                <EntryState id="1:84"/>
+            </StateMachineLayer>
+        </StateMachine>
+    </Artboard>
+
+    <ViewModel defaultInstanceId="1:51" name="Across" id="1:50">
+        <ViewModelPropertyNumber name="headX" id="1:52"/>
+        <ViewModelPropertyNumber name="headY" id="1:53"/>
+        <ViewModelPropertyNumber name="zoom" id="1:54"/>
+        <ViewModelPropertyNumber name="light" id="1:55"/>
+        <ViewModelPropertyNumber name="corruption" id="1:56"/>
+        <ViewModelPropertyNumber name="figure" id="1:57"/>
+        <ViewModelPropertyNumber name="neon" id="1:58"/>
+        <ViewModelInstance exports="true" name="Default" id="1:51">
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:52"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:53"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:54"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:55"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:56"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:57"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:58"/>
+        </ViewModelInstance>
+    </ViewModel>
+
+    <ViewModel defaultInstanceId="1:41" name="AcrossRoot" id="1:40">
+        <ViewModelPropertyViewModel viewModelReferenceId="1:50" name="across" id="1:45"/>
+        <ViewModelInstance exports="true" name="Instance" id="1:41">
+            <ViewModelInstanceViewModel propertyValue="1:51" viewModelPropertyId="1:45"/>
+        </ViewModelInstance>
+    </ViewModel>
+
     <ScriptAsset file="scan.luau" name="scan" id="0:80"/>
+    <ScriptAsset file="across.luau" name="across" id="1:80"/>
 </Rive>

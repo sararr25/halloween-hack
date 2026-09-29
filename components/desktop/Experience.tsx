@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay";
 import { drone, glitchSound, unlockAudio } from "@/lib/audio/sfx";
-import { GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
+import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
 import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
 import Desktop from "./Desktop";
+import Login, { CASE_KEY } from "./Login";
+import Reveal from "./Reveal";
 import SoundToggle from "./SoundToggle";
 import styles from "./desktop.module.css";
 
@@ -40,6 +42,8 @@ function Overlay() {
   const { stage, phase } = state;
   const [pulse, setPulse] = useState(0);
   const live = phase !== "premise";
+  // the reveal and the login set their own pace: glitches only when they ask for one
+  const scheduled = live && phase !== "reveal" && phase !== "login";
 
   // One glitch = shader tear + DOM RGB split + sound, at the same moment.
   useEffect(() => {
@@ -51,7 +55,7 @@ function Overlay() {
       document.body.classList.add("glitching");
       setTimeout(() => document.body.classList.remove("glitching"), DOM_GLITCH_MS);
     };
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     let soundDue = Date.now() + between(SOUND_CADENCE[stage]);
     const next = () => {
       timer = setTimeout(() => {
@@ -61,7 +65,7 @@ function Overlay() {
         next();
       }, between(CADENCE[stage]));
     };
-    next();
+    if (scheduled) next();
     // story moments ask for a glitch now (see lib/story/glitch.ts)
     const onDemand = (e: Event) => {
       const { strength, sound } = (e as CustomEvent<GlitchRequest>).detail;
@@ -72,11 +76,12 @@ function Overlay() {
       clearTimeout(timer);
       window.removeEventListener(GLITCH_EVENT, onDemand);
     };
-  }, [live, stage]);
+  }, [live, scheduled, stage]);
 
   useEffect(() => {
-    if (live) drone(DRONE[stage]);
-  }, [live, stage]);
+    if (!live) return;
+    drone(phase === "login" ? 0 : phase === "reveal" ? 0.4 : DRONE[stage]);
+  }, [live, phase, stage]);
 
   // The searchlight: the head position goes straight to the shader, a little late
   // (like something turning to look), without re-rendering React on every frame.
@@ -106,7 +111,36 @@ function Overlay() {
     set.current?.("beam", beam);
   }, [beam]);
 
+  // S10: the screen switches off; crtOff(0) restores the overlay once the page is black.
+  useEffect(() => {
+    const crt = { v: 0 };
+    const off = (e: Event) => {
+      const seconds = (e as CustomEvent<number>).detail;
+      gsap.killTweensOf(crt);
+      if (seconds === 0) {
+        crt.v = 0;
+        set.current?.("crt", 0);
+        return;
+      }
+      gsap.to(crt, { v: 1, duration: seconds, ease: "power2.in", onUpdate: () => set.current?.("crt", crt.v) });
+    };
+    window.addEventListener(CRT_EVENT, off);
+    return () => window.removeEventListener(CRT_EVENT, off);
+  }, []);
+
   return <FxOverlay levels={{ ...STAGE_FX[stage], pulse }} onVm={onVm} />;
+}
+
+/** Every time the user looks away (or leaves the page) on the desktop is kept: S8 reads it back. */
+function Interruptions() {
+  const { state, dispatch } = useStory();
+  const away = useRef(false);
+  const on = state.phase === "desktop";
+  usePresenceEvent("change", (s) => {
+    if (s.lookingAway && !away.current && on) dispatch({ type: "interrupt", at: Date.now() });
+    away.current = s.lookingAway;
+  });
+  return null;
 }
 
 /** Outside the desktop the sound toggle floats bottom right; on the desktop it lives in the menubar. */
@@ -114,6 +148,22 @@ function FloatingSound() {
   const { state } = useStory();
   if (state.phase === "desktop") return null;
   return <SoundToggle className={styles.soundFloat} />;
+}
+
+/** Someone who reached the end before is remembered, quietly. */
+const readCase = () => {
+  try {
+    return localStorage.getItem(CASE_KEY);
+  } catch {
+    return null; // storage blocked: nobody is remembered
+  }
+};
+const noSubscribe = () => () => {};
+
+function Returning() {
+  const name = useSyncExternalStore(noSubscribe, readCase, () => null);
+  if (!name) return null;
+  return <p className={styles.hint}>case 0418 is still open, {name}.</p>;
 }
 
 // Top-level phase switch: premise → boot (S1) → desktop → reveal (S9) → login (S10). See docs/desktop.md.
@@ -135,6 +185,7 @@ function Phases() {
             Open
           </button>
           <p className={styles.hint}>best with headphones</p>
+          <Returning />
         </div>
       );
     case "boot":
@@ -142,17 +193,9 @@ function Phases() {
     case "desktop":
       return <Desktop />;
     case "reveal":
-      return (
-        <div className={styles.screen}>
-          <p className={styles.mono}>S9 · reveal · to be built</p>
-        </div>
-      );
+      return <Reveal />;
     case "login":
-      return (
-        <div className={styles.screen}>
-          <p className={styles.mono}>S10 · login · to be built</p>
-        </div>
-      );
+      return <Login />;
   }
 }
 
@@ -161,6 +204,7 @@ export default function Experience() {
     <StoryProvider>
       <PresenceProvider>
         <Phases />
+        <Interruptions />
         <Overlay />
         <FloatingSound />
       </PresenceProvider>

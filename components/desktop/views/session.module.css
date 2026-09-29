@@ -1,0 +1,35 @@
+/* S8 · session_0418.log: live scan on the left, the self-writing log on the right */
+
+.session {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  height: 100%;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+}
+
+.feed {
+  position: relative;
+  align-self: start;
+  aspect-ratio: 480 / 576;
+  background: #000;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+}
+.scan { position: absolute; inset: 0; }
+.feedLabel {
+  position: absolute; left: 8px; bottom: 6px;
+  font-size: 10px; letter-spacing: 0.06em; color: var(--neon);
+}
+
+.log {
+  list-style: none;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  color: var(--muted);
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+.log li:first-child { color: var(--text); margin-bottom: 6px; }
+.liveRow { color: var(--neon); }

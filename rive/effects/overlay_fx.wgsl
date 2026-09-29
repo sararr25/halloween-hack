@@ -13,7 +13,7 @@ struct Uniforms {
     headX: f32,     // -1..1, where the user's head is (mouse without camera)
     headY: f32,
     beam: f32,      // 0..1, the searchlight that follows the user
-    pad0: f32,
+    crt: f32,       // 0..1, the screen switching off (S10): collapse to a line, a dot, black
 };
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -102,6 +102,24 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let light = (spot * (0.55 + 0.25 * rings) + cone * 0.25) * u.beam * 0.22;
         rgb += tint * light;
         alpha += light * 0.35;
+    }
+
+    // an old tube switching off: the picture collapses to a white-hot line, then to a dot
+    if (u.crt > 0.001) {
+        let c = u.crt;
+        let hh = mix(0.5, 0.002, smoothstep(0.0, 0.45, c));
+        let hw = mix(0.5, 0.001, smoothstep(0.45, 0.85, c));
+        let dy = abs(in.uv.y - 0.5);
+        let dx = abs(in.uv.x - 0.5) * u.width / max(u.height, 1.0);
+        let hwA = hw * u.width / max(u.height, 1.0);
+        let heat = smoothstep(0.15, 0.45, c) * (1.0 - smoothstep(0.88, 1.0, c));
+        let outside = max(dy - hh, 0.0) + max(dx - hwA, 0.0);
+        let bloom = exp(-outside * 60.0) * heat;
+        if (outside <= 0.0) {
+            // inside what is left of the picture: it burns white
+            return vec4<f32>(vec3<f32>(0.95, 0.97, 1.0) * heat, heat);
+        }
+        return vec4<f32>(vec3<f32>(0.8, 0.85, 0.95) * bloom * 0.6, 1.0);
     }
 
     alpha = clamp(alpha, 0.0, 1.0);

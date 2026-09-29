@@ -1,0 +1,59 @@
+/* S10 · Login: an empty field, a caret that waits, the case list, a tube switching off */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  font-family: var(--font-mono), monospace;
+  transform-origin: 50% 50%;
+}
+
+.form { display: grid; gap: 28px; justify-items: start; cursor: text; }
+.brand { margin: 0; font-size: 11px; letter-spacing: 0.12em; color: var(--muted); }
+.field { display: flex; gap: 18px; align-items: baseline; font-size: 14px; }
+.label { color: var(--muted); font-size: 12px; letter-spacing: 0.06em; }
+.typed {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 260px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(216, 220, 229, 0.25);
+  color: var(--text);
+  white-space: pre;
+}
+.hidden { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+
+/* the caret blinks while someone is there; when nobody is, it stops, lit, and waits */
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  margin-left: 2px;
+  transform: translateY(3px);
+  background: var(--text);
+  animation: blink 1.06s steps(1) infinite;
+}
+.caret[data-waiting="true"] { animation-play-state: paused; opacity: 1; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.cases { list-style: none; display: grid; gap: 8px; font-size: 13px; color: var(--muted); min-width: min(560px, calc(100vw - 32px)); }
+.cases li { display: grid; grid-template-columns: 70px 160px 1fr; gap: 12px; }
+.cases li:first-child { display: block; margin-bottom: 10px; font-size: 11px; letter-spacing: 0.12em; }
+.open { color: var(--neon); text-shadow: 0 0 10px rgba(0, 240, 255, 0.45); }
+
+.black { position: fixed; inset: 0; background: #000; display: grid; place-items: center; }
+.credits {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  animation: fadeIn 2.4s ease-out both;
+}
+@keyframes fadeIn { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { animation: none; }
+}

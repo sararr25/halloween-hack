@@ -300,3 +300,76 @@ export function scanSweep(duration = 2) {
   src.start(now);
   src.stop(now + duration + 0.05);
 }
+
+/** A light switch in another flat: a soft click and a low thump. */
+export function lightSwitch() {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  noiseBurst(e, now, 0.012, 2600, 3, 0.1);
+  noiseBurst(e, now + 0.018, 0.05, 240, 1.5, 0.08);
+}
+
+/**
+ * S9: records `ms` of the room through the microphone the user granted in S1. The audio
+ * stays in memory, is played back once and dropped: nothing is stored or sent.
+ * Resolves null without a microphone (never granted, or refused now).
+ */
+export async function recordRoom(ms = 1200): Promise<AudioBuffer | null> {
+  const e = engine;
+  if (!e || typeof MediaRecorder === "undefined") return null;
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    return null;
+  }
+  const chunks: Blob[] = [];
+  const rec = new MediaRecorder(stream);
+  rec.ondataavailable = (ev) => chunks.push(ev.data);
+  const done = new Promise<void>((resolve) => (rec.onstop = () => resolve()));
+  rec.start();
+  await new Promise((r) => setTimeout(r, ms));
+  rec.stop();
+  await done;
+  stream.getTracks().forEach((t) => t.stop());
+  const bytes = await new Blob(chunks, { type: rec.mimeType }).arrayBuffer();
+  return e.ctx.decodeAudioData(bytes);
+}
+
+/** Plays the room back, close and a little dull, as if from the other side of a wall. */
+export function playRoom(buffer: AudioBuffer) {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const src = e.ctx.createBufferSource();
+  src.buffer = buffer;
+  const lp = e.ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 3200;
+  const g = e.ctx.createGain();
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(1.6, now + 0.05); // rooms are quiet: bring it up
+  g.gain.setValueAtTime(1.6, now + buffer.duration - 0.15);
+  g.gain.linearRampToValueAtTime(0, now + buffer.duration);
+  src.connect(lp).connect(g).connect(e.master);
+  src.start(now);
+}
+
+/** An old screen switching off: a falling whine, a static crackle, a low thump. */
+export function tubeOff() {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const o = e.ctx.createOscillator();
+  o.frequency.setValueAtTime(7800, now);
+  o.frequency.exponentialRampToValueAtTime(400, now + 1.2);
+  const g = e.ctx.createGain();
+  g.gain.setValueAtTime(0.012, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+  o.connect(g).connect(e.master);
+  o.start(now);
+  o.stop(now + 1.35);
+  noiseBurst(e, now, 0.25, 3000, 0.8, 0.07);
+  noiseBurst(e, now + 0.05, 0.12, 160, 1.2, 0.12);
+}

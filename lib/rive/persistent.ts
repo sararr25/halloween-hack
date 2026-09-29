@@ -20,7 +20,14 @@ export type PersistentRive = {
   get: (name: string) => Value | undefined;
 };
 
-type Options = { src: string; artboard: string; stateMachine: string; prefix: string; label?: string };
+type Options = {
+  src: string;
+  artboard: string;
+  stateMachine: string;
+  prefix: string;
+  label?: string;
+  fit?: Fit;
+};
 
 const pool = new Map<string, PersistentRive>();
 
@@ -43,7 +50,7 @@ export function persistentRive(key: string, o: Options): PersistentRive {
     stateMachine: o.stateMachine,
     autoplay: true,
     autoBind: true,
-    layout: new Layout({ fit: Fit.Contain }),
+    layout: new Layout({ fit: o.fit ?? Fit.Contain }),
     // scripts render WGSL into GPU canvases; the web runtime only draws them with this on
     enableGPUCanvas: true,
     onLoad: () => {
@@ -99,3 +106,14 @@ export function useMountedRive(host: RefObject<HTMLElement | null>, inst: () => 
 /** The operator's face as a point cloud (rive/story, artboard Scan). S1 and S8. */
 export const scanRive = () =>
   persistentRive("scan", { src: "/rive/story.riv", artboard: "Scan", stateMachine: "Scan", prefix: "scan" });
+
+/** S9: the window across, full screen (rive/story, artboard Across). */
+export const acrossRive = () =>
+  persistentRive("across", {
+    src: "/rive/story.riv",
+    artboard: "Across",
+    stateMachine: "Across",
+    prefix: "across",
+    fit: Fit.Cover,
+    label: "a lit window across the street at night, someone standing in it",
+  });

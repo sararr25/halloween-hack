@@ -9,6 +9,7 @@ import Messages from "./views/Messages";
 import Notes from "./views/Notes";
 import Phone from "./views/Phone";
 import Photos from "./views/Photos";
+import Session from "./views/Session";
 import Trash from "./views/Trash";
 
 export type AppDef = {
@@ -67,6 +68,8 @@ export const APPS: AppDef[] = [
   { id: "camera", title: "Camera", iconFrom: null, size: { w: 320, h: 240 },
     glyph: g(<><rect x="3" y="6" width="14" height="12" rx="2" /><path d="m17 10 4-2v8l-4-2" /></>),
     body: <Camera /> },
+  { id: "session", title: "session_0418.log", iconFrom: null, size: { w: 660, h: 330 },
+    glyph: doc, body: <Session /> },
 ];
 
 export const APP = Object.fromEntries(APPS.map((a) => [a.id, a])) as Record<AppId, AppDef>;

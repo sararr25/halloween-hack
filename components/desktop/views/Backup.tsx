@@ -63,7 +63,10 @@ export default function Backup() {
             <span className={styles.meta}>closed · operator unresponsive</span>
           </li>
           <li className={styles.neonText}>
-            <span>session_0418.log</span>
+            {/* S8: the one file that is about the user */}
+            <button className={styles.fileOpen} onClick={() => dispatch({ type: "open", id: "session" })}>
+              session_0418.log
+            </button>
             <span>
               in progress · opened {clock(state.openedAt, true)} · {duration(found)} to get here
             </span>

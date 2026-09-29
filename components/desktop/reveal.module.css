@@ -1,0 +1,33 @@
+/* S9 · Reveal: the window across, full screen, one line of text at a time */
+
+.reveal { position: fixed; inset: 0; background: #000; }
+
+/* fades in late: a fresh Rive canvas shows its loading mark first; black cuts at once */
+.scene { position: absolute; inset: 0; opacity: 0; animation: sceneIn 1.6s ease-out 1.8s forwards; }
+.scene[data-black="true"] { animation: none; opacity: 0; }
+@keyframes sceneIn { to { opacity: 1; } }
+
+.line {
+  position: absolute;
+  left: 50%;
+  bottom: 11vh;
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  white-space: nowrap;
+  animation: lineIn 2.2s ease-out both;
+}
+@keyframes lineIn {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene { animation-duration: 0.01s; }
+  .line { animation: none; }
+}

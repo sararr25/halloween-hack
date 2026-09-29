@@ -28,6 +28,7 @@ local function value(self: Fx, name: string, fallback: number): number
     if name == "headX" then return fx.headX.value end
     if name == "headY" then return fx.headY.value end
     if name == "beam" then return fx.beam.value end
+    if name == "crt" then return fx.crt.value end
     return fx.neon.value
 end
 
@@ -94,6 +95,7 @@ function draw(self: Fx, renderer: Renderer)
     buffer.writef32(d, 32, value(self, "headX", 0))
     buffer.writef32(d, 36, value(self, "headY", 0))
     buffer.writef32(d, 40, value(self, "beam", 0))
+    buffer.writef32(d, 44, value(self, "crt", 0))
     ubo:write(d)
 
     local pass = canvas:beginRenderPass({
