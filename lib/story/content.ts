@@ -66,6 +66,7 @@ export type Call = {
   days: number;
   time: string;
   kind: "missed" | "incoming" | "outgoing";
+  /** `audio`: what the recording contains (lib/audio/voices.ts plays it); `transcript`: what the phone wrote. */
   voicemail?: { length: string; audio: string; transcript: string };
   fromStage?: 2 | 3;
 };

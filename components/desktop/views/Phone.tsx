@@ -3,12 +3,27 @@
 import { useState } from "react";
 import { CALLS } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
+import type { RecordingId } from "@/lib/audio/voices";
 import { Empty, Row, Split, useFill, when } from "./shared";
+import VoicePlayer from "./VoicePlayer";
 import styles from "./views.module.css";
 
 // Phone, synced from E.V.'s mobile. The automatic transcript is unreliable: what you would
 // hear and what it writes disagree, and only the text knows about your session.
 // Stage 2+: a voicemail from E.V.'s own number, dated after she disappeared.
+// The recordings are played by lib/audio/voices.ts (procedural sound + device speech).
+
+const RECORDING: Record<string, RecordingId> = {
+  ev: "ev-voicemail",
+  "mara-1": "mara-voicemail",
+  unknown: "unknown-voicemail",
+};
+
+function recordingOf(callId: string): RecordingId {
+  const id = RECORDING[callId];
+  if (!id) throw new Error(`voicemail ${callId} has no recording in lib/audio/voices.ts`);
+  return id;
+}
 export default function Phone() {
   const { state, dispatch } = useStory();
   const f = useFill();
@@ -48,8 +63,7 @@ export default function Phone() {
             <>
               <div className={styles.panel}>
                 <span className={styles.panelLabel}>voicemail · {call.voicemail.length} · audio</span>
-                {/* Audio files pending (TTS). Until then, what the recording contains. */}
-                <span className={styles.transcript}>[{call.voicemail.audio}]</span>
+                <VoicePlayer key={call.id} id={recordingOf(call.id)} length={call.voicemail.length} />
               </div>
               <div className={styles.panel}>
                 <span className={styles.panelLabel}>transcript · automatic · confidence low</span>

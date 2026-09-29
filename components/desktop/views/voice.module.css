@@ -1,0 +1,18 @@
+/* Voice player: play/stop, a waveform that fills from the left as it plays */
+
+.player { display: inline-flex; align-items: center; gap: 10px; }
+.button {
+  width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid rgba(216, 220, 229, 0.3); color: var(--text); transition: border-color 120ms, background 120ms;
+}
+.button:hover, .button:focus-visible { border-color: var(--text); background: rgba(216, 220, 229, 0.06); }
+.playIcon { width: 0; height: 0; margin-left: 2px; border-left: 8px solid currentColor; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+.stopIcon { width: 8px; height: 8px; background: currentColor; }
+
+.wave { --played: 0; display: flex; gap: 2px; align-items: center; height: 20px; }
+/* each bar lights up once the playhead has passed it */
+.wave i {
+  width: 2px; border-radius: 1px; background: var(--text);
+  opacity: calc(0.3 + 0.7 * clamp(0, (var(--played) - var(--at)) * 100, 1));
+}
+.length { font-family: var(--font-mono), monospace; font-weight: 400; font-size: 10.5px; color: var(--muted); }

@@ -3,11 +3,13 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { CHATS, type ChatLine } from "@/lib/story/content";
+import Image from "next/image";
+import { CHATS, photoSrc, type ChatLine } from "@/lib/story/content";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
 import { when } from "./shared";
+import VoicePlayer from "./VoicePlayer";
 import styles from "./messages.module.css";
 
 gsap.registerPlugin(useGSAP);
@@ -151,22 +153,12 @@ function Bubble({ line: l, tail, onPhoto }: { line: ChatLine; tail: boolean; onP
     <div className={cls} title={l.time}>
       {l.photo && (
         <button className={styles.photo} onClick={onPhoto} aria-label={`${l.photo}, open in Photos`}>
-          <svg viewBox="0 0 120 80" aria-hidden="true">
-            <rect width="120" height="80" fill="#07090d" />
-            <rect x="15" y="4" width="90" height="66" fill="#0e131c" />
-            <rect x="72" y="24" width="10" height="13" fill="#8f9aac" />
-            <rect x="0" y="70" width="120" height="10" fill="#050608" />
-          </svg>
+          <Image src={photoSrc(l.photo)} alt="" width={240} height={160} sizes="240px" />
         </button>
       )}
       {l.voice && (
         <span className={styles.voice}>
-          <span className={styles.wave}>
-            {WAVE.map((h, j) => (
-              <i key={j} style={{ height: h }} />
-            ))}
-            <b>{l.voice.length}</b>
-          </span>
+          <VoicePlayer id="ev-voicenote" length={l.voice.length} />
           <span className={styles.transcript}>“{l.voice.transcript}”</span>
         </span>
       )}
@@ -176,4 +168,3 @@ function Bubble({ line: l, tail, onPhoto }: { line: ChatLine; tail: boolean; onP
   );
 }
 
-const WAVE = [4, 9, 14, 7, 11, 16, 6, 12, 8, 15, 5, 10, 13, 6, 9, 4, 11, 7, 12, 5];

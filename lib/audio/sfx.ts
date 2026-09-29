@@ -2,7 +2,7 @@
 // Rules (docs/desktop.md): rich but never loud, no sudden peaks, a mute toggle.
 // Everything goes through one compressor so stacked sounds cannot spike.
 
-type Engine = {
+export type Engine = {
   ctx: AudioContext;
   master: GainNode;
   noise: AudioBuffer;
@@ -44,6 +44,11 @@ export function unlockAudio() {
   engine = { ctx, master, noise, drone: null };
 }
 
+/** For other sound modules (lib/audio/voices.ts): the running engine, or null before the first gesture. */
+export function audioEngine(): Readonly<Engine> | null {
+  return engine;
+}
+
 export function isMuted() {
   return muted;
 }
@@ -68,7 +73,7 @@ export function onMuteChange(fn: (m: boolean) => void) {
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
-function noiseBurst(e: Engine, at: number, dur: number, freq: number, q: number, peak: number, pan = 0) {
+export function noiseBurst(e: Engine, at: number, dur: number, freq: number, q: number, peak: number, pan = 0) {
   const src = e.ctx.createBufferSource();
   src.buffer = e.noise;
   src.playbackRate.value = rand(0.8, 1.2);

@@ -42,12 +42,9 @@
 
 .photo { display: block; width: 200px; border-radius: 10px; overflow: hidden; transition: filter 120ms; }
 .photo:hover { filter: brightness(1.3); }
-.photo svg { display: block; width: 100%; }
+.photo img { display: block; width: 100%; height: auto; }
 
 .voice { display: grid; gap: 6px; min-width: 220px; }
-.wave { display: flex; gap: 2px; align-items: center; height: 20px; color: var(--text); }
-.wave i { width: 2px; background: currentColor; border-radius: 1px; opacity: 0.8; }
-.wave b { font-family: var(--font-mono), monospace; font-weight: 400; font-size: 10.5px; color: var(--muted); margin-left: 8px; }
 .transcript { font-size: 12.5px; color: var(--muted); font-style: italic; }
 
 /* someone is typing and never sends */
