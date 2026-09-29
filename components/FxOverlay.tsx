@@ -15,11 +15,18 @@ const SRC = "/rive/effects.riv";
  * The file carries scripts, so it only plays once signed with `pnpm rive:publish`;
  * until public/rive/effects.riv exists this renders nothing.
  */
-export default function FxOverlay({ levels }: { levels: FxLevels }) {
+/** Writes one `fx/*` number directly (for values that change every frame, like the head). */
+export type FxSetter = (name: string, value: number) => void;
+
+export default function FxOverlay({ levels, onVm }: { levels: FxLevels; onVm?: (set: FxSetter) => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const rive = useRef<Rive | null>(null);
   const [available, setAvailable] = useState(false);
   const latest = useRef(levels);
+  const onVmRef = useRef(onVm);
+  useEffect(() => {
+    onVmRef.current = onVm;
+  });
 
   const apply = () => {
     const vm = rive.current?.viewModelInstance;
@@ -50,6 +57,13 @@ export default function FxOverlay({ levels }: { levels: FxLevels }) {
       onLoad: () => {
         r.resizeDrawingSurfaceToCanvas();
         apply();
+        const vm = r.viewModelInstance;
+        if (!vm) throw new Error("effects.riv: no view model instance");
+        onVmRef.current?.((name, value) => {
+          const p = vm.number(`fx/${name}`);
+          if (!p) throw new Error(`effects.riv: missing fx/${name}`);
+          p.value = value;
+        });
       },
     });
     rive.current = r;

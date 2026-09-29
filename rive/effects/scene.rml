@@ -23,12 +23,18 @@
         <ViewModelPropertyNumber name="glitch" id="0:54"/>
         <ViewModelPropertyNumber name="neon" id="0:55"/>
         <ViewModelPropertyNumber name="pulse" id="0:56"/>
+        <ViewModelPropertyNumber name="headX" id="0:57"/>
+        <ViewModelPropertyNumber name="headY" id="0:58"/>
+        <ViewModelPropertyNumber name="beam" id="0:59"/>
         <ViewModelInstance exports="true" name="Stage1" id="0:51">
             <ViewModelInstanceNumber propertyValue="0.25" viewModelPropertyId="0:52" id="0:85"/>
             <ViewModelInstanceNumber propertyValue="0.35" viewModelPropertyId="0:53" id="0:86"/>
             <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="0:54" id="0:87"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:55" id="0:88"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:56" id="0:90"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:57" id="0:91"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:58" id="0:92"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:59" id="0:93"/>
         </ViewModelInstance>
     </ViewModel>
 

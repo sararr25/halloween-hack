@@ -10,6 +10,10 @@ struct Uniforms {
     width: f32,
     height: f32,
     seed: f32,      // changes per burst so each tear lands somewhere new
+    headX: f32,     // -1..1, where the user's head is (mouse without camera)
+    headY: f32,
+    beam: f32,      // 0..1, the searchlight that follows the user
+    pad0: f32,
 };
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -78,6 +82,26 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             rgb += (split * a + vec3<f32>(0.85, 0.87, 0.9) * b * (1.0 - a)) * 0.5 * u.glitch;
             alpha += lit + 0.25 * u.glitch; // the band itself dims what is under it
         }
+    }
+
+    // the searchlight: a cold beam from above the window, its spot a little late on the
+    // user's head. Faint concentric rings inside it: the lens of something looking back.
+    if (u.beam > 0.001) {
+        let aspect = u.width / max(u.height, 1.0);
+        let aim = vec2<f32>(0.5 + u.headX * 0.42, 0.52 + u.headY * 0.3);
+        let origin = vec2<f32>(0.5 + u.headX * 0.1, -0.25);
+        let q = (in.uv - aim) * vec2<f32>(aspect, 1.0);
+        let spot = 1.0 - smoothstep(0.05, 0.3, length(q));
+        let rings = 0.5 + 0.5 * sin(length(q) * 140.0 - u.time * 1.5);
+        // the cone: distance from the segment src -> aim
+        let ab = (aim - origin) * vec2<f32>(aspect, 1.0);
+        let ap = (in.uv - origin) * vec2<f32>(aspect, 1.0);
+        let t = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
+        let cone = (1.0 - smoothstep(0.02 + 0.2 * t, 0.06 + 0.3 * t, length(ap - ab * t))) * t;
+        let tint = mix(vec3<f32>(0.85, 0.88, 0.94), vec3<f32>(0.0, 0.94, 1.0), u.neon * 0.6);
+        let light = (spot * (0.55 + 0.25 * rings) + cone * 0.25) * u.beam * 0.22;
+        rgb += tint * light;
+        alpha += light * 0.35;
     }
 
     alpha = clamp(alpha, 0.0, 1.0);

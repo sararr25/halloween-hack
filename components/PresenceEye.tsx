@@ -11,13 +11,18 @@ export type EyeHandle = {
   blink: () => void;
 };
 
-/** The Rive eye (rive/presence). Writes presence into the `Presence` view model. */
+/**
+ * A living object from rive/presence, driven by the `Presence` view model:
+ * "Eye" (the /lab eye) or "Lens" (the surveillance lens in the Camera window).
+ */
 export default function PresenceEye({
   onReady,
   className,
+  artboard = "Eye",
 }: {
   onReady: (eye: EyeHandle) => void;
   className?: string;
+  artboard?: "Eye" | "Lens";
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -26,7 +31,8 @@ export default function PresenceEye({
     const rive = new Rive({
       src: "/rive/presence.riv",
       canvas: canvas.current,
-      stateMachine: "Presence",
+      artboard,
+      stateMachines: artboard === "Eye" ? "Presence" : "Lens",
       autoplay: true,
       autoBind: true,
       layout: new Layout({ fit: Fit.Contain }),
@@ -53,7 +59,7 @@ export default function PresenceEye({
       window.removeEventListener("resize", resize);
       rive.cleanup();
     };
-  }, [onReady]);
+  }, [onReady, artboard]);
 
   return <canvas ref={canvas} className={className} aria-hidden="true" />;
 }

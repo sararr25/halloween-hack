@@ -14,7 +14,11 @@ Read in this order: this file → `project.md` (concept, twist, scene outline) �
 - **Glitch:** scheduled by the page (`Overlay` in `Experience.tsx`): each one fires the shader tear (`fx/pulse`), a 140 ms RGB split of the page (`[data-glitch]`) and the sound together. Cadence 6–11 s / 2.5–5 s / 0.8–2 s per stage. Story moments call `glitchNow()`.
 - **Boot:** no eye (it would reveal the head tracking). A viewfinder; on "hold still" the operator's silhouette is traced with a scan line and reference points ("reconstructed" when the camera is refused).
 - **Desktop decor** (`Decor.tsx`, content in `content.ts`): the Sign on the wallpaper (moves only while you look away), calendar widget with events that appear by themselves, Memento polaroid (rewritten at stage 3), files `invitation.pdf` (The Game), `operator_manual.pdf`, `Screenshot 23.02.png` (shows *your* open windows), `viewers 1→3` in the menubar, cracked glass at stage 2–3. Icons open with a single click.
-- **Next:** S8 session log, S9 reveal, S10 login; real photos/audio.
+- **Camera window:** Rive artboard `Lens` in `rive/presence` (surveillance lens: focus ring turns with the head, diaphragm narrows when you look away, shutter fires on a blink, or on every click without camera).
+- **Searchlight:** in `overlay_fx.wgsl`: a cold beam from above whose spot follows the head (mouse without camera) with a 0.6 s lag, faint rings inside, cyan at stage 3. `fx/headX`, `fx/headY`, `fx/beam` are written straight to the view model (no React re-render).
+- **Glitch sound:** much rarer than the visual glitch (30–50 s / 18–30 s / 10–16 s) and rotates between four sounds.
+- **Photos to generate:** prompts in `docs/image-prompts.md` (names and folders included).
+- **Next:** wire the AI photos when they exist; S8 session log, S9 reveal, S10 login.
 
 ## How to run
 

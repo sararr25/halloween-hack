@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePresenceEvent } from "@/lib/presence/context";
+import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
@@ -60,6 +62,13 @@ function useDirector() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, clues]);
+
+  // Act 3: the system admits it sees your hands. An open palm (covering the camera) is answered.
+  usePresenceEvent("gesture", (g) => {
+    if (stage < 3 || g !== "palm" || said.current.has("palm")) return;
+    glitchNow(1);
+    say("palm", "anon", "no need to cover yourself.", 400);
+  });
 
   useEffect(() => {
     if (wrongCodes >= 2) say("code", "anon", "…check her notes.");

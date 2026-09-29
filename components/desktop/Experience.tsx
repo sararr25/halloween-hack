@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import FxOverlay, { type FxLevels } from "@/components/FxOverlay";
+import { useCallback, useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay";
 import { drone, glitchSound, unlockAudio } from "@/lib/audio/sfx";
 import { GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
-import { PresenceProvider } from "@/lib/presence/context";
+import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
 import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
 import Desktop from "./Desktop";
@@ -25,6 +26,8 @@ const SOUND_CADENCE: Record<Stage, [number, number]> = { 1: [30, 50], 2: [18, 30
 const between = ([a, b]: [number, number]) => (a + Math.random() * (b - a)) * 1000;
 const DRONE: Record<Stage, number> = { 1: 0.5, 2: 0.8, 3: 1 };
 const DOM_GLITCH_MS = 140;
+// The searchlight that follows the user's head (mouse without camera), per stage.
+const BEAM: Record<Stage, number> = { 1: 0.25, 2: 0.6, 3: 1 };
 
 /**
  * One overlay for the whole experience, mounted once. Rive instances that render GPU
@@ -75,7 +78,35 @@ function Overlay() {
     if (live) drone(DRONE[stage]);
   }, [live, stage]);
 
-  return <FxOverlay levels={{ ...STAGE_FX[stage], pulse }} />;
+  // The searchlight: the head position goes straight to the shader, a little late
+  // (like something turning to look), without re-rendering React on every frame.
+  const set = useRef<FxSetter | null>(null);
+  const head = useRef({ x: 0, y: 0 });
+  const beam = phase === "desktop" ? BEAM[stage] : 0;
+  const beamRef = useRef(beam);
+  const onVm = useCallback((s: FxSetter) => {
+    set.current = s;
+    s("beam", beamRef.current); // the overlay may load after the stage was set
+  }, []);
+  usePresenceEvent("change", (s) => {
+    gsap.to(head.current, {
+      x: s.headX,
+      y: s.headY,
+      duration: 0.6,
+      ease: "power2.out",
+      overwrite: true,
+      onUpdate: () => {
+        set.current?.("headX", head.current.x);
+        set.current?.("headY", head.current.y);
+      },
+    });
+  });
+  useEffect(() => {
+    beamRef.current = beam;
+    set.current?.("beam", beam);
+  }, [beam]);
+
+  return <FxOverlay levels={{ ...STAGE_FX[stage], pulse }} onVm={onVm} />;
 }
 
 /** Outside the desktop the sound toggle floats bottom right; on the desktop it lives in the menubar. */

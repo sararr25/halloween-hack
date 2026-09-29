@@ -25,6 +25,9 @@ local function value(self: Fx, name: string, fallback: number): number
     if name == "vignette" then return fx.vignette.value end
     if name == "glitch" then return fx.glitch.value end
     if name == "pulse" then return fx.pulse.value end
+    if name == "headX" then return fx.headX.value end
+    if name == "headY" then return fx.headY.value end
+    if name == "beam" then return fx.beam.value end
     return fx.neon.value
 end
 
@@ -41,7 +44,7 @@ function init(self: Fx, context: Context): boolean
         vertexLayout = {},
         colorTargets = { { format = canvas.format } },
     })
-    local ubo = GPUBuffer.new({ size = 32, usage = "uniform" })
+    local ubo = GPUBuffer.new({ size = 48, usage = "uniform" })
     self.pipeline = pipeline
     self.ubo = ubo
     self.group = GPUBindGroup.new({
@@ -88,6 +91,9 @@ function draw(self: Fx, renderer: Renderer)
     buffer.writef32(d, 20, canvas.width)
     buffer.writef32(d, 24, canvas.height)
     buffer.writef32(d, 28, self.seed)
+    buffer.writef32(d, 32, value(self, "headX", 0))
+    buffer.writef32(d, 36, value(self, "headY", 0))
+    buffer.writef32(d, 40, value(self, "beam", 0))
     ubo:write(d)
 
     local pass = canvas:beginRenderPass({
@@ -108,7 +114,7 @@ return function(context: Context): Layout<Fx>
         pipeline = nil,
         ubo = nil,
         group = nil,
-        data = buffer.create(32),
+        data = buffer.create(48),
         sampler = ImageSampler("clamp", "clamp", "bilinear"),
         size = Vector.xy(0, 0),
         time = 0,

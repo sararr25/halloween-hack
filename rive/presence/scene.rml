@@ -149,6 +149,252 @@
         </LinearAnimation>
     </Artboard>
 
+    <!--
+        Lens: the Camera window (stage 2). A surveillance lens, not an eye.
+        Same Presence view model: the rig follows the head (late), the focus ring turns
+        with it, the glints drift the other way. lookingAway narrows the diaphragm;
+        blink = the shutter fires (it takes your picture).
+    -->
+    <Artboard viewModelId="0:40" viewModelInstanceId="0:45" defaultStateMachineId="0:307" styleId="0:305" width="480" height="360" name="Lens" id="0:300">
+        <LayoutComponentStyle name="Artboard Style" id="0:305"/>
+
+        <Fill name="Background">
+            <SolidColor colorValue="FF020305" name="Color"/>
+        </Fill>
+
+        <!-- targeting corners, fixed to the frame -->
+        <Node x="240" y="180" name="Brackets">
+            <Shape name="TL"><PointsPath isClosed="false" name="Path"><StraightVertex x="-170" y="-110"/><StraightVertex x="-190" y="-110"/><StraightVertex x="-190" y="-90"/></PointsPath><Stroke thickness="1.2" name="S"><SolidColor colorValue="FF646B7A" name="C"/></Stroke></Shape>
+            <Shape name="TR"><PointsPath isClosed="false" name="Path"><StraightVertex x="170" y="-110"/><StraightVertex x="190" y="-110"/><StraightVertex x="190" y="-90"/></PointsPath><Stroke thickness="1.2" name="S"><SolidColor colorValue="FF646B7A" name="C"/></Stroke></Shape>
+            <Shape name="BL"><PointsPath isClosed="false" name="Path"><StraightVertex x="-170" y="110"/><StraightVertex x="-190" y="110"/><StraightVertex x="-190" y="90"/></PointsPath><Stroke thickness="1.2" name="S"><SolidColor colorValue="FF646B7A" name="C"/></Stroke></Shape>
+            <Shape name="BR"><PointsPath isClosed="false" name="Path"><StraightVertex x="170" y="110"/><StraightVertex x="190" y="110"/><StraightVertex x="190" y="90"/></PointsPath><Stroke thickness="1.2" name="S"><SolidColor colorValue="FF646B7A" name="C"/></Stroke></Shape>
+            <Shape name="Cross H"><PointsPath isClosed="false" name="Path"><StraightVertex x="-12" y="0"/><StraightVertex x="12" y="0"/></PointsPath><Stroke thickness="1" name="S"><SolidColor colorValue="66D8DCE5" name="C"/></Stroke></Shape>
+            <Shape name="Cross V"><PointsPath isClosed="false" name="Path"><StraightVertex x="0" y="-12"/><StraightVertex x="0" y="12"/></PointsPath><Stroke thickness="1" name="S"><SolidColor colorValue="66D8DCE5" name="C"/></Stroke></Shape>
+        </Node>
+
+        <Node x="240" y="180" name="Rig" id="0:310">
+            <DataBindContext sourcePathIds="0:40-0:41" propertyKey="13" converterId="0:353"/>
+            <DataBindContext sourcePathIds="0:40-0:42" propertyKey="14" converterId="0:354"/>
+
+            <!-- reflections on the glass drift against the movement -->
+            <Node name="Glints" id="0:311">
+                <DataBindContext sourcePathIds="0:40-0:41" propertyKey="13" converterId="0:355"/>
+                <Shape x="-26" y="-30" rotation="-0.5" name="Glint A">
+                    <Ellipse width="30" height="9" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="40EEF0F4" name="C"/></Fill>
+                </Shape>
+                <Shape x="22" y="26" name="Glint B">
+                    <Ellipse width="7" height="7" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="30EEF0F4" name="C"/></Fill>
+                </Shape>
+            </Node>
+
+            <!-- the diaphragm: narrows while you are not looking -->
+            <Node name="Aperture" id="0:312">
+                <!-- the shutter: closes and reopens on a blink -->
+                <Node name="Blades" id="0:313">
+                    <Shape name="Sensor">
+                        <Ellipse width="10" height="10" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="998A96B3" name="C"/></Fill>
+                    </Shape>
+                    <Shape name="Hole">
+                        <Polygon points="6" width="84" height="84" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF010203" name="C"/></Fill>
+                        <Stroke thickness="1" name="S"><SolidColor colorValue="FF3A4254" name="C"/></Stroke>
+                    </Shape>
+                    <Shape rotation="0.5236" name="Blade Edge">
+                        <Polygon points="6" width="116" height="116" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF0E121A" name="C"/></Fill>
+                        <Stroke thickness="1" name="S"><SolidColor colorValue="FF232A38" name="C"/></Stroke>
+                    </Shape>
+                </Node>
+            </Node>
+
+            <Shape name="Glass" id="0:314">
+                <Ellipse width="150" height="150" name="Path"/>
+                <Fill name="Fill">
+                    <RadialGradient name="G">
+                        <GradientStop colorValue="FF1A2130" position="0"/>
+                        <GradientStop colorValue="FF07090E" position="1"/>
+                    </RadialGradient>
+                </Fill>
+            </Shape>
+
+            <!-- focus ring: turns as it follows you -->
+            <Node name="Focus Ring" id="0:315">
+                <DataBindContext sourcePathIds="0:40-0:41" propertyKey="15" converterId="0:356"/>
+                <Shape name="Ticks">
+                    <Ellipse width="214" height="214" name="Path"/>
+                    <Stroke thickness="10" name="S">
+                        <SolidColor colorValue="FF232A38" name="C"/>
+                        <DashPath name="Dashes">
+                            <Dash length="2" name="On"/>
+                            <Dash length="9" name="Off"/>
+                        </DashPath>
+                    </Stroke>
+                </Shape>
+                <Shape x="0" y="-116" name="Index">
+                    <Rectangle width="3" height="10" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FFD8DCE5" name="C"/></Fill>
+                </Shape>
+            </Node>
+
+            <Shape name="Housing">
+                <Ellipse width="250" height="250" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF0B0F16" name="C"/></Fill>
+                <Stroke thickness="1.5" name="S"><SolidColor colorValue="FF2A3040" name="C"/></Stroke>
+            </Shape>
+        </Node>
+
+        <StateMachine name="Lens" id="0:307">
+            <StateMachineLayer name="Shutter" id="0:308">
+                <AnyState x="200" y="-120"/>
+                <ExitState x="400" y="-120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:320"/>
+                </EntryState>
+                <AnimationState x="200" y="0" animationId="0:361" id="0:320">
+                    <StateTransition stateToId="0:321">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyTrigger>
+                                    <DataBindContext sourcePathIds="0:40-0:44" propertyKey="686"/>
+                                </BindablePropertyTrigger>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState x="200" y="120" animationId="0:362" reset="true" id="0:321">
+                    <StateTransition stateToId="0:320" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>
+                </AnimationState>
+            </StateMachineLayer>
+
+            <StateMachineLayer name="Attention" id="0:309">
+                <AnyState x="600" y="-120"/>
+                <ExitState x="800" y="-120"/>
+                <EntryState>
+                    <StateTransition stateToId="0:322"/>
+                </EntryState>
+                <AnimationState x="600" y="0" animationId="0:363" id="0:322">
+                    <StateTransition stateToId="0:323" duration="500">
+                        <CubicEaseInterpolator x1="0.2" y1="0" x2="0" y2="1"/>
+                        <TransitionViewModelCondition opValue="equal">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:40-0:43" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState x="600" y="120" animationId="0:364" id="0:323">
+                    <StateTransition stateToId="0:322" duration="160">
+                        <TransitionViewModelCondition opValue="equal">
+                            <TransitionPropertyViewModelComparator>
+                                <BindablePropertyBoolean>
+                                    <DataBindContext sourcePathIds="0:40-0:43" propertyKey="634"/>
+                                </BindablePropertyBoolean>
+                            </TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <LinearAnimation duration="1" name="Shutter Open" id="0:361">
+            <KeyedObject objectId="0:313">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <!-- 10 frames: snaps shut, opens a little slower -->
+        <LinearAnimation duration="10" name="Shutter Fire" id="0:362">
+            <KeyedObject objectId="0:313">
+                <KeyedProperty propertyKey="16">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.06" frame="2" interpolationType="hold"/>
+                    <KeyFrameDouble value="0.06" frame="4" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0" y1="0" x2="0.2" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="10" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="17">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.06" frame="2" interpolationType="hold"/>
+                    <KeyFrameDouble value="0.06" frame="4" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0" y1="0" x2="0.2" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="10" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty propertyKey="15">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.8" frame="2" interpolationType="hold"/>
+                    <KeyFrameDouble value="0" frame="10" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="Lens Watching" id="0:363">
+            <KeyedObject objectId="0:312">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:314">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+
+        <LinearAnimation duration="1" name="Lens Away" id="0:364">
+            <KeyedObject objectId="0:312">
+                <KeyedProperty propertyKey="16"><KeyFrameDouble value="0.45" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="17"><KeyFrameDouble value="0.45" frame="0" interpolationType="hold"/></KeyedProperty>
+                <KeyedProperty propertyKey="15"><KeyFrameDouble value="0.9" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:314">
+                <KeyedProperty propertyKey="18"><KeyFrameDouble value="0.55" frame="0" interpolationType="hold"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+
+    <!-- Lens rig converters: each bind has its own lag so each keeps its own state -->
+    <DataConverterInterpolator interpolationType="cubic" duration="0.45" name="Lens Lag X" id="0:341">
+        <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterInterpolator interpolationType="cubic" duration="0.45" name="Lens Lag Y" id="0:342">
+        <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterInterpolator interpolationType="cubic" duration="0.6" name="Glint Lag" id="0:343">
+        <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterInterpolator interpolationType="cubic" duration="0.7" name="Ring Lag" id="0:344">
+        <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="204" maxOutput="276" clampLower="true" clampUpper="true" name="Lens X to px" id="0:345"/>
+    <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="160" maxOutput="200" clampLower="true" clampUpper="true" name="Lens Y to px" id="0:346"/>
+    <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="14" maxOutput="-14" clampLower="true" clampUpper="true" name="Glint X" id="0:347"/>
+    <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="-0.8" maxOutput="0.8" clampLower="true" clampUpper="true" name="Ring Rotation" id="0:348"/>
+    <DataConverterGroup name="Lens Follow X" id="0:353">
+        <DataConverterGroupItem converterId="0:341"/>
+        <DataConverterGroupItem converterId="0:345"/>
+    </DataConverterGroup>
+    <DataConverterGroup name="Lens Follow Y" id="0:354">
+        <DataConverterGroupItem converterId="0:342"/>
+        <DataConverterGroupItem converterId="0:346"/>
+    </DataConverterGroup>
+    <DataConverterGroup name="Glint Drift" id="0:355">
+        <DataConverterGroupItem converterId="0:343"/>
+        <DataConverterGroupItem converterId="0:347"/>
+    </DataConverterGroup>
+    <DataConverterGroup name="Ring Turn" id="0:356">
+        <DataConverterGroupItem converterId="0:344"/>
+        <DataConverterGroupItem converterId="0:348"/>
+    </DataConverterGroup>
+
     <!-- lag first (per axis, so each bind keeps its own state), then map to pixels -->
     <DataConverterInterpolator interpolationType="cubic" duration="0.3" name="Lag X" id="0:55">
         <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>

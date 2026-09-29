@@ -208,6 +208,15 @@ export function glitchSound(strength = 0.5) {
   nextGlitchSound = (nextGlitchSound + 1) % GLITCH_SOUNDS.length;
 }
 
+/** Camera shutter: two dry clicks, the blades closing and opening. */
+export function shutter() {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  noiseBurst(e, now, 0.018, 3200, 2, 0.09);
+  noiseBurst(e, now + 0.07, 0.024, 2400, 2, 0.07);
+}
+
 /** Soft notification: two low sine tones, never a chime. */
 export function blip() {
   const e = engine;
