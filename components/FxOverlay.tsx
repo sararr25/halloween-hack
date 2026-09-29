@@ -9,6 +9,9 @@ RuntimeLoader.setWasmUrl("/rive/rive.wasm");
 export type FxLevels = { grain: number; vignette: number; glitch: number; neon: number; pulse: number };
 
 const SRC = "/rive/effects.riv";
+// A Rive file published on the free plan opens with the Rive mark on black. The overlay
+// stays invisible until it has played out, then fades in (the premise is on screen then).
+const REVEAL_AFTER_MS = 4000;
 
 /**
  * Full-screen WGSL overlay from rive/effects (grain, vignette, glitch tears).
@@ -22,6 +25,7 @@ export default function FxOverlay({ levels, onVm }: { levels: FxLevels; onVm?: (
   const canvas = useRef<HTMLCanvasElement>(null);
   const rive = useRef<Rive | null>(null);
   const [available, setAvailable] = useState(false);
+  const [shown, setShown] = useState(false);
   const latest = useRef(levels);
   const onVmRef = useRef(onVm);
   useEffect(() => {
@@ -55,6 +59,7 @@ export default function FxOverlay({ levels, onVm }: { levels: FxLevels; onVm?: (
       // scripts render WGSL into GPU canvases; the web runtime only draws them with this on
       enableGPUCanvas: true,
       onLoad: () => {
+        setTimeout(() => setShown(true), REVEAL_AFTER_MS);
         r.resizeDrawingSurfaceToCanvas();
         apply();
         const vm = r.viewModelInstance;
@@ -86,7 +91,15 @@ export default function FxOverlay({ levels, onVm }: { levels: FxLevels; onVm?: (
     <canvas
       ref={canvas}
       aria-hidden="true"
-      style={{ position: "fixed", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        opacity: shown ? 1 : 0,
+        transition: "opacity 1.5s ease-out",
+      }}
     />
   );
 }

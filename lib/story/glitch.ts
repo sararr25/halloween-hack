@@ -19,3 +19,10 @@ export const CRT_EVENT = "recovery:crt";
 export function crtOff(seconds = 1.4) {
   window.dispatchEvent(new CustomEvent<number>(CRT_EVENT, { detail: seconds }));
 }
+
+export const BLACKOUT_EVENT = "recovery:blackout";
+
+/** Stage 3: the screen goes black for a moment and says one line, in mono (docs/scenes.md S8). */
+export function blackout(text: string) {
+  window.dispatchEvent(new CustomEvent<string>(BLACKOUT_EVENT, { detail: text }));
+}

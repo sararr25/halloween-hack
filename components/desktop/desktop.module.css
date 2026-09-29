@@ -182,3 +182,10 @@
 @media (prefers-reduced-motion: reduce) {
   .polaroid, .sign { transition: none; }
 }
+
+/* stage 3: the screen answers you, in mono, on black, for a moment */
+.blackout {
+  position: fixed; inset: 0; z-index: 5000; background: #000;
+  display: grid; place-items: center;
+}
+.blackout p { margin: 0; font-family: var(--font-mono), monospace; font-size: 13px; letter-spacing: 0.06em; color: var(--text); }

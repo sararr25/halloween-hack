@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { usePresenceEvent } from "@/lib/presence/context";
-import { glitchNow } from "@/lib/story/glitch";
+import { blackout, glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
-import { CalendarWidget, Crack, Polaroid, TheSign, Wallpaper } from "./Decor";
+import { Blackout, CalendarWidget, Crack, Polaroid, TheSign, Wallpaper } from "./Decor";
 import Notices from "./Notices";
 import FullscreenToggle from "./FullscreenToggle";
 import SoundToggle from "./SoundToggle";
 import Window from "./Window";
+import { prewarmLens } from "./views/PhotoLens";
 import styles from "./desktop.module.css";
 
 function Clock() {
@@ -56,7 +57,7 @@ function useDirector() {
     if (stage === 1 && "photo_figure" in clues) {
       dispatch({ type: "stage", stage: 2 });
       say("stage2", "system", "IMG_0419 added · source: unknown device", 1200);
-      say("faster", "anon", "You found him faster than the others did.", 5000);
+      say("faster", "anon", "You found the one in the street faster than the others did.", 5000);
     }
     if (stage === 2 && "backup_open" in clues) {
       dispatch({ type: "stage", stage: 3 });
@@ -65,11 +66,22 @@ function useDirector() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, clues]);
 
-  // Act 3: the system admits it sees your hands. An open palm (covering the camera) is answered.
+  // Act 3: the system admits it sees you. An open palm (covering the camera) is answered on a
+  // black screen; without a camera, so is coming back after leaving the page.
   usePresenceEvent("gesture", (g) => {
     if (stage < 3 || g !== "palm" || said.current.has("palm")) return;
+    said.current.add("palm");
     glitchNow(1);
-    say("palm", "anon", "no need to cover yourself.", 400);
+    blackout("no need to cover yourself.");
+  });
+  const wasAway = useRef(false);
+  usePresenceEvent("change", (s) => {
+    const back = wasAway.current && !s.lookingAway;
+    wasAway.current = s.lookingAway;
+    if (stage < 3 || s.source !== "mouse" || !back || said.current.has("hide")) return;
+    said.current.add("hide");
+    glitchNow(1);
+    blackout("no need to hide.");
   });
 
   // Stage 3: the log about the user is waiting.
@@ -183,6 +195,7 @@ export default function Desktop() {
   const { stage, windows } = state;
   useDirector();
   useReveal();
+  useEffect(prewarmLens, []);
 
   // Entering stage 2: the camera opens by itself, once. Closing it keeps it closed.
   const prevStage = useRef(stage);
@@ -234,6 +247,7 @@ export default function Desktop() {
       ))}
 
       <Notices />
+      <Blackout />
       <Crack />
     </div>
   );

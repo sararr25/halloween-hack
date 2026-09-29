@@ -38,7 +38,7 @@ export default function Reveal() {
   const [lines] = useState(() => {
     const { openedAt, clues, interruptions, session } = state;
     const out = [`You came in at ${clock(openedAt)}.`];
-    if ("photo_figure" in clues) out.push(`You found him in ${duration(clues.photo_figure)}.`);
+    if ("photo_figure" in clues) out.push(`You found the one in the street in ${duration(clues.photo_figure)}.`);
     out.push(
       session.camera === "granted"
         ? "You held still when you were asked."

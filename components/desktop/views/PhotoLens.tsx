@@ -28,11 +28,23 @@ type LensInstance = {
 let shared: LensInstance | null = null;
 
 /**
+ * Called when the desktop appears: the photo's Rive file loads and renders off screen for
+ * a few seconds, so the free-plan Rive mark has played out before anyone opens IMG_0418.
+ */
+export function prewarmLens() {
+  const l = lensInstance();
+  l.rive.startRendering();
+  setTimeout(() => {
+    if (!l.canvas.isConnected) l.rive.stopRendering();
+  }, 6000);
+}
+
+/**
  * The photo's Rive instance is created once and never torn down: with `enableGPUCanvas`
  * the runtime's cleanup can crash (glDeleteTextures without a current context), which
  * takes the page — and the camera — down. Closing the photo only detaches the canvas.
  */
-function lensInstance(): LensInstance {
+export function lensInstance(): LensInstance {
   if (shared) return shared;
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-label", "IMG_0418, a night photo of the building across the street");

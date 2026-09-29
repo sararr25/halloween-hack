@@ -7,7 +7,7 @@ import { useGSAP } from "@gsap/react";
 import { CALENDAR, POLAROID } from "@/lib/story/content";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { photoSrc } from "@/lib/story/content";
-import { glitchNow } from "@/lib/story/glitch";
+import { BLACKOUT_EVENT, glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { useFill } from "./views/shared";
 import styles from "./desktop.module.css";
@@ -178,4 +178,30 @@ export function Wallpaper() {
   }, [due]);
 
   return <div className={styles.wallpaper} data-swapped={swapped} aria-hidden="true" />;
+}
+
+const BLACKOUT_MS = 1300;
+
+/** One line on a black screen, for a moment: the system answering something you did. */
+export function Blackout() {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    const on = (e: Event) => {
+      setText((e as CustomEvent<string>).detail);
+      clearTimeout(t);
+      t = setTimeout(() => setText(null), BLACKOUT_MS);
+    };
+    window.addEventListener(BLACKOUT_EVENT, on);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener(BLACKOUT_EVENT, on);
+    };
+  }, []);
+  if (!text) return null;
+  return (
+    <div className={styles.blackout} role="status">
+      <p>{text}</p>
+    </div>
+  );
 }
