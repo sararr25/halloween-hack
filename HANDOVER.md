@@ -9,7 +9,8 @@ Read in this order: this file → `project.md` (concept, twist, scene outline) �
 - Hackathon: Contra × Rive Halloween challenge, solo, 18 days. Psychological thriller on a fake desktop OS; twist = "you are the one being watched", built from real session data.
 - **Working today:** `/lab`, a minimal S1. A Rive eye follows your head via the webcam, blinks when you blink, contracts when you look away, and answers hand gestures. The owner tested it on a Mac and it works.
 - **Signed but not yet seen in a browser:** the Rive WGSL overlay (grain, vignette, glitch). `public/rive/effects.riv` was committed in `89d0305`.
-- **Next:** sign the shaders, then build the desktop OS shell and scenes S2–S10.
+- **Desktop skeleton at `/`** (`components/desktop/`, `lib/story/store.tsx`): premise → boot placeholder → desktop with menubar, icons, draggable glass windows, stage 1–3 (REC, `backup_you`, Camera auto-open, FX levels). Apps are placeholders. Dev shortcuts: Alt+1/2/3 = stage, Alt+P/B/D/R/L = phase. The WGSL overlay now loads in the browser **and shows the Rive watermark** (free plan).
+- **Next:** move the `/lab` S1 into the boot phase (camera + mic), then the apps S2–S8.
 
 ## How to run
 

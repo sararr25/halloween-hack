@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import Experience from "@/components/desktop/Experience";
 
-// The experience is not built yet; the lab hosts the first scene.
 export default function Home() {
-  redirect("/lab");
+  return <Experience />;
 }
