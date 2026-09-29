@@ -44,6 +44,8 @@ export default function FxOverlay({ levels }: { levels: FxLevels }) {
       autoplay: true,
       autoBind: true,
       layout: new Layout({ fit: Fit.Cover }),
+      // scripts render WGSL into GPU canvases; the web runtime only draws them with this on
+      enableGPUCanvas: true,
       onLoad: () => {
         r.resizeDrawingSurfaceToCanvas();
         apply();

@@ -1,0 +1,478 @@
+// Story content for the desktop apps. English only. Tone (docs/desktop.md): the system is
+// clinical; E.V. is literary. Most items are skimmable everyday noise that still feeds the
+// theme — a perfect life that slowly feels observed. `key` marks the few that matter.
+//
+// Dates are relative to "now" (`days` ago). E.V. went missing 7 days ago, so anything newer
+// than that should not exist. Tokens filled at render time by `fill()`:
+//   {{entry}}  local time the user opened the site (HH:MM)  — also the backup password
+//   {{now}}    local time right now (HH:MM)
+//   {{today}}  today's date, long form
+
+export type Mail = {
+  id: string;
+  from: string;
+  subject: string;
+  days: number;
+  time: string;
+  body: string[];
+  attachment?: string;
+  key?: boolean;
+};
+
+export type Photo = {
+  id: string;
+  caption: string;
+  days: number;
+  /** placeholder tone until the AI photos exist */
+  tone: [string, string];
+  key?: boolean;
+  /** only listed from this stage on */
+  fromStage?: 2 | 3;
+};
+
+export type Voice = { length: string; transcript: string };
+export type ChatLine = { me: boolean; text?: string; voice?: Voice; days: number; time: string };
+export type Chat = { id: string; name: string; lines: ChatLine[] };
+
+export type Note = { id: string; title: string; days: number; body: string[]; typed?: boolean; key?: boolean };
+
+export type Search = { q: string; days: number; time: string };
+
+export type Call = {
+  id: string;
+  who: string;
+  number: string;
+  days: number;
+  time: string;
+  kind: "missed" | "incoming" | "outgoing";
+  voicemail?: { length: string; audio: string; transcript: string };
+  fromStage?: 2 | 3;
+};
+
+export type TrashFile = { id: string; name: string; days: number; body: string[] };
+
+export function fill(text: string, ctx: { entry: string; now: string; today: string }) {
+  return text.replaceAll("{{entry}}", ctx.entry).replaceAll("{{now}}", ctx.now).replaceAll("{{today}}", ctx.today);
+}
+
+// ─── Mail ────────────────────────────────────────────────────────────────────
+
+export const MAILS: Mail[] = [
+  {
+    id: "security",
+    from: "Account Security",
+    subject: "New sign-in to your account",
+    days: 1,
+    time: "03:12",
+    body: [
+      "A new device signed in to your account.",
+      "Location: approximate — 40 m from your home address.",
+      "If this was you, no action is needed.",
+    ],
+  },
+  {
+    id: "bill",
+    from: "Northgrid Energy",
+    subject: "Your September bill is ready",
+    days: 3,
+    time: "08:00",
+    body: [
+      "Your bill for September is £61.40.",
+      "Your usage was higher than last month, mostly between 23:00 and 04:00.",
+      "Tip: lights left on overnight are the most common cause.",
+    ],
+  },
+  {
+    id: "mara-police",
+    from: "Mara",
+    subject: "are you ok",
+    days: 5,
+    time: "22:47",
+    body: [
+      "I went to the police today. They were nice about it, the way people are nice to someone who's overreacting.",
+      "They said your email was used yesterday, so you're probably fine.",
+      "Was it you? Just tell me it was you.",
+    ],
+  },
+  {
+    id: "parcel",
+    from: "ParcelLine",
+    subject: "We delivered your parcel",
+    days: 6,
+    time: "14:31",
+    body: [
+      "Good news! Your parcel (blackout curtains, 2 panels) was delivered.",
+      "We couldn't reach you, so we left it with a neighbour: 17 Harrow Street, flat 4A.",
+      "Signed for by: E.V.",
+    ],
+  },
+  {
+    id: "for-later",
+    from: "E.V.",
+    subject: "for later",
+    days: 7,
+    time: "23:58",
+    body: [],
+    attachment: "for_later.dat",
+    key: true,
+  },
+  {
+    id: "lab",
+    from: "Lumen Film Lab",
+    subject: "Your scans are ready",
+    days: 9,
+    time: "11:05",
+    body: [
+      "Hi E., your Harrow St roll is scanned. 11 of 12 frames came out.",
+      "Frame 6 could not be corrected: one area is overexposed (a lit window, top right). The rest of the frame is very dark. We printed it anyway, it's in the envelope.",
+      "— Lumen",
+    ],
+  },
+  {
+    id: "theo-sunday",
+    from: "Theo",
+    subject: "Sunday",
+    days: 10,
+    time: "19:20",
+    body: ["Mum's doing the lamb. Bring nothing, she says, which means bring wine.", "T."],
+  },
+  {
+    id: "studio",
+    from: "Studio Arden",
+    subject: "Harrow St series — deadline",
+    days: 13,
+    time: "16:44",
+    body: [
+      "Hi E.V., night-only, as agreed. Twelve frames by the end of the month.",
+      "We loved frame 6 on the contact sheet. Could you reshoot it with the window across lit? Same angle, same time if you can.",
+      "Best, Ines",
+    ],
+  },
+  {
+    id: "books",
+    from: "Stillwater Books",
+    subject: "Autumn reading list",
+    days: 15,
+    time: "07:00",
+    body: [
+      "Ten novels for the long evenings, chosen by our staff.",
+      "This month's theme: unreliable narrators. Stories you have to read twice.",
+    ],
+  },
+  {
+    id: "hale-boiler",
+    from: "R. Hale",
+    subject: "Boiler service Tuesday",
+    days: 20,
+    time: "09:15",
+    body: ["Engineer coming Tues between 9 and 12. Please make sure someone is in.", "R. Hale, Hale Lettings"],
+  },
+];
+
+// ─── Photos ──────────────────────────────────────────────────────────────────
+
+export const PHOTOS: Photo[] = [
+  { id: "IMG_0419", caption: "source: unknown device", days: 0, tone: ["#1c2230", "#07090d"], fromStage: 2 },
+  { id: "IMG_0418", caption: "window across, night (6/12)", days: 8, tone: ["#0c1018", "#05070a"], key: true },
+  { id: "IMG_0417", caption: "window across (5/12)", days: 8, tone: ["#111723", "#06080d"] },
+  { id: "IMG_0416", caption: "cat on the wall, no. 14", days: 9, tone: ["#2a2f3a", "#0e1118"] },
+  { id: "IMG_0413", caption: "Harrow St (4/12)", days: 10, tone: ["#151b27", "#07090d"] },
+  { id: "IMG_0411", caption: "self-portrait, hallway mirror", days: 10, tone: ["#3a3f4a", "#12151c"] },
+  { id: "IMG_0407", caption: "Harrow St (3/12)", days: 11, tone: ["#1a2130", "#080a0f"] },
+  { id: "IMG_0404", caption: "Harrow St (2/12)", days: 12, tone: ["#1d2433", "#090b10"] },
+  { id: "IMG_0401", caption: "Harrow St, dusk (1/12)", days: 12, tone: ["#2c3445", "#0b0e15"] },
+  { id: "IMG_0397", caption: "bus window, rain", days: 14, tone: ["#36404f", "#10131a"] },
+  { id: "IMG_0392", caption: "my desk, finally tidy", days: 16, tone: ["#4a4e57", "#16181e"] },
+  { id: "IMG_0390", caption: "rooftop — Mara, two fingers up. “the only sign that opens anything”", days: 17, tone: ["#565c68", "#1a1d24"] },
+  { id: "IMG_0385", caption: "flowers, Saturday market", days: 19, tone: ["#5b5f68", "#1c1e24"] },
+  { id: "IMG_0380", caption: "Theo's dog, refusing the bath", days: 22, tone: ["#4f535c", "#17191f"] },
+  { id: "IMG_0374", caption: "Mara, laughing at something I said", days: 24, tone: ["#60646d", "#1d1f25"] },
+  { id: "IMG_0371", caption: "kitchen, morning light", days: 26, tone: ["#6b6f77", "#212329"] },
+];
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+// Fake choice (The Game): Mara and Theo both lead to the same key fact — the flat across
+// is empty, its light comes on every night, and the shape in it moves when she moves.
+
+export const CHATS: Chat[] = [
+  {
+    id: "mara",
+    name: "Mara",
+    lines: [
+      { me: false, text: "drinks thurs? you still owe me a birthday", days: 12, time: "18:02" },
+      { me: true, text: "yes. god yes.", days: 12, time: "18:40" },
+      { me: true, text: "weird question. have you ever felt like someone knows what you're going to do before you do it", days: 9, time: "23:10" },
+      { me: false, text: "every monday. it's called my manager", days: 9, time: "23:12" },
+      { me: true, text: "I mean it", days: 9, time: "23:12" },
+      { me: false, text: "ok. what's going on", days: 9, time: "23:13" },
+      { me: true, text: "the flat across from mine. 4A. it's been empty since last year, Hale says so", days: 8, time: "23:01" },
+      { me: true, text: "the light comes on every night. same time", days: 8, time: "23:02" },
+      { me: false, text: "timer? people do that for burglars", days: 8, time: "23:05" },
+      {
+        me: true,
+        voice: {
+          length: "0:21",
+          transcript:
+            "I stood at the window and raised my hand. Just to see. And the shape over there raised its hand. Not after me, Mara. With me. At the same time.",
+        },
+        days: 8,
+        time: "23:09",
+      },
+      { me: false, text: "ev.", days: 8, time: "23:10" },
+      { me: false, text: "come stay at mine. tonight. I'm serious", days: 8, time: "23:10" },
+      { me: false, text: "you didn't come thursday", days: 7, time: "21:30" },
+      { me: false, text: "ev?", days: 6, time: "09:12" },
+      { me: false, text: "I'm calling Theo", days: 6, time: "09:40" },
+      { me: false, text: "please just answer anything", days: 5, time: "23:55" },
+    ],
+  },
+  {
+    id: "theo",
+    name: "Theo",
+    lines: [
+      { me: false, text: "mum's asking if you're coming sunday", days: 10, time: "12:30" },
+      { me: true, text: "tell her yes", days: 10, time: "12:41" },
+      { me: true, text: "can you come and check something at mine. the window", days: 8, time: "23:20" },
+      { me: false, text: "what's wrong with the window", days: 8, time: "23:31" },
+      { me: true, text: "nothing's wrong with the window", days: 8, time: "23:31" },
+      { me: true, text: "the flat across is empty. there's someone in it. they copy me. I know how that sounds", days: 8, time: "23:33" },
+      { me: false, text: "Ev have you been sleeping", days: 8, time: "23:40" },
+      { me: true, text: "I took a photo. don't look at the window. look at the street", days: 8, time: "23:44" },
+      { me: false, text: "it's all dark. I can't see anything", days: 7, time: "08:03" },
+      { me: true, text: "look closer", days: 7, time: "08:03" },
+      { me: false, text: "went by yours. lights off, door locked", days: 6, time: "20:15" },
+      { me: false, text: "the flat across had its light on though", days: 6, time: "20:16" },
+      { me: false, text: "police say adults are allowed to leave. that's what they said. allowed", days: 3, time: "17:48" },
+    ],
+  },
+  {
+    id: "hale",
+    name: "R. Hale",
+    lines: [
+      { me: false, text: "Boiler engineer Tues 9–12", days: 20, time: "09:16" },
+      { me: true, text: "fine, thanks", days: 20, time: "10:02" },
+      { me: true, text: "who's renting 17 Harrow St, 4A?", days: 8, time: "22:58" },
+      { me: false, text: "Nobody. Not one of mine but I know the owner. Empty over a year.", days: 8, time: "23:15" },
+      { me: true, text: "the light is on every night", days: 8, time: "23:16" },
+      { me: false, text: "Timer probably.", days: 8, time: "23:30" },
+      { me: false, text: "Rent is due Friday. Please confirm you are receiving these messages.", days: 2, time: "10:00" },
+    ],
+  },
+];
+
+// ─── Notes ───────────────────────────────────────────────────────────────────
+
+export const NOTES: Note[] = [
+  {
+    id: "dated",
+    title: "{{today}}",
+    days: 0,
+    typed: true,
+    key: true,
+    body: [
+      "{{today}}.",
+      "I write the date first now, so I can prove it later.",
+      "I don't remember writing yesterday's note. The handwriting is mine.",
+    ],
+  },
+  {
+    id: "for-m",
+    title: "for M.",
+    days: 7,
+    body: ["If you read this before I do:", "it isn't the window. It was never the window.", "It's the screen."],
+  },
+  {
+    id: "code",
+    title: "backup",
+    days: 7,
+    key: true,
+    body: [
+      "Set the backup code tonight. Four digits, like a clock.",
+      "The time they come in. Not the light across. The other one — the one who opens this.",
+      "I don't know it yet. I set it anyway. It was already set.",
+    ],
+  },
+  {
+    id: "lights",
+    title: "lights across",
+    days: 8,
+    body: [
+      "mon 23:02",
+      "tue 23:02",
+      "wed 23:02",
+      "thu 23:02",
+      "Always two minutes after I switch mine on.",
+      "Tonight I didn't switch mine on. It came on anyway.",
+    ],
+  },
+  {
+    id: "sure",
+    title: "things I'm sure of",
+    days: 9,
+    body: [
+      "my name",
+      "the date",
+      "that I locked the door",
+      "that 4A has been empty for a year",
+      "that I'm the one taking the photos",
+      "This morning I was sure of five things. Now four.",
+    ],
+  },
+  {
+    id: "dream",
+    title: "dream",
+    days: 11,
+    body: [
+      "I was in a room made of windows and every window had someone in it doing what I did.",
+      "When I stopped, they didn't.",
+    ],
+  },
+  {
+    id: "shopping",
+    title: "shopping",
+    days: 12,
+    body: ["oat milk", "batteries (AA)", "blackout curtains ×2", "bin bags", "something for Mara's birthday"],
+  },
+  {
+    id: "work",
+    title: "Harrow St series",
+    days: 14,
+    body: ["12 frames, night only.", "Tripod. Long exposure.", "Shoot the street, not the flat. Never the flat."],
+  },
+];
+
+// ─── Browser history ─────────────────────────────────────────────────────────
+// Newest first. The first entry is the clickable one: it points at the session log.
+
+export const LAST_SEARCH_RESULT = [
+  "Most systems record the exact time a session was opened.",
+  "It is shown once, when the session starts. Nobody checks it again.",
+];
+
+export const SEARCHES: Search[] = [
+  { q: "how to see when someone opened your computer", days: 7, time: "23:51" },
+  { q: "can a laptop camera turn on without the light", days: 7, time: "23:47" },
+  { q: "17 harrow street 4a", days: 7, time: "23:40" },
+  { q: "why don't I remember tuesday", days: 7, time: "23:33" },
+  { q: "blackout curtains next day delivery", days: 7, time: "22:10" },
+  { q: "is it normal to feel watched in your own home", days: 8, time: "23:58" },
+  { q: "mirror neurons copying movements stranger", days: 8, time: "23:21" },
+  { q: "how to tell if someone is watching you through your window", days: 8, time: "23:06" },
+  { q: "light timer how to tell", days: 8, time: "23:04" },
+  { q: "long exposure night street settings", days: 9, time: "20:12" },
+  { q: "lumen film lab opening hours", days: 9, time: "10:40" },
+  { q: "how long does it take to forget a face", days: 9, time: "02:14" },
+  { q: "can't sleep 3am every night", days: 10, time: "03:02" },
+  { q: "lamb recipe slow cooked", days: 10, time: "19:30" },
+  { q: "recover deleted photos", days: 11, time: "22:48" },
+  { q: "harrow street history", days: 12, time: "21:00" },
+  { q: "cat breeds grey stripes", days: 13, time: "13:15" },
+  { q: "studio arden photography brief", days: 13, time: "16:50" },
+  { q: "bus 38 timetable", days: 14, time: "08:02" },
+  { q: "tripod for night photography", days: 15, time: "20:33" },
+  { q: "unreliable narrator books", days: 15, time: "07:45" },
+  { q: "birthday present ideas for best friend", days: 16, time: "21:20" },
+  { q: "boiler making knocking noise", days: 20, time: "07:10" },
+  { q: "market saturday flowers near me", days: 20, time: "09:00" },
+  { q: "kitchen plants low light", days: 26, time: "08:15" },
+];
+
+/** Stage 2+: searches that appear while you read, as if someone is still typing them. */
+export const LIVE_SEARCHES = [
+  "is someone reading my files",
+  "recovery session {{entry}}",
+  "how to know if you are being watched right now",
+];
+
+// ─── Phone (synced) ──────────────────────────────────────────────────────────
+// The transcript is automatic and unreliable: audio and text disagree, and only the
+// text knows things about the user's session.
+
+export const CALLS: Call[] = [
+  {
+    id: "ev",
+    who: "E.V. (mobile)",
+    number: "07700 900418",
+    days: 2,
+    time: "03:12",
+    kind: "missed",
+    fromStage: 2,
+    voicemail: {
+      length: "0:16",
+      audio: "breathing, a window opening, traffic. No words.",
+      transcript:
+        "It's me. I'm fine. [inaudible] Don't open the backup. If you're hearing this it's already {{now}} and you're still looking.",
+    },
+  },
+  {
+    id: "mara-1",
+    who: "Mara",
+    number: "07700 900127",
+    days: 5,
+    time: "23:56",
+    kind: "missed",
+    voicemail: {
+      length: "0:09",
+      audio: "Mara, crying a little: “Please call me back.”",
+      transcript: "Please call me back.",
+    },
+  },
+  {
+    id: "unknown",
+    who: "Unknown",
+    number: "No caller ID",
+    days: 7,
+    time: "23:02",
+    kind: "missed",
+    voicemail: {
+      length: "0:11",
+      audio: "a low voice, too quiet to understand. Then the call ends.",
+      transcript: "It's ready. They'll open it at {{entry}}. [inaudible] Leave the light on.",
+    },
+  },
+  { id: "theo-out", who: "Theo", number: "07700 900233", days: 8, time: "23:50", kind: "outgoing" },
+  { id: "hale", who: "R. Hale", number: "020 7946 0112", days: 8, time: "23:17", kind: "incoming" },
+  { id: "lab", who: "Lumen Film Lab", number: "020 7946 0880", days: 9, time: "11:02", kind: "incoming" },
+  { id: "theo-in", who: "Theo", number: "07700 900233", days: 10, time: "12:28", kind: "incoming" },
+];
+
+// ─── Trash ───────────────────────────────────────────────────────────────────
+
+export const TRASH: TrashFile[] = [
+  {
+    id: "log-0417",
+    name: "recovery_0417.log",
+    days: 30,
+    body: [
+      "RECOVERY/4 · device image E.V. · 118.4 GB",
+      "session opened 23:02:51",
+      "operator verification refused",
+      "operator unresponsive after 00:16:49",
+      "case closed",
+    ],
+  },
+  {
+    id: "untitled",
+    name: "untitled.txt",
+    days: 8,
+    body: ["When I lift my hand, the light across lifts its hand.", "When I put it down, it waits a little longer than I do."],
+  },
+  {
+    id: "police",
+    name: "draft_police.txt",
+    days: 7,
+    body: [
+      "To whom it may concern,",
+      "I know how this will read. There is a flat opposite mine, 17 Harrow Street, 4A, that has been empty for over a year. Every night at 23:02 its light comes on, and someone in it does what I do.",
+      "I am not asking you to believe me. I am asking you to look at the street, not at the window.",
+    ],
+  },
+  { id: "dup", name: "IMG_0418 (2).jpg", days: 8, body: ["Preview unavailable: the file was open on another device when it was deleted."] },
+  { id: "invoice", name: "invoice_arden_07.pdf", days: 18, body: ["Invoice 07 — Studio Arden — 4 frames — £640.00 — paid."] },
+];
+
+/** backup_you contents, shown once the code is right (stage 3). */
+export const BACKUP_README = [
+  "It keeps track of who looks. Not what they look at — who, and for how long.",
+  "I found my own sessions in here. Then I found the ones after mine.",
+];

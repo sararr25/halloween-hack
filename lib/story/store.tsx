@@ -21,7 +21,14 @@ export type StoryState = {
   /** Epoch ms of the first load of this session (the backup password is its HHMM). */
   openedAt: number;
   session: Session;
+  /** Mono notifications on the desktop, newest last. */
+  notices: Notice[];
+  /** Wrong backup codes so far (2 → the anonymous sender nudges). */
+  wrongCodes: number;
 };
+
+/** "anon" = the anonymous sender (help that is really guidance); "system" = the OS. */
+export type Notice = { id: number; from: "anon" | "system"; text: string };
 
 /** Facts about the user, gathered in S1 and reused by the story (S8/S9). */
 export type Session = {
@@ -40,7 +47,10 @@ type Action =
   | { type: "focus"; id: AppId }
   | { type: "move"; id: AppId; x: number; y: number }
   | { type: "clue"; id: string }
-  | { type: "session"; session: Partial<Session> };
+  | { type: "session"; session: Partial<Session> }
+  | { type: "notify"; from: Notice["from"]; text: string }
+  | { type: "dismiss"; id: number }
+  | { type: "wrongCode" };
 
 function reducer(s: StoryState, a: Action): StoryState {
   switch (a.type) {
@@ -52,7 +62,7 @@ function reducer(s: StoryState, a: Action): StoryState {
       if (s.windows.some((w) => w.id === a.id)) return reducer(s, { type: "focus", id: a.id });
       const n = s.windows.length;
       const z = s.topZ + 1;
-      return { ...s, topZ: z, windows: [...s.windows, { id: a.id, z, x: 180 + n * 36, y: 70 + n * 30 }] };
+      return { ...s, topZ: z, windows: [...s.windows, { id: a.id, z, x: 250 + n * 36, y: 60 + n * 30 }] };
     }
     case "close":
       return { ...s, windows: s.windows.filter((w) => w.id !== a.id) };
@@ -67,6 +77,14 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, clues: { ...s.clues, [a.id]: Date.now() - s.openedAt } };
     case "session":
       return { ...s, session: { ...s.session, ...a.session } };
+    case "notify": {
+      const id = (s.notices.at(-1)?.id ?? 0) + 1;
+      return { ...s, notices: [...s.notices, { id, from: a.from, text: a.text }] };
+    }
+    case "dismiss":
+      return { ...s, notices: s.notices.filter((n) => n.id !== a.id) };
+    case "wrongCode":
+      return { ...s, wrongCodes: s.wrongCodes + 1 };
   }
 }
 
@@ -90,6 +108,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     clues: {},
     openedAt: Date.now(),
     session: { camera: null, mic: null, verifiedAt: null },
+    notices: [],
+    wrongCodes: 0,
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/D/R/L jumps phase.

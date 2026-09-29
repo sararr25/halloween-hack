@@ -1,0 +1,54 @@
+<Rive version="1" kind="fragment">
+    <!--
+        IMG_0418 — "the window across, night". Taken from E.V.'s flat.
+        The whole photo is drawn by photo_lens.wgsl (lens.luau runs it over the artboard):
+        the web runtime has no offscreen 2D canvas for scripts, so the scene lives in the shader.
+          lensX, lensY  0..1  lens centre (host: cursor, or head when the camera is on)
+          lens          0..1  lens strength (host fades it in on hover)
+          figure        0..1  where the figure on the street stands; the host swaps it
+                              only while the user is not looking
+          silhouette    0..1  the shape in the lit window (stage 2+)
+    -->
+
+    <!-- ============================== Photo (shown) ============================== -->
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:40" viewModelInstanceId="0:41" clip="true" width="1200" height="800" styleId="0:5" name="Photo" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+        <LayoutComponent width="1200" height="800" styleId="0:11" name="Root Layout" id="0:10">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Layout Style" id="0:11"/>
+            <ScriptedLayout scriptAssetId="0:80" name="Lens" id="0:12">
+                <ScriptInputViewModelProperty dataBindPathIds="0:40-0:45" name="photo" id="0:13"/>
+            </ScriptedLayout>
+        </LayoutComponent>
+        <StateMachine name="Photo" id="0:7">
+            <StateMachineLayer name="Layer 1" id="0:8">
+                <AnyState x="200" y="-120" id="0:82"/>
+                <ExitState x="400" y="-120" id="0:83"/>
+                <EntryState id="0:84"/>
+            </StateMachineLayer>
+        </StateMachine>
+    </Artboard>
+
+    <ViewModel defaultInstanceId="0:51" name="Photo" id="0:50">
+        <ViewModelPropertyNumber name="lensX" id="0:56"/>
+        <ViewModelPropertyNumber name="lensY" id="0:57"/>
+        <ViewModelPropertyNumber name="lens" id="0:58"/>
+        <ViewModelPropertyNumber name="figure" id="0:54"/>
+        <ViewModelPropertyNumber name="silhouette" id="0:55"/>
+        <ViewModelInstance exports="true" name="Default" id="0:51">
+            <ViewModelInstanceNumber propertyValue="0.5" viewModelPropertyId="0:56"/>
+            <ViewModelInstanceNumber propertyValue="0.5" viewModelPropertyId="0:57"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:58"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:54"/>
+            <ViewModelInstanceNumber propertyValue="0.15" viewModelPropertyId="0:55"/>
+        </ViewModelInstance>
+    </ViewModel>
+
+    <ViewModel defaultInstanceId="0:41" name="Lens" id="0:40">
+        <ViewModelPropertyViewModel viewModelReferenceId="0:50" name="photo" id="0:45"/>
+        <ViewModelInstance exports="true" name="Instance" id="0:41">
+            <ViewModelInstanceViewModel propertyValue="0:51" viewModelPropertyId="0:45"/>
+        </ViewModelInstance>
+    </ViewModel>
+
+    <ScriptAsset file="lens.luau" name="lens" id="0:80"/>
+</Rive>
