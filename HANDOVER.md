@@ -1,13 +1,105 @@
-# Handover — Visual design direction
+# Handover
 
-Status as of 2026-09-29. Concept, references and twist live in `project.md`; this file covers only the visual design decided so far.
+Status as of 2026-09-29 · branch `claude/youthful-pascal-m6eofy` · no PR opened yet.
 
-## What exists
+Read in this order: this file → `project.md` (concept, twist, scene outline) → `docs/scenes.md` (per-scene animation/interaction spec, implementation status, tuning) → `docs/tech-setup.md` (install, Rive CLI, MediaPipe, troubleshooting).
 
-- `prototype/design-mockup.html` — single-file static mockup of the fake desktop (home screen). Open it directly in a browser, no build step.
-- Bottom-right switcher (`1 · Perfect / 2 · Watched / 3 · Corrupted`) is a designer-only tool to preview the three stages. It is not part of the experience.
+## TL;DR
 
-## Decisions (agreed with the owner)
+- Hackathon: Contra × Rive Halloween challenge, solo, 18 days. Psychological thriller on a fake desktop OS; twist = "you are the one being watched", built from real session data.
+- **Working today:** `/lab`, a minimal S1. A Rive eye follows your head via the webcam, blinks when you blink, contracts when you look away, and answers hand gestures. The owner tested it on a Mac and it works.
+- **Built but not yet seen in a browser:** the Rive WGSL overlay (grain, vignette, glitch). It carries Luau scripts, so it must be signed on the Mac (`rive login` + `pnpm rive:publish`).
+- **Next:** sign the shaders, then build the desktop OS shell and scenes S2–S10.
+
+## How to run
+
+```bash
+git checkout claude/youthful-pascal-m6eofy
+corepack enable && corepack prepare pnpm@10.33.0 --activate   # project pins pnpm 10.33
+pnpm install        # also runs scripts/sync-assets.mjs (wasm + MediaPipe models → public/)
+pnpm dev            # http://localhost:3000/lab  ("/" redirects there)
+```
+
+In `/lab`: "Avvia recupero" → allow camera → hold still 2 s. Press `D` for the debug overlay (source, headX/Y, lookingAway, faceLost, gesture, hands status, raw gesture).
+
+Other scripts:
+
+| Script | Does |
+|---|---|
+| `pnpm rive:build` | compiles `rive/presence` → `public/rive/presence.riv` (no scripts, unsigned is fine, works in the cloud container) |
+| `pnpm rive:publish` | signs `rive/effects` → `public/rive/effects.riv` (**Mac only**, needs `rive login`; commit the output) |
+| `pnpm lint` / `pnpm build` | both clean at the last commit |
+
+## Architecture
+
+```
+webcam ─▶ tracker.ts (main) ──ImageBitmap──▶ presence-worker.js (MediaPipe FaceLandmarker + GestureRecognizer)
+                ▲                                         │ numbers only (matrix m8/m9/m10, blink score, top gesture)
+                └──────────── apply(): yaw/pitch, EMA, lookingAway, blink, gesture hold ◀─┘
+                │ PresenceState + onBlink/onGesture
+                ▼
+Boot.tsx (S1) ─▶ PresenceEye.tsx ─▶ Rive view model "Presence" (headX, headY, lookingAway, blink)
+             └─▶ FxOverlay.tsx  ─▶ Rive view model "Overlay.fx" (grain, vignette, glitch, neon) → WGSL
+```
+
+| Path | What |
+|---|---|
+| `app/lab/Boot.tsx`, `lab.module.css` | S1: diegetic camera request, calibration, status line (GSAP typewriter), gesture replies (`GESTURE_LINES`, placeholder copy), debug overlay |
+| `lib/presence/tracker.ts` | `PresenceTracker`: public API `startMouse()`, `startCamera(video)`, `calibrate()`, `stop()`, events `onChange/onBlink/onGesture`. All tuning constants at the top |
+| `public/presence-worker.js` | classic worker, `importScripts('/mediapipe/vision_bundle.js')` (IIFE global `Vision`). One frame in flight |
+| `components/PresenceEye.tsx` | loads `/rive/presence.riv` with `@rive-app/webgl2`, writes the view model |
+| `components/FxOverlay.tsx` | mounts `/rive/effects.riv` only if it exists (HEAD check); a 404 in the console until it is signed is expected |
+| `rive/presence/` | Rive CLI project, the eye: RML only, data binding + state machine (Blink, Attention layers), cubic lag converters |
+| `rive/effects/` | Rive CLI project: `overlay_fx.wgsl` + `fx.luau` (ScriptedLayout → GPUCanvas → drawImage). `shaderOutputs: [glsl, wgsl]` |
+| `scripts/sync-assets.mjs` | copies MediaPipe/Rive wasm and IIFE bundle into `public/`, downloads models (gitignored) |
+| `.claude/hooks/session-setup.sh` | cloud SessionStart: genjutsu skill, Rive CLI + EGL libs, `pnpm install` |
+| `prototype/design-mockup.html` | static visual mockup of the desktop in the 3 stages (reference only) |
+
+Key decisions and why:
+
+- **Eye has no scripts** → unsigned `.riv` plays on the web, so it can be built in the cloud. Anything needing Luau/WGSL lives in a separate Rive project that is signed on the Mac.
+- **MediaPipe in a classic worker, not bundled** → Next/Turbopack module workers break MediaPipe's `importScripts` loader. The worker kept the animations at 60 fps: on a CPU-only container, fps with tracking went from 3 to about 27.
+- **Self-hosted wasm/models** → no runtime CDN (jsdelivr is blocked in cloud containers, and self-hosting is more robust).
+- **Camera asked for inside the fiction, with a mouse fallback for everything.** A refusal is stored (`localStorage recovery.cameraDenied`) for the story to use. Frames never leave the browser.
+
+## Verified vs not
+
+| | Status |
+|---|---|
+| Eye follow / blink / look-away in Rive (CLI screenshots) | ✅ |
+| Worker pipeline loads and runs (Playwright + fake camera) | ✅ |
+| Real face + gestures on the owner's Mac (Chrome) | ✅ head direction correct, blink OK, look-away OK, gestures OK (open palm weakest) |
+| Head sensitivity after retune (18°/12°) and faster lag (0.3 s) | ✅ owner confirmed "funziona" |
+| WGSL overlay in a browser | ❌ not yet: needs signing |
+| Safari / Firefox, low-end hardware | ❌ untested |
+| Vercel deploy | ❌ not done |
+
+## Owner actions pending
+
+1. On the Mac: `brew install --cask rive-app/tap/rive-cli`, `rive login`, `rive push rive/effects` (once), `pnpm rive:publish`, then commit `public/rive/effects.riv`.
+2. Tell us the Rive plan: publishing without a watermark needs Cadet or higher.
+3. Decide tone and voice of the copy (replaces the placeholder gesture replies).
+
+## Next steps (recommended order)
+
+1. Sign the overlay and wire `FxOverlay` levels to a global `stage` (1/2/3) using the HANDOVER stage table.
+2. Desktop OS shell: frosted-glass windows (drag, open/close with GSAP Flip), icons, stage state machine, session-data tracker (open time, time to clue, back-navigation, client-side only).
+3. Scenes S2–S10 per `docs/scenes.md`. Add shaders `lens` (S3), `corruption` (S9), `mirror_dither` (S9, webcam feed stays local).
+4. Gesture polish: per-gesture thresholds (Open_Palm lower), S7 gesture unlock, S8 "non serve coprirti".
+5. Deploy to Vercel (HTTPS needed for camera). Run `pnpm install` in the build so the models are fetched.
+6. Playtest, `prefers-reduced-motion` pass, perf on low-end hardware.
+
+## Known issues / gotchas
+
+- Dev-only Next overlays from **browser extensions** (`bis_skin_checked` hydration warning, `M_ID` TypeError from `chrome-extension://…`) are not our code. Ignore them, or use incognito.
+- A pnpm error mentioning unrelated packages (alchemy/prisma…) means pnpm is reading another project, or pnpm 11 is in use. See `docs/tech-setup.md` §7.
+- `rive login` cannot complete inside cloud containers (localhost OAuth redirect).
+- `next dev` rewrites the `AGENTS.md` Next block. Commit it as is.
+- The mockup in `prototype/` still has placeholder content (`m.lenhart`, CSS photos).
+
+## Design direction (unchanged)
+
+### Decisions (agreed with the owner)
 
 | Topic | Decision |
 |---|---|
@@ -19,7 +111,7 @@ Status as of 2026-09-29. Concept, references and twist live in `project.md`; thi
 | Materials | Frosted glass windows, heavy blur, film grain, vignette, glitch |
 | Narrative arc | Stage A "perfect life" → B surveillance moments → C corruption |
 
-### Palette tokens
+#### Palette tokens
 
 | Token | Value | Use |
 |---|---|---|
@@ -33,7 +125,7 @@ Status as of 2026-09-29. Concept, references and twist live in `project.md`; thi
 
 Fonts: Inter Tight (UI) + JetBrains Mono (paths, timestamps, metadata), via Google Fonts.
 
-### Neon rule
+#### Neon rule
 
 Cyan always means "something that knows about you". Its usage grows with tension:
 
@@ -43,7 +135,7 @@ Cyan always means "something that knows about you". Its usage grows with tension
 
 Never more than 1–2 neon elements per screen, otherwise it turns cyberpunk.
 
-### Stage behaviour
+#### Stage behaviour
 
 | | Stage 1 · Perfect | Stage 2 · Watched | Stage 3 · Corrupted |
 |---|---|---|---|
@@ -53,30 +145,10 @@ Never more than 1–2 neon elements per screen, otherwise it turns cyberpunk.
 
 Glitches and animations are disabled under `prefers-reduced-motion`.
 
-## Open points / next steps
+### Design open points
 
 1. Stage 3 glass still carries a faint cool tint — neutralise if it reads purple.
 2. Placeholder content (`m.lenhart`, dates, CSS-drawn photos) is illustrative only; real story assets still to be written/produced.
 3. Monochrome UI can hide what's clickable — solve with motion (hover glow, breathing) rather than colour.
-4. Build the real app: Next.js + TypeScript on Vercel (owner's default stack, pnpm). Port the tokens above to CSS variables/Tailwind theme; windows must become draggable, openable apps (Notes, Photos, Messages, History, Trash, backup folder).
-5. Session-data twist (open time, time to find clues, back-navigation) is only mocked with `Date` in the prototype; needs real tracking in-app (client-side only, no personal data sent anywhere).
-
-## Animation stack (2026-09-29)
-
-Full spec in `docs/scenes.md`, install/usage in `docs/tech-setup.md`.
-
-- **Rive** (sponsor): living objects authored as text with the Rive CLI (RML + Luau). A shared `Presence` view model is driven by the host app.
-- **Rive WGSL shaders**: diegetic post-process (grain/vignette, RGB glitch, lens, corruption, webcam dither). Uniforms are bound to stage/corruption.
-- **GSAP**: OS-layer motion (windows, toasts, typewriter).
-- **MediaPipe Tasks Vision**: head pose + gestures, client-side only. Camera is asked for inside the fiction; every interaction has a mouse fallback.
-- **genjutsu** skill is installed globally and re-installed by the repo SessionStart hook.
-
-## App scaffold (2026-09-29)
-
-- Next.js 16 + TypeScript + pnpm at the repo root. `pnpm dev` → `/lab` (redirect from `/`).
-- `pnpm install` runs `scripts/sync-assets.mjs`: copies MediaPipe + Rive wasm into `public/` and downloads the two MediaPipe models. All of these are gitignored.
-- `rive/presence/`: the eye, a Rive CLI project with no scripts. `pnpm rive:build` compiles it to `public/rive/presence.riv`, which is committed because Vercel has no Rive CLI.
-- `lib/presence/tracker.ts`: `PresenceTracker`, head pose / blink / gestures with mouse fallback and adaptive throttling.
-- `app/lab/Boot.tsx`: minimal S1. Press `D` for the debug overlay.
-- MediaPipe runs in `public/presence-worker.js`, a classic worker using the IIFE bundle (copied by sync-assets). It receives `ImageBitmap`s and returns numbers only, with at most one frame in flight.
-- `rive/effects/`: full-screen WGSL overlay (`overlay_fx.wgsl` + `fx.luau`) with grain, vignette, scanlines and glitch tears. View model `Overlay.fx.{grain,vignette,glitch,neon}`. Carries scripts → must be signed on the Mac (`pnpm rive:publish`). `components/FxOverlay.tsx` renders it only when `public/rive/effects.riv` exists.
+4. Tokens are ported to CSS variables in `app/globals.css`. Windows still have to become draggable, openable apps (Notes, Photos, Messages, History, Trash, backup folder).
+5. The session-data twist (open time, time to find clues, back-navigation) is still to be built in-app (client-side only, no personal data sent anywhere).

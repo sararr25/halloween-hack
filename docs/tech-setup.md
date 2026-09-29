@@ -67,29 +67,13 @@ curl -fsSL -o public/models/gesture_recognizer.task \
   https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task  # 8.4 MB
 ```
 
-Uso (bozza del modulo `presence`):
+Come è implementato (vedi `lib/presence/tracker.ts` e `public/presence-worker.js`):
 
-```ts
-import { FilesetResolver, FaceLandmarker, GestureRecognizer } from "@mediapipe/tasks-vision";
-
-const fileset = await FilesetResolver.forVisionTasks("/mediapipe");
-const face = await FaceLandmarker.createFromOptions(fileset, {
-  baseOptions: { modelAssetPath: "/models/face_landmarker.task", delegate: "GPU" },
-  runningMode: "VIDEO", numFaces: 1,
-  outputFaceBlendshapes: true,                 // eyeBlinkLeft/Right, jawOpen, eyeLookOut...
-  outputFacialTransformationMatrixes: true,    // matrice 4x4 → yaw/pitch/roll
-});
-const hands = await GestureRecognizer.createFromOptions(fileset, {
-  baseOptions: { modelAssetPath: "/models/gesture_recognizer.task", delegate: "GPU" },
-  runningMode: "VIDEO", numHands: 1,
-});
-
-// loop su requestVideoFrameCallback; face a ogni frame, gesture a frame alterni (~15 Hz)
-const r = face.detectForVideo(video, performance.now());
-const m = r.facialTransformationMatrixes?.[0]?.data; // column-major
-// yaw = atan2(m[8], m[10]); pitch = asin(-m[9]); smussare con EMA (alpha ~0.2)
-const g = hands.recognizeForVideo(video, performance.now()).gestures?.[0]?.[0]; // {categoryName, score}
-```
+- `pnpm install` esegue `scripts/sync-assets.mjs`, che copia i file WASM e il bundle IIFE (`vision_bundle.js`) in `public/mediapipe/` e scarica i due modelli in `public/models/`. Sono file generati, esclusi da git.
+- MediaPipe gira in un **Web Worker classico** (`public/presence-worker.js`, `importScripts` del bundle IIFE). Non passa dal bundler di Next: il loader WASM di MediaPipe si aspetta proprio `importScripts`.
+- Il main thread cattura un frame con `requestVideoFrameCallback`, lo trasforma in `createImageBitmap` e lo invia al worker come oggetto trasferibile. Un solo frame alla volta, massimo ~33 Hz. Il worker restituisce solo numeri: tre valori della matrice, un punteggio di battito e la gesture principale.
+- Sul main thread restano la conversione in yaw/pitch, il filtro EMA e le soglie di `lookingAway`, blink e gesture.
+- Delegate GPU, con fallback su CPU. Se la camera o il worker falliscono, si passa al mouse.
 
 Gesture predefinite: `Open_Palm`, `Closed_Fist`, `Pointing_Up`, `Thumb_Up`, `Thumb_Down`, `Victory`, `ILoveYou`, `None`.
 Regole: richiede HTTPS (Vercel ok, `localhost` ok). I frame non lasciano mai il browser. Si caricano i modelli solo dopo il consenso alla camera. Se la camera viene rifiutata, il fallback è il mouse.
@@ -118,3 +102,16 @@ Installata globalmente in `~/.agents/skills/genjutsu` con link in `~/.claude/ski
 6. Una sola volta: `rive push rive/effects` (lega il progetto a un file del tuo account e toglie il watermark se il workspace è Cadet+)
 7. A ogni modifica degli shader: `pnpm rive:publish` e poi commit di `public/rive/effects.riv` (firmato). Finché il file non esiste, l'overlay resta spento e l'app funziona lo stesso.
 8. L'occhio (`rive/presence`) non ha script: basta `pnpm rive:build`, anche nel container.
+
+## 7. Problemi noti e soluzioni
+
+| Sintomo | Causa | Soluzione |
+|---|---|---|
+| `pnpm install`/`pnpm dev`: `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` con pacchetti estranei (alchemy, prisma, cloudflare…) | pnpm sta leggendo un altro progetto (branch sbagliato senza `package.json`) e/o pnpm 11 globale | `git checkout claude/youthful-pascal-m6eofy`, `corepack enable && corepack prepare pnpm@10.33.0 --activate`, `rm -rf node_modules && pnpm install`. Non disattivare `minimumReleaseAge` |
+| Overlay Next "hydration mismatch" con `bis_skin_checked` | estensione del browser (antivirus/ad-blocker) che modifica l'HTML | ignorare, solo in dev; in incognito sparisce |
+| Overlay Next `Cannot read properties of undefined (reading 'M_ID')` da `chrome-extension://…` | errore interno di un'estensione | ignorare; non è codice nostro |
+| Nel pannello `D` mancano le righe `hands`/`raw` | codice locale non aggiornato | `git pull` |
+| La mano aperta viene riconosciuta poco | `Open_Palm` è la gesture più fragile del modello | mano intera nell'inquadratura, a 40–60 cm, palmo verso la camera, buona luce; se `raw` mostra un punteggio basso, abbassare la soglia solo per quella gesture |
+| `rive login` non funziona nel container cloud | OAuth con redirect su `127.0.0.1` del container | login e `--publish` solo sul Mac |
+| Installer Rive fallisce con `set: Illegal option -o pipefail` | lanciato con `sh` (dash) | usare `| bash` |
+| `rive: libEGL.so.1` mancante su Linux | niente librerie GL | `apt-get install libegl1 libgl1 libgles2` (lo fa l'hook di sessione) |

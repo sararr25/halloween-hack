@@ -100,12 +100,16 @@ Tre agganci reali, tutti banali in JS vanilla, zero backend:
 
 - [x] Concept, riferimenti, twist scelti
 - [x] Scaletta scena-per-scena (Atto 1-3 + finale)
-- [ ] Direzione visiva/design (in corso, gestita separatamente)
-- [ ] Tono e voce dei testi (quanto letterario vs secco/clinico)
-- [ ] Lista precisa degli asset da produrre (quante foto, mail, note, messaggi chat)
+- [x] Direzione visiva: palette Ink + neon cyan, 3 stage (`HANDOVER.md`, `prototype/design-mockup.html`)
 - [x] Spec scene/animazioni/interazioni (`docs/scenes.md`) e setup Rive CLI · WGSL · MediaPipe · GSAP (`docs/tech-setup.md`)
-- [ ] Validare la tesi di interazione in `docs/scenes.md`
-- [ ] Consentire `releases.rive.app` / `*.rive.app` nell'allowlist di rete e fare `rive login`
-- [ ] Setup tecnico del progetto (stack, struttura file)
+- [x] Tesi di interazione validata (2026-09-29)
+- [x] Rete aperta per `*.rive.app`, Rive CLI installata (container + Mac)
+- [x] Setup tecnico: Next.js 16 + TS + pnpm, Rive, MediaPipe in Web Worker, GSAP
+- [x] S1 minimale in `/lab`: occhio Rive che segue la testa, battito, sguardo altrove, gesture con risposta. Provata sul Mac
+- [ ] Firmare gli shader (`rive login` + `pnpm rive:publish` sul Mac) e vedere l'overlay WGSL nel browser
+- [ ] Tono e voce dei testi (quanto letterario vs secco/clinico); le risposte alle gesture sono segnaposto
+- [ ] Lista precisa degli asset da produrre (quante foto, mail, note, messaggi chat)
+- [ ] Desktop OS vero: finestre trascinabili, app (Mail, Foto, Chat, Note, Cronologia, Backup)
 - [ ] Build delle 10 schermate
+- [ ] Deploy su Vercel
 - [ ] Playtest e tuning del ritmo/degli indizi

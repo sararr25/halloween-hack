@@ -2,7 +2,7 @@
 
 Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e regola del neon sono in `HANDOVER.md`. Setup tecnico in `docs/tech-setup.md`.
 
-## Tesi di interazione (da validare, formato genjutsu)
+## Tesi di interazione (validata il 2026-09-29, formato genjutsu)
 
 **Interaction thesis:** il desktop si comporta come un oggetto che *ti sta guardando*. All'inizio tutto è immobile e perfetto; poi il movimento arriva sempre in risposta a te (alla tua testa, al tuo sguardo, alla tua mano) e sempre con un piccolo ritardo, come qualcuno che finge di non averti visto. Non c'è mai un movimento decorativo.
 
@@ -17,12 +17,36 @@ Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e r
 | Hover / focus icone | 120 ms | `power2.out` | solo opacità + glow bone-white |
 | Apertura finestra | 280 ms | `cubic-bezier(0.2,0,0,1)` | scale .98→1 + opacità; GSAP Flip dall'icona |
 | Chiusura finestra | 180 ms | `power2.in` | solo opacità (l'uscita è più sobria dell'entrata) |
-| "Qualcosa ti segue" (occhio, silhouette) | lag 350–600 ms | EMA α 0.08–0.2 | il ritardo è l'inquietudine: mai 1:1 |
+| "Qualcosa ti segue" (occhio, silhouette) | lag ~300 ms (tarato sul Mac) | EMA α 0.3 + interpolatore cubic Rive | il ritardo è l'inquietudine: mai 1:1 |
 | Testo riscritto | 28–45 ms/char | `steps()` | SplitText + caret; stage 3 con errori corretti |
 | Glitch | 60–140 ms | `none` | frequenza per stage (HANDOVER) |
 | Transizione di stage | 1.2–2 s | `sine.inOut` | uniform shader via GSAP, mai un taglio netto |
 
 `prefers-reduced-motion`: niente glitch né shiver, i follow diventano statici, il testo appare intero. La storia resta completa.
+
+## Stato di implementazione (2026-09-29)
+
+| Pezzo | Stato | Dove |
+|---|---|---|
+| Occhio Rive (`Presence`: headX/headY, lookingAway, blink) | ✅ provato sul Mac | `rive/presence/`, `components/PresenceEye.tsx` |
+| Tracking testa, battito, sguardo altrove | ✅ provato sul Mac | `lib/presence/tracker.ts`, `public/presence-worker.js` |
+| Gesture + risposta (battito dell'occhio + riga di stato) | ✅ provato sul Mac (la mano aperta è la più fragile) | `app/lab/Boot.tsx` (`GESTURE_LINES`, testi segnaposto) |
+| S1 minimale: richiesta camera diegetica, calibrazione 2 s, rifiuto salvato | ✅ | `app/lab/Boot.tsx` |
+| Overlay WGSL (grain, vignette, scanline, strappi glitch) | ⏳ compilato e visto negli screenshot della CLI; da firmare sul Mac | `rive/effects/`, `components/FxOverlay.tsx` |
+| Shader `lens`, `corruption`, `mirror_dither` | ⬜ da fare | — |
+| S2–S10, desktop OS, finestre GSAP | ⬜ da fare | — |
+
+### Taratura attuale (in `lib/presence/tracker.ts`)
+
+| Costante | Valore | Significato |
+|---|---|---|
+| `YAW_RANGE` / `PITCH_RANGE` | 18° / 12° | rotazione della testa che porta `headX`/`headY` a ±1 |
+| `EMA` | 0.3 | smussamento della posa della testa |
+| `AWAY_YAW` / `AWAY_AFTER_MS` | 25° / 1500 ms | oltre questa rotazione, e per questo tempo, conta come "guarda altrove" |
+| `LOST_AFTER_MS` | 3000 ms | tempo senza volto prima di `faceLost` |
+| `BLINK_ON` / `BLINK_OFF` | 0.5 / 0.3 | isteresi del battito |
+| `GESTURE_SCORE` / `GESTURE_HOLD_MS` | 0.6 / 300 ms | confidenza e durata minime di una gesture |
+| Lag Rive (`Lag X/Y` in `scene.rml`) | 0.3 s | ritardo con cui l'occhio segue |
 
 ## Chi fa cosa
 
