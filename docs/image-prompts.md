@@ -1,6 +1,6 @@
 # Image prompts
 
-Prompts for an AI image generator: every photo and graphic the desktop needs. IMG_0418 is not here, because it is drawn by the WGSL shader in Rive.
+Prompts for an AI image generator: every photo and graphic the desktop needs. All generated and wired (2026-09-29). IMG_0418 has no prompt: it is built from IMG_0413 (`scripts/make-photo-plates.py`); if IMG_0413 is regenerated, rerun the script and re-measure its boxes.
 
 ## How to use them
 
@@ -158,6 +158,6 @@ square instant photo, the dark facade of a terraced house across the street at n
 
 ## Not needed from the generator
 
-- **IMG_0418**: drawn by the WGSL shader in Rive.
+- **IMG_0418**: IMG_0413 with its figure lifted out as a cut-out (`scripts/make-photo-plates.py`), composed in Rive (`rive/photo`).
 - **The Sign, the cracked glass, the camera lens, the silhouette in the boot**: drawn in code (SVG / Rive).
 - **Chat avatars**: I use initials, so no faces.
