@@ -33,11 +33,11 @@ Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e r
 | Tracking testa, battito, sguardo altrove, gesture | ✅ provato sul Mac (la mano aperta è la più fragile) | `lib/presence/` |
 | Overlay WGSL (grain, vignette, scanline, strappi glitch sincronizzati, faro) | ✅ visibile nel browser con `enableGPUCanvas: true` | `rive/effects/`, `Experience.tsx` (`Overlay`) |
 | Foto IMG_0418 + lente (S3) | ✅ la foto è disegnata interamente nello shader | `rive/photo/`, `views/PhotoLens.tsx` |
-| Shader `corruption`, `mirror_dither` | ⬜ da fare (S9) | — |
+| S9 shader (`window_across`: building, figure, block corruption) | ✅ (replaces `corruption` + `mirror_dither`, see S9) | `rive/story/window_across.wgsl` |
 | S1 dentro `/` (camera + microfono, silhouette) | ✅ percorso "rifiuto"; percorso "consenso" da riprovare sul Mac | `components/desktop/Boot.tsx` |
 | S2–S7 con contenuti, progressione 1 → 2 → 3 | ✅ | `components/desktop/`, `lib/story/content.ts` |
 | Suono procedurale | ✅ scritto, mix nuovo non ancora ascoltato | `lib/audio/sfx.ts` |
-| S8–S10 | ⬜ da fare | — |
+| S8–S10 | ✅ mouse path verified; camera + mic path to test on the Mac | `views/Session.tsx`, `Reveal.tsx`, `Login.tsx` |
 
 ### Taratura attuale (in `lib/presence/tracker.ts`)
 
@@ -107,6 +107,7 @@ L'escalation va dal subliminale all'esplicito:
 - **Dati reali:** timestamp di apertura salvato; flag `cameraDenied`.
 - **Uscita:** desktop visibile.
 - **Realizzato:** niente artboard `boot` e **niente iride/occhio** (richiesta della proprietaria: mostrare il tracking qui lo svela). Log battuto con suono di tastiera, `session opened HH:MM:SS` in chiaro (è la futura password). Camera e microfono in un'unica richiesta. Un mirino vuoto; su "hold still" viene tracciata la silhouette dell'operatore (contorno, linea di scansione, punti di riferimento). Se rifiuta: "verification refused" e la silhouette viene disegnata comunque, "operator · reconstructed". Passaggio al desktop con un timer, non con la fine del tween. Il mittente anonimo arriva sul desktop dopo 2.5 s.
+- **Update 2026-09-29 (owner feedback: the traced outline looked childish):** the silhouette is now a measurement. One frame of the real face mesh (478 landmarks, worker → `lib/presence/face.ts` → Rive `scan/points`) is drawn by `rive/story/face_cloud.wgsl` as a 3D point cloud: a structured-light sweep acquires the points from noise, a counter runs to 478, then the head turns slowly. Refused or no face: a guessed face, jittering, `confidence 0.31`. Still never live in S1.
 
 ### S2 · Email · stage 1
 - **GSAP:** app Mail con apertura Flip dall'icona, lista con stagger 30 ms.
@@ -154,18 +155,20 @@ L'escalation va dal subliminale all'esplicito:
 - **Shader:** `glitch_rgb` con `neon=1`, ogni 0.9–2.6 s; `grain_vignette` alto.
 - **Gesture:** se l'utente copre la camera o mostra `Open_Palm`, lo schermo si oscura per 1 s e appare in mono: "non serve coprirti". Con camera negata: stesso effetto su un click fuori dalla finestra.
 - **Uscita:** chiusura del log (o dopo 20 s il log si chiude da solo).
-- **Realizzato in parte:** il palmo aperto nello stage 3 fa partire un glitch e il mittente anonimo scrive "no need to cover yourself." (una volta). Il log di sessione è ancora da fare.
+- **Built (2026-09-29):** `session_0418.log` (link in the backup, nudged by the anonymous sender) opens a window with the S1 scan, now live (real mesh every frame, or the guessed head following the mouse), and a self-typing log from real data (entry, verification, time to the figure, time to the backup, wrong codes) with live neon rows (looked away N times, last time, active). Looking away while it is open adds `operator looked away · HH:MM:SS` with a glitch. Closes itself after 20 s. The palm answer ("no need to cover yourself.") stays as before. Not built: darkening the screen for 1 s on palm.
 
 ### S9 · Reveal · stage 3
 - **Timeline GSAP master** (≈12 s): `corruption` 0→1, le finestre si chiudono da sole in ordine inverso di apertura, il testo della nota si riscrive in seconda persona usando i dati reali (ora locale, tempo per trovare il backup, ritorni indietro da `localStorage`).
 - **Rive** `window_across`: la finestra illuminata di fronte si accende. Dentro, la silhouette **fa i tuoi movimenti** (`headX/headY` 1:1, senza lag per la prima volta). Se la camera è attiva, la silhouette diventa il tuo feed in `mirror_dither` cyan (elaborato solo in locale, mai salvato).
 - **Ambiguità:** nessuna frase dice "sei tu". Solo la sincronia del movimento lo fa capire.
 - **Uscita:** la timeline finisce e lo schermo va a nero.
+- **Built (2026-09-29):** closing the log starts it. Windows close themselves in reverse open order (collapse + glitch each). Then Rive `Across` (`rive/story/window_across.wgsl`): the building of IMG_0418 at night, second-person lines from real data, the window lights up with a tube stutter, push-in, a backlit bust behind a sheer curtain steps in and copies `headX/headY` 1:1 with no smoothing. 1.2 s of the room is recorded at 9 s and played back at 12.4 s (memory only; no mic: tape warble). Block corruption with channel split, black, then S10. The webcam `mirror_dither` was dropped: a Rive script cannot sample a video, and a figure that only moves like you is more ambiguous than your own face.
 
 ### S10 · Login finale
 - **Rive** artboard `login`: campo utente vuoto, caret che lampeggia.
 - **Interazione:** se `faceLost`, il caret si ferma e la schermata "aspetta". Quando il volto torna, il caret riparte. Senza camera, il caret si ferma quando il mouse è fermo per 5 s.
 - Nessun'altra spiegazione. La digitazione è libera; con Invio lo schermo torna a S1 con "non è la prima volta" (flag in `localStorage`).
+- **Built (2026-09-29), following docs/desktop.md:** caret waits on `faceLost` (camera) or 5 s of stillness (mouse). Enter → case list (`#0415 E.V. missing`, `#0416`, `#0417 operator unresponsive`, `#0418 <name> open` in neon), then CRT switch-off (overlay shader `crt`, DOM squash, falling whine), black, "No frames or audio left your device." Instead of going back to S1, the name is kept in `localStorage` and the next premise says "case 0418 is still open, <name>."
 
 ---
 

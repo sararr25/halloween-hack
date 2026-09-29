@@ -64,6 +64,9 @@ La CLI compila e mostra tutto bene; sul web lo shader passa per GLSL ES 300 e al
 | `target` come nome di variabile | è riservato in WGSL stesso (la CLI dà errore): rinominare (`aim`) |
 | `sed` con `\b` per rinominare identificatori sul Mac | il `sed` di macOS non supporta `\b`: usare Python/`re` |
 
+| Script and shader with the same name (`scan.luau` + `scan.wgsl`) | the CLI prints `bytecode version mismatch (expected [3..13], got 66)` and the script never runs: give the shader a different name (`face_cloud.wgsl`) |
+| `%` on floats (`k % 20.0`) | avoid on the web path: write `k - floor(k / 20.0) * 20.0` |
+
 Test rapido quando lo schermo resta nero: `clearColor` rosso nel render pass. Rosso visibile = il pass gira e il problema è nello shader.
 
 ### Ciclo di vita delle istanze Rive con GPU canvas (web)
@@ -71,6 +74,9 @@ Test rapido quando lo schermo resta nero: `clearColor` rosso nel render pass. Ro
 - Con `enableGPUCanvas: true`, `rive.cleanup()` può lanciare `Cannot read properties of undefined (reading 'deleteTexture')`. L'errore smonta la pagina React e la camera si spegne.
 - Regola: **mai distruggere a metà sessione** un'istanza che usa GPU canvas. L'overlay è montato una volta sola in `Experience.tsx`; la foto IMG_0418 è un singleton (`lensInstance()` in `PhotoLens.tsx`) il cui canvas viene staccato dal DOM con `stopRendering()`, non distrutto.
 - I valori che cambiano a ogni frame (posizione della testa per il faro) si scrivono direttamente nel view model (`vm.number("fx/headX").value = …`), non passando dallo stato React.
+- `lib/rive/persistent.ts` is the shared pattern: `persistentRive(key, …)` creates an instance once, `useMountedRive(ref, getter)` moves its canvas in and out of the DOM (`startRendering` / `stopRendering`). Used by the S1/S8 scan and the S9 scene.
+- Tweening values into Rive with GSAP: never write `Object.keys(tweenedObject)` to the view model, GSAP adds its own `_gsap` key (the setter throws "missing across/_gsap"). Use a fixed key list.
+- Lists of numbers (the face mesh) go through a view model **string** decoded in Luau (`rive/story/scan.luau`, encoder in `lib/presence/face.ts`).
 - Gli strappi di glitch sono decisi dalla pagina: cambia `fx/pulse` e lo script Luau fa partire lo strappo. Così shader, pagina e suono sono sincronizzati.
 
 ## 3. MediaPipe (testa + gesture)
@@ -125,7 +131,7 @@ Installata globalmente in `~/.agents/skills/genjutsu` con link in `~/.claude/ski
 4. `pnpm dev` → `http://localhost:3000/lab` → "Avvia recupero" → `D` per il pannello debug
 5. `brew install --cask rive-app/tap/rive-cli && rive doctor && rive login`
 6. Una sola volta: `rive push rive/effects` (lega il progetto a un file del tuo account e toglie il watermark se il workspace è Cadet+)
-7. A ogni modifica degli shader: `pnpm rive:publish` e poi commit di `public/rive/effects.riv` e `public/rive/photo.riv` (firmati). La CLI 1.2.0 a volte va in segmentation fault durante la firma: basta rilanciare. Finché il file non esiste, l'overlay resta spento e l'app funziona lo stesso.
+7. A ogni modifica degli shader: `pnpm rive:publish` (or `pnpm rive:publish:story` for `rive/story` only) e poi commit di `public/rive/effects.riv`, `public/rive/photo.riv` e `public/rive/story.riv` (firmati). La CLI 1.2.0 a volte va in segmentation fault durante la firma: basta rilanciare. Finché il file non esiste, l'overlay resta spento e l'app funziona lo stesso.
 8. L'occhio (`rive/presence`) non ha script: basta `pnpm rive:build`, anche nel container.
 
 ## 7. Problemi noti e soluzioni
