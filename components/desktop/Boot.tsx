@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import PresenceEye, { type EyeHandle } from "@/components/PresenceEye";
-import FxOverlay from "@/components/FxOverlay";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
@@ -13,9 +12,6 @@ import styles from "./boot.module.css";
 gsap.registerPlugin(useGSAP);
 
 type Step = "idle" | "running" | "calibrating" | "done";
-
-// Stage 1 · perfect: subliminal grain and glitch (HANDOVER stage table)
-const STAGE1_FX = { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0 };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -147,8 +143,6 @@ export default function Boot() {
         )}
         {step === "calibrating" && <div className={styles.bar} />}
       </div>
-
-      <FxOverlay levels={STAGE1_FX} />
     </div>
   );
 }

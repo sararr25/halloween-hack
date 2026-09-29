@@ -112,6 +112,7 @@ Key decisions and why:
 
 - The in-app/automation browser pauses `requestAnimationFrame` when the pane is hidden, so GSAP animations (and window close, which completes on animation end) seem stuck. Not a bug: test with the page visible.
 - `docs/scenes.md` S10 is superseded by `docs/desktop.md` (case list + CRT switch-off).
+- **Never tear down a Rive instance that uses `enableGPUCanvas` mid-session:** its `cleanup()` can crash (`glDeleteTextures` on an undefined context), the error unmounts the page and the camera stops. The overlay is mounted once in `Experience.tsx`; the photo lens is a singleton whose canvas is detached, not destroyed.
 - **Rive web + WGSL:** `enableGPUCanvas: true` is required; script 2D canvases (`context:canvas()`) do not work on the web; some WGSL compiles in the CLI but draws black on WebGL2 (`half` is reserved, `u32` colour decoding). See `docs/tech-setup.md` §2.
 - In the in-app browser the page is often "hidden": Rive and GSAP draw only when the pane renders frames, so screenshots can look black or stuck. Move the mouse over the canvas / take a second screenshot.
 

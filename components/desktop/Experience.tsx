@@ -1,10 +1,29 @@
 "use client";
 
+import FxOverlay, { type FxLevels } from "@/components/FxOverlay";
 import { PresenceProvider } from "@/lib/presence/context";
-import { StoryProvider, useStory } from "@/lib/story/store";
+import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
 import Desktop from "./Desktop";
 import styles from "./desktop.module.css";
+
+// Overlay intensity per stage (HANDOVER stage table: low / medium / high).
+const STAGE_FX: Record<Stage, FxLevels> = {
+  1: { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0 },
+  2: { grain: 0.45, vignette: 0.55, glitch: 0.35, neon: 0 },
+  3: { grain: 0.7, vignette: 0.75, glitch: 0.7, neon: 1 },
+};
+
+/**
+ * One overlay for the whole experience, mounted once. Rive instances that render GPU
+ * canvases must not be torn down mid-session: with `enableGPUCanvas` the runtime's
+ * cleanup can crash (glDeleteTextures without a current context) and take the page,
+ * and the camera, down with it.
+ */
+function Overlay() {
+  const { state } = useStory();
+  return <FxOverlay levels={STAGE_FX[state.stage]} />;
+}
 
 // Top-level phase switch: premise → boot (S1) → desktop → reveal (S9) → login (S10). See docs/desktop.md.
 function Phases() {
@@ -44,6 +63,7 @@ export default function Experience() {
     <StoryProvider>
       <PresenceProvider>
         <Phases />
+        <Overlay />
       </PresenceProvider>
       <div className={styles.small} role="alert">
         <p className={styles.mono}>This device cannot run the recovery. Use a desktop.</p>

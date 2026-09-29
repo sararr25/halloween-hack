@@ -1,20 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import FxOverlay, { type FxLevels } from "@/components/FxOverlay";
-import { useStory, type Stage } from "@/lib/story/store";
+import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS } from "./apps";
 import Notices from "./Notices";
 import Window from "./Window";
 import styles from "./desktop.module.css";
-
-// Overlay intensity per stage (HANDOVER stage table: low / medium / high).
-const STAGE_FX: Record<Stage, FxLevels> = {
-  1: { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0 },
-  2: { grain: 0.45, vignette: 0.55, glitch: 0.35, neon: 0 },
-  3: { grain: 0.7, vignette: 0.75, glitch: 0.7, neon: 1 },
-};
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -155,8 +147,6 @@ export default function Desktop() {
       ))}
 
       <Notices />
-
-      <FxOverlay levels={STAGE_FX[stage]} />
     </div>
   );
 }

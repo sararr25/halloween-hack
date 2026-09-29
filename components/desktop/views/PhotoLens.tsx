@@ -8,7 +8,7 @@ import type { Stage } from "@/lib/story/store";
 
 RuntimeLoader.setWasmUrl("/rive/rive.wasm");
 
-// Street artboard coordinates (rive/photo/scene.rml): the figure stands at x 330 or 820 of
+// Scene coordinates in rive/photo/photo_lens.wgsl: the figure stands at x 330 or 820 of
 // 1200, its body spans y 640–782 of 800.
 const FIGURE_X = (figure: number) => (330 + figure * 490) / 1200;
 const FIGURE_Y = 0.87;
@@ -18,92 +18,127 @@ const FOUND_AFTER_MS = 700;
 
 const SILHOUETTE: Record<Stage, number> = { 1: 0.12, 2: 0.45, 3: 0.9 };
 
-type Vm = { set: (name: string, value: number) => void };
+type LensInstance = {
+  canvas: HTMLCanvasElement;
+  rive: Rive;
+  set: (name: string, value: number) => void;
+  get: (name: string) => number;
+};
+
+let shared: LensInstance | null = null;
 
 /**
- * IMG_0418 in Rive: the photo is drawn by rive/photo and processed by the photo_lens WGSL
- * shader (soft everywhere, sharp and magnified under the lens). The figure on the street
- * changes place only while the user is not looking. Holding the lens on it = found.
+ * The photo's Rive instance is created once and never torn down: with `enableGPUCanvas`
+ * the runtime's cleanup can crash (glDeleteTextures without a current context), which
+ * takes the page — and the camera — down. Closing the photo only detaches the canvas.
+ */
+function lensInstance(): LensInstance {
+  if (shared) return shared;
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("aria-label", "IMG_0418, a night photo of the building across the street");
+  Object.assign(canvas.style, { display: "block", width: "100%", aspectRatio: "3 / 2", cursor: "none" });
+
+  // values written before the file loads are applied on load
+  const values = new Map<string, number>([["figure", 0]]);
+  let apply: ((name: string, value: number) => void) | null = null;
+
+  const rive = new Rive({
+    src: "/rive/photo.riv",
+    canvas,
+    artboard: "Photo",
+    stateMachines: "Photo",
+    autoplay: true,
+    autoBind: true,
+    layout: new Layout({ fit: Fit.Contain }),
+    // scripts render WGSL into GPU canvases; the web runtime only draws them with this on
+    enableGPUCanvas: true,
+    onLoad: () => {
+      rive.resizeDrawingSurfaceToCanvas();
+      const vm = rive.viewModelInstance;
+      if (!vm) throw new Error("photo.riv: no view model instance");
+      apply = (name, value) => {
+        const p = vm.number(`photo/${name}`);
+        if (!p) throw new Error(`photo.riv: missing photo/${name}`);
+        p.value = value;
+      };
+      values.forEach((v, k) => apply?.(k, v));
+    },
+    onLoadError: (e) => {
+      throw new Error(`photo.riv failed to load: ${String(e)}`);
+    },
+  });
+
+  shared = {
+    canvas,
+    rive,
+    set: (name, value) => {
+      values.set(name, value);
+      apply?.(name, value);
+    },
+    get: (name) => values.get(name) ?? 0,
+  };
+  return shared;
+}
+
+/**
+ * IMG_0418 in Rive: the whole photo is drawn by the photo_lens WGSL shader (soft
+ * everywhere, sharp and magnified under the lens). The figure on the street changes place
+ * only while the user is not looking. Holding the lens on it = found.
  */
 export default function PhotoLens({ stage, onFound }: { stage: Stage; onFound: () => void }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const vm = useRef<Vm | null>(null);
+  const frame = useRef<HTMLDivElement>(null);
+  const inst = useRef<LensInstance | null>(null);
   const lens = useRef({ x: 0.5, y: 0.5, strength: 0 });
-  const figure = useRef(0);
   const hit = useRef<ReturnType<typeof setTimeout> | null>(null);
   const found = useRef(false);
-  const stageRef = useRef(stage);
 
   useEffect(() => {
-    if (!canvas.current) return;
-    const r = new Rive({
-      src: "/rive/photo.riv",
-      canvas: canvas.current,
-      artboard: "Photo",
-      stateMachines: "Photo",
-      autoplay: true,
-      autoBind: true,
-      layout: new Layout({ fit: Fit.Contain }),
-      // scripts render WGSL into GPU canvases; the web runtime only draws them with this on
-      enableGPUCanvas: true,
-      onLoad: () => {
-        r.resizeDrawingSurfaceToCanvas();
-        const inst = r.viewModelInstance;
-        if (!inst) throw new Error("photo.riv: no view model instance");
-        vm.current = {
-          set: (name, value) => {
-            const p = inst.number(`photo/${name}`);
-            if (!p) throw new Error(`photo.riv: missing photo/${name}`);
-            p.value = value;
-          },
-        };
-        vm.current.set("figure", figure.current);
-        vm.current.set("silhouette", SILHOUETTE[stageRef.current]);
-      },
-      onLoadError: (e) => {
-        throw new Error(`photo.riv failed to load: ${String(e)}`);
-      },
-    });
-    const ro = new ResizeObserver(() => r.resizeDrawingSurfaceToCanvas());
-    ro.observe(canvas.current);
+    const el = frame.current;
+    if (!el) return;
+    const l = lensInstance();
+    inst.current = l;
+    el.appendChild(l.canvas);
+    l.rive.startRendering();
+    const ro = new ResizeObserver(() => l.rive.resizeDrawingSurfaceToCanvas());
+    ro.observe(l.canvas);
     return () => {
       ro.disconnect();
-      r.cleanup();
-      vm.current = null;
+      l.rive.stopRendering();
+      l.canvas.remove();
+      if (hit.current) clearTimeout(hit.current);
+      hit.current = null;
     };
   }, []);
 
   useEffect(() => {
-    stageRef.current = stage;
-    vm.current?.set("silhouette", SILHOUETTE[stage]);
+    inst.current?.set("silhouette", SILHOUETTE[stage]);
   }, [stage]);
-
-  useEffect(() => () => void (hit.current && clearTimeout(hit.current)), []);
 
   // It moves only when you are not looking.
   usePresenceEvent("change", (s) => {
-    if (!s.lookingAway || found.current) return;
-    const next = figure.current === 0 ? 1 : 0;
-    if (next === figure.current) return;
-    figure.current = next;
-    vm.current?.set("figure", next);
+    const l = inst.current;
+    if (!l || !s.lookingAway || found.current) return;
+    const next = l.get("figure") === 0 ? 1 : 0;
+    l.set("figure", next);
   });
 
   const writeLens = () => {
-    const l = lens.current;
-    vm.current?.set("lensX", l.x);
-    vm.current?.set("lensY", l.y);
-    vm.current?.set("lens", l.strength);
+    const { x, y, strength } = lens.current;
+    inst.current?.set("lensX", x);
+    inst.current?.set("lensY", y);
+    inst.current?.set("lens", strength);
   };
 
-  const move = (e: PointerEvent<HTMLCanvasElement>) => {
-    const box = e.currentTarget.getBoundingClientRect();
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const l = inst.current;
+    if (!l) return;
+    const box = l.canvas.getBoundingClientRect();
     const x = (e.clientX - box.left) / box.width;
     const y = (e.clientY - box.top) / box.height;
     // a little late, like a hand-held loupe
     gsap.to(lens.current, { x, y, duration: 0.18, ease: "power2.out", onUpdate: writeLens });
 
-    const onFigure = Math.abs(x - FIGURE_X(figure.current)) < HIT_X && Math.abs(y - FIGURE_Y) < HIT_Y;
+    const onFigure = Math.abs(x - FIGURE_X(l.get("figure"))) < HIT_X && Math.abs(y - FIGURE_Y) < HIT_Y;
     if (onFigure && !hit.current && !found.current) {
       hit.current = setTimeout(() => {
         found.current = true;
@@ -122,14 +157,5 @@ export default function PhotoLens({ stage, onFound }: { stage: Stage; onFound: (
     hit.current = null;
   };
 
-  return (
-    <canvas
-      ref={canvas}
-      aria-label="IMG_0418, a night photo of the building across the street"
-      style={{ aspectRatio: "3 / 2" }}
-      onPointerEnter={enter}
-      onPointerMove={move}
-      onPointerLeave={leave}
-    />
-  );
+  return <div ref={frame} onPointerEnter={enter} onPointerMove={move} onPointerLeave={leave} />;
 }
