@@ -1,6 +1,7 @@
 /* eslint-disable */
 // Classic worker: runs MediaPipe off the main thread so animations keep their frame rate.
-// Receives ImageBitmaps, returns only numbers (no frames ever leave this worker).
+// Receives ImageBitmaps, returns only numbers (no frames ever leave this worker):
+// head pose, blink, gesture and, on request, the face mesh landmarks.
 importScripts("/mediapipe/vision_bundle.js");
 
 const { FilesetResolver, FaceLandmarker, GestureRecognizer } = self.Vision;
@@ -40,9 +41,15 @@ async function init() {
   });
 }
 
-function detect(bitmap, ts, wantHands) {
-  const out = { type: "result", ts, m: null, blink: null, gesture: null };
+function detect(bitmap, ts, wantHands, wantPoints) {
+  const out = { type: "result", ts, m: null, blink: null, gesture: null, points: null, aspect: bitmap.width / bitmap.height };
   const r = face.detectForVideo(bitmap, ts);
+  // the face mesh as plain numbers (x, y, z per landmark), only when the story asks for it
+  const lm = r.faceLandmarks?.[0];
+  if (wantPoints && lm) {
+    out.points = new Float32Array(lm.length * 3);
+    lm.forEach((p, i) => out.points.set([p.x, p.y, p.z], i * 3));
+  }
   const m = r.facialTransformationMatrixes?.[0]?.data;
   if (m) out.m = [m[8], m[9], m[10]];
   const shapes = r.faceBlendshapes?.[0]?.categories;
@@ -68,11 +75,12 @@ self.onmessage = async ({ data }) => {
     return;
   }
   if (data.type === "frame") {
-    const { bitmap, ts, wantHands } = data;
+    const { bitmap, ts, wantHands, wantPoints } = data;
     try {
-      self.postMessage(detect(bitmap, ts, wantHands));
+      const out = detect(bitmap, ts, wantHands, wantPoints);
+      self.postMessage(out, out.points ? [out.points.buffer] : []);
     } catch (e) {
-      self.postMessage({ type: "result", ts, m: null, blink: null, gesture: null });
+      self.postMessage({ type: "result", ts, m: null, blink: null, gesture: null, points: null });
     } finally {
       bitmap.close();
     }

@@ -1,4 +1,4 @@
-/* S1 · Boot — recovery log + the Rive eye */
+/* S1 · Boot: recovery log + the operator scan (Rive point cloud) */
 
 .screen {
   position: fixed;
@@ -25,13 +25,15 @@
     linear-gradient(var(--muted), var(--muted)) bottom right / 1px 18px;
   background-repeat: no-repeat;
 }
-.figure { width: 100%; height: 100%; opacity: 0; overflow: visible; }
-.outline { fill: none; stroke: var(--text); stroke-width: 1.2; stroke-linecap: round; }
-.point { fill: var(--accent); }
-.scan { stroke: var(--accent); stroke-width: 1; opacity: 0; }
-.caption {
-  position: absolute; left: 0; bottom: -26px;
+/* the Rive point cloud fills the frame; the readout sits under it, clinical */
+.cloud { position: absolute; inset: 0; opacity: 0; }
+.cloud[data-on="true"] { opacity: 1; }
+.readout span { white-space: nowrap; }
+.readout {
+  position: absolute; left: 0; right: 0; bottom: -28px;
+  display: flex; justify-content: space-between;
   font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.06em; color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .panel {

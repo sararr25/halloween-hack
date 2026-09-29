@@ -2,6 +2,8 @@
 // MediaPipe runs in public/presence-worker.js; frames never leave the browser.
 // Everything degrades to the mouse when the camera or the worker is unavailable.
 
+import { encodeFace } from "./face";
+
 export type Gesture = "none" | "palm" | "fist" | "point" | "victory" | "thumbUp" | "thumbDown" | "love";
 
 export type PresenceState = {
@@ -50,7 +52,14 @@ type WorkerResult = {
   m: [number, number, number] | null; // facial transformation matrix entries 8, 9, 10
   blink: number | null;
   gesture: { name: string; score: number } | null;
+  /** face mesh landmarks x, y, z (normalized image coords), only when asked for */
+  points: Float32Array | null;
+  /** width / height of the analysed frame */
+  aspect: number;
 };
+
+/** Receives the face mesh, already encoded for the Rive scan (see lib/presence/face.ts). */
+type PointsListener = (encoded: string) => void;
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const DEG = 180 / Math.PI;
@@ -81,6 +90,7 @@ export class PresenceTracker {
   private gestureCandidate: Gesture = "none";
   private gestureSince = 0;
   private stopMouse?: () => void;
+  private pointListeners = new Set<PointsListener>();
 
   constructor(private events: PresenceEvents = {}) {}
 
@@ -199,7 +209,10 @@ export class PresenceTracker {
       try {
         const bitmap = await createImageBitmap(video);
         // gestures at half rate
-        this.worker?.postMessage({ type: "frame", bitmap, ts: now, wantHands: this.frame % 2 === 0 }, [bitmap]);
+        this.worker?.postMessage(
+          { type: "frame", bitmap, ts: now, wantHands: this.frame % 2 === 0, wantPoints: this.pointListeners.size > 0 },
+          [bitmap],
+        );
       } catch {
         this.busy = false;
       }
@@ -207,8 +220,37 @@ export class PresenceTracker {
     this.schedule();
   };
 
+  /**
+   * Live face mesh: the listener gets every analysed frame's landmarks, encoded.
+   * The worker only computes them while someone listens. Returns the unsubscribe.
+   */
+  onPoints(listener: PointsListener): () => void {
+    this.pointListeners.add(listener);
+    return () => this.pointListeners.delete(listener);
+  }
+
+  /** One frame of the face mesh, or null without a face (or camera) within `timeoutMs`. */
+  capturePoints(timeoutMs = 1500): Promise<string | null> {
+    if (this.state.source !== "camera") return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const off = this.onPoints((encoded) => {
+        off();
+        clearTimeout(timer);
+        resolve(encoded);
+      });
+      const timer = setTimeout(() => {
+        off();
+        resolve(null);
+      }, timeoutMs);
+    });
+  }
+
   private apply(r: WorkerResult) {
     const now = performance.now();
+    if (r.points) {
+      const encoded = encodeFace(r.points, r.aspect);
+      this.pointListeners.forEach((l) => l(encoded));
+    }
     if (r.m) {
       const [m8, m9, m10] = r.m;
       this.lastFaceAt = now;

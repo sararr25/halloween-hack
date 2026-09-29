@@ -9,7 +9,8 @@
     "lint": "eslint",
     "postinstall": "node scripts/sync-assets.mjs",
     "rive:build": "rive rive/presence --once && cp rive/presence/build/presence.riv public/rive/presence.riv",
-    "rive:publish": "rive rive/effects --publish && cp rive/effects/build/effects.riv public/rive/effects.riv && rive rive/photo --publish && cp rive/photo/build/photo.riv public/rive/photo.riv"
+    "rive:publish": "rive rive/effects --publish && cp rive/effects/build/effects.riv public/rive/effects.riv && rive rive/photo --publish && cp rive/photo/build/photo.riv public/rive/photo.riv && pnpm rive:publish:story",
+    "rive:publish:story": "rive rive/story --publish && cp rive/story/build/story.riv public/rive/story.riv"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -262,3 +262,41 @@ export function drone(level: number) {
   }
   e.drone.gain.setTargetAtTime(0.05 * level, now, 0.8);
 }
+
+/** The structured-light sweep of a scan: a thin tone gliding down with a band of hiss. */
+export function scanSweep(duration = 2) {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const o = e.ctx.createOscillator();
+  o.type = "sine";
+  o.frequency.setValueAtTime(2600, now);
+  o.frequency.exponentialRampToValueAtTime(900, now + duration);
+  const g = e.ctx.createGain();
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.018, now + 0.15);
+  g.gain.setValueAtTime(0.018, now + duration - 0.3);
+  g.gain.linearRampToValueAtTime(0, now + duration);
+  o.connect(g).connect(e.master);
+  o.start(now);
+  o.stop(now + duration + 0.05);
+
+  const src = e.ctx.createBufferSource();
+  src.buffer = e.noise;
+  src.loop = true;
+  const bp = e.ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.Q.value = 6;
+  bp.frequency.setValueAtTime(5200, now);
+  bp.frequency.exponentialRampToValueAtTime(1400, now + duration);
+  const ng = e.ctx.createGain();
+  ng.gain.setValueAtTime(0, now);
+  ng.gain.linearRampToValueAtTime(0.05, now + 0.2);
+  ng.gain.linearRampToValueAtTime(0, now + duration);
+  const p = e.ctx.createStereoPanner();
+  p.pan.setValueAtTime(-0.5, now);
+  p.pan.linearRampToValueAtTime(0.5, now + duration);
+  src.connect(bp).connect(ng).connect(p).connect(e.master);
+  src.start(now);
+  src.stop(now + duration + 0.05);
+}

@@ -1,0 +1,59 @@
+<Rive version="1" kind="fragment">
+    <!--
+        Story objects that need a shader. The host (React) writes the view model.
+
+        Scan: the operator as a 3D point cloud (face_cloud.wgsl via scan.luau).
+          points   the face mesh as text, 6 chars per point (see scan.luau); empty = none
+          sweep    +1.3 .. -1.3  the structured-light sweep; points are acquired as it passes
+          mode     0 real face, 1 reconstructed (camera refused)
+          reveal   0..1 overall opacity
+          spin     0 hold the pose, 1 slow examination turn
+          yaw, pitch  extra rotation from the host, radians (S8: the live head)
+    -->
+
+    <!-- ============================== Scan ============================== -->
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:40" viewModelInstanceId="0:41" clip="true" width="480" height="576" styleId="0:5" name="Scan" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+        <LayoutComponent width="480" height="576" styleId="0:11" name="Root Layout" id="0:10">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Layout Style" id="0:11"/>
+            <ScriptedLayout scriptAssetId="0:80" name="Scan" id="0:12">
+                <ScriptInputViewModelProperty dataBindPathIds="0:40-0:45" name="scan" id="0:13"/>
+            </ScriptedLayout>
+        </LayoutComponent>
+        <StateMachine name="Scan" id="0:7">
+            <StateMachineLayer name="Layer 1" id="0:8">
+                <AnyState x="200" y="-120" id="0:82"/>
+                <ExitState x="400" y="-120" id="0:83"/>
+                <EntryState id="0:84"/>
+            </StateMachineLayer>
+        </StateMachine>
+    </Artboard>
+
+    <ViewModel defaultInstanceId="0:51" name="Scan" id="0:50">
+        <ViewModelPropertyString name="points" id="0:52"/>
+        <ViewModelPropertyNumber name="sweep" id="0:53"/>
+        <ViewModelPropertyNumber name="mode" id="0:54"/>
+        <ViewModelPropertyNumber name="reveal" id="0:55"/>
+        <ViewModelPropertyNumber name="spin" id="0:56"/>
+        <ViewModelPropertyNumber name="yaw" id="0:57"/>
+        <ViewModelPropertyNumber name="pitch" id="0:58"/>
+        <ViewModelInstance exports="true" name="Default" id="0:51">
+            <ViewModelInstanceString propertyValue="" viewModelPropertyId="0:52"/>
+            <ViewModelInstanceNumber propertyValue="1.3" viewModelPropertyId="0:53"/>
+            <ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:54"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:55"/>
+            <ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:56"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:57"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:58"/>
+        </ViewModelInstance>
+    </ViewModel>
+
+    <ViewModel defaultInstanceId="0:41" name="ScanRoot" id="0:40">
+        <ViewModelPropertyViewModel viewModelReferenceId="0:50" name="scan" id="0:45"/>
+        <ViewModelInstance exports="true" name="Instance" id="0:41">
+            <ViewModelInstanceViewModel propertyValue="0:51" viewModelPropertyId="0:45"/>
+        </ViewModelInstance>
+    </ViewModel>
+
+    <ScriptAsset file="scan.luau" name="scan" id="0:80"/>
+</Rive>

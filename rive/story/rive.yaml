@@ -1,0 +1,6 @@
+name: story
+# web runtimes: GLSL ES 300 (WebGL2) and WGSL (WebGPU)
+shaderOutputs: [glsl, wgsl]
+logs:
+  file: build/rive.log
+  problems: build/problems.log

@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { key } from "@/lib/audio/sfx";
+import { key, scanSweep } from "@/lib/audio/sfx";
 import { usePresence } from "@/lib/presence/context";
+import { scanRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
@@ -16,13 +17,12 @@ type Step = "idle" | "running" | "mapping" | "done";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Head-and-shoulders outline, drawn while the operator "holds still". Nothing here
-// follows the user: showing tracking now would spoil it (docs/scenes.md, "the unsaid").
-const OUTLINE =
-  "M150 46 C 112 46 92 76 92 114 C 92 150 108 182 128 196 L 128 222 C 96 232 58 246 40 270 C 26 290 20 318 18 340 M150 46 C 188 46 208 76 208 114 C 208 150 192 182 172 196 L 172 222 C 204 232 242 246 260 270 C 274 290 280 318 282 340";
-const POINTS: [number, number][] = [
-  [128, 112], [172, 112], [150, 138], [136, 162], [164, 162], [150, 176], [150, 72], [110, 128], [190, 128],
-];
+// The operator is not drawn, they are measured: one frame of their real face mesh becomes a
+// point cloud in Rive (rive/story, face_cloud.wgsl), acquired by a structured-light sweep and
+// then turned slowly, like evidence. Refused: a face is guessed anyway. It never follows the
+// user: showing tracking now would spoil it (docs/scenes.md, "the unsaid").
+const SWEEP_S = 2.4;
+const MESH_POINTS = 478;
 
 // S1 · Boot: a clinical recovery log. Camera and microphone are asked inside the fiction,
 // as operator verification. Refusing changes nothing but the record.
@@ -69,18 +69,26 @@ export default function Boot() {
     { scope: root, dependencies: [lines.length] },
   );
 
-  // The mapping: the outline is traced, a scan line passes, reference points tick in.
+  // The mapping: the sweep passes top to bottom and the points fall into a face.
+  const viewfinder = useRef<HTMLDivElement>(null);
+  useMountedRive(viewfinder, scanRive);
+  const [points, setPoints] = useState(0);
   useGSAP(
     () => {
       if (step !== "mapping") return;
-      const path = root.current?.querySelector<SVGPathElement>(`.${styles.outline}`);
-      if (!path) return;
-      const len = path.getTotalLength();
-      const tl = gsap.timeline();
-      tl.set(`.${styles.figure}`, { opacity: 1 });
-      tl.fromTo(path, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.6, ease: "power1.inOut" });
-      tl.fromTo(`.${styles.scan}`, { y: 20, opacity: 0.9 }, { y: 340, opacity: 0, duration: 1.4, ease: "sine.inOut" }, 0.2);
-      tl.from(`.${styles.point}`, { opacity: 0, scale: 0, transformOrigin: "center", duration: 0.08, stagger: { each: 0.09, onStart: key } }, 1.2);
+      const scan = scanRive();
+      const v = { sweep: 1.3, reveal: 0, n: 0 };
+      const write = () => {
+        scan.set("sweep", v.sweep);
+        scan.set("reveal", v.reveal);
+      };
+      scan.set("spin", 1);
+      write();
+      scanSweep(SWEEP_S);
+      const tl = gsap.timeline({ onUpdate: write });
+      tl.to(v, { reveal: 1, duration: 0.5, ease: "power1.out" }, 0);
+      tl.to(v, { sweep: -1.3, duration: SWEEP_S, ease: "sine.inOut" }, 0.2);
+      tl.to(v, { n: MESH_POINTS, duration: SWEEP_S, ease: "sine.inOut", onUpdate: () => setPoints(Math.round(v.n)) }, 0.2);
     },
     { scope: root, dependencies: [step] },
   );
@@ -130,22 +138,34 @@ export default function Boot() {
         // storage blocked: the refusal is still in the story state for this session
       }
       setRefused(true);
+      scanRive().set("mode", 1);
       glitchNow(0.9);
       log(`verification refused · ${clock(at, true)}`);
       await wait(700);
       log("reconstructing operator from input");
       setStep("mapping");
-      await wait(2400);
+      await wait(SWEEP_S * 1000 + 200);
       log("access granted anyway");
       setStep("done");
       return;
     }
 
     log("hold still");
+    await wait(600);
+    // one frame of the face mesh; no face in view = the scan guesses, like a refusal
+    const face = await tracker.capturePoints();
+    const scan = scanRive();
+    if (face) {
+      scan.set("points", face);
+      scan.set("mode", 0);
+    } else {
+      scan.set("mode", 1);
+      setRefused(true);
+    }
     setStep("mapping");
-    await wait(2000);
+    await wait(SWEEP_S * 1000 + 200);
     tracker.calibrate();
-    log(`operator mapped · ${clock(Date.now(), true)}`);
+    log(`operator mapped · ${face ? MESH_POINTS : 0} points · ${clock(Date.now(), true)}`);
     glitchNow(0.5);
     await wait(900);
     log("access granted");
@@ -155,15 +175,13 @@ export default function Boot() {
   return (
     <div ref={root} className={styles.screen} data-glitch>
       <div className={styles.viewfinder} aria-hidden="true">
-        <svg viewBox="0 0 300 360" className={styles.figure}>
-          <path className={styles.outline} d={OUTLINE} />
-          {POINTS.map(([x, y], i) => (
-            <circle key={i} className={styles.point} cx={x} cy={y} r="2.2" />
-          ))}
-          <line className={styles.scan} x1="0" x2="300" y1="0" y2="0" />
-        </svg>
-        {step === "mapping" && (
-          <span className={styles.caption}>{refused ? "operator · reconstructed" : "operator · mapping"}</span>
+        {/* hidden until the scan runs: a fresh Rive canvas shows its loading mark first */}
+        <div ref={viewfinder} className={styles.cloud} data-on={step === "mapping" || step === "done"} />
+        {step !== "idle" && step !== "running" && (
+          <div className={styles.readout}>
+            <span>{refused ? "operator · reconstructed" : "operator · mapping"}</span>
+            <span>{refused ? "confidence 0.31" : `${String(points).padStart(3, "0")} / ${MESH_POINTS} pts`}</span>
+          </div>
         )}
       </div>
 
