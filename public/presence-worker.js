@@ -7,6 +7,7 @@ const { FilesetResolver, FaceLandmarker, GestureRecognizer } = self.Vision;
 
 let face = null;
 let hands = null;
+let handsError = "";
 
 async function withFallback(make) {
   try {
@@ -33,7 +34,10 @@ async function init() {
       runningMode: "VIDEO",
       numHands: 1,
     }),
-  ).catch(() => null); // gestures are optional
+  ).catch((e) => {
+    handsError = String(e); // gestures are optional
+    return null;
+  });
 }
 
 function detect(bitmap, ts, wantHands) {
@@ -57,7 +61,7 @@ self.onmessage = async ({ data }) => {
   if (data.type === "init") {
     try {
       await init();
-      self.postMessage({ type: "ready", gestures: !!hands });
+      self.postMessage({ type: "ready", gestures: !!hands, handsError });
     } catch (e) {
       self.postMessage({ type: "error", message: String(e) });
     }

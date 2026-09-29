@@ -40,7 +40,7 @@ export default function Boot() {
         const now = performance.now();
         if (now - lastSnap > 100) {
           lastSnap = now;
-          setSnap({ ...s });
+          setSnap({ ...s, debug: { ...s.debug } });
         }
       },
       onBlink: () => {
@@ -132,6 +132,8 @@ headY       ${snap.headY.toFixed(2)}
 lookingAway ${snap.lookingAway}
 faceLost    ${snap.faceLost}
 gesture     ${snap.gesture}
+hands       ${snap.debug.hands}
+raw         ${snap.debug.rawGesture}
 last        ${lastEvent}`}
         </pre>
       )}

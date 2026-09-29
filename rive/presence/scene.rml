@@ -5,7 +5,7 @@
           headX, headY  -1..1   head pose from MediaPipe (or mouse fallback)
           lookingAway   bool    user looked away / tab hidden
           blink         trigger user blinked
-        Follow is deliberately late (cubic interpolator, 0.55 s): it pretends it did not see you.
+        Follow is deliberately late (cubic interpolator, 0.3 s): it pretends it did not see you.
     -->
     <Artboard viewModelId="0:40" viewModelInstanceId="0:45" defaultStateMachineId="0:7" styleId="0:5" width="500" height="500" name="Eye" id="0:2">
         <LayoutComponentStyle name="Artboard Style" id="0:5"/>
@@ -150,10 +150,10 @@
     </Artboard>
 
     <!-- lag first (per axis, so each bind keeps its own state), then map to pixels -->
-    <DataConverterInterpolator interpolationType="cubic" duration="0.55" name="Lag X" id="0:55">
+    <DataConverterInterpolator interpolationType="cubic" duration="0.3" name="Lag X" id="0:55">
         <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
     </DataConverterInterpolator>
-    <DataConverterInterpolator interpolationType="cubic" duration="0.55" name="Lag Y" id="0:56">
+    <DataConverterInterpolator interpolationType="cubic" duration="0.3" name="Lag Y" id="0:56">
         <CubicEaseInterpolator x1="0.3" y1="0" x2="0.1" y2="1"/>
     </DataConverterInterpolator>
     <DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="-78" maxOutput="78" clampLower="true" clampUpper="true" name="Head X to px" id="0:51"/>

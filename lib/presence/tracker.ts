@@ -11,6 +11,8 @@ export type PresenceState = {
   lookingAway: boolean;
   faceLost: boolean;
   gesture: Gesture;
+  /** diagnostics for the debug overlay */
+  debug: { hands: string; rawGesture: string };
 };
 
 export type PresenceEvents = {
@@ -30,7 +32,7 @@ const GESTURES: Record<string, Gesture> = {
 };
 
 // Tuning
-const EMA = 0.2;
+const EMA = 0.3;
 const YAW_RANGE = 28; // degrees mapped to headX = ±1
 const PITCH_RANGE = 18;
 const AWAY_YAW = 25; // |yaw| beyond this counts as looking away
@@ -61,6 +63,7 @@ export class PresenceTracker {
     lookingAway: false,
     faceLost: false,
     gesture: "none",
+    debug: { hands: "-", rawGesture: "-" },
   };
 
   private worker?: Worker;
@@ -128,7 +131,9 @@ export class PresenceTracker {
     this.video = video;
 
     try {
-      this.worker = await startWorker();
+      const { worker, gestures, handsError } = await startWorker();
+      this.worker = worker;
+      this.state.debug.hands = gestures ? "ready" : `off (${handsError || "unknown"})`;
     } catch {
       this.stream.getTracks().forEach((t) => t.stop());
       return false;
@@ -220,6 +225,7 @@ export class PresenceTracker {
 
     // a gesture counts once it is held
     if (r.gesture) {
+      this.state.debug.rawGesture = `${r.gesture.name} ${r.gesture.score.toFixed(2)}`;
       const g = r.gesture.score > GESTURE_SCORE ? (GESTURES[r.gesture.name] ?? "none") : "none";
       if (g !== this.gestureCandidate) {
         this.gestureCandidate = g;
@@ -238,11 +244,13 @@ export class PresenceTracker {
   }
 }
 
-function startWorker(): Promise<Worker> {
+type WorkerReady = { worker: Worker; gestures: boolean; handsError: string };
+
+function startWorker(): Promise<WorkerReady> {
   return new Promise((resolve, reject) => {
     const worker = new Worker("/presence-worker.js");
     worker.onmessage = ({ data }) => {
-      if (data.type === "ready") resolve(worker);
+      if (data.type === "ready") resolve({ worker, gestures: data.gestures, handsError: data.handsError });
       else if (data.type === "error") {
         worker.terminate();
         reject(new Error(data.message));
