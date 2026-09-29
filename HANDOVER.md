@@ -1,6 +1,6 @@
 # Handover
 
-Status as of 2026-09-29 (night, 2) · branch `claude/youthful-pascal-m6eofy` · no PR opened yet.
+Status as of 2026-09-29 (night, 3) · live at **https://halloween-hack.vercel.app** · work on `claude/youthful-pascal-m6eofy`, fast-forwarded into the default branch `claude/epic-hopper-x8tj3e` (Vercel production).
 
 Read in this order: this file → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
 
@@ -13,7 +13,15 @@ Read in this order: this file → `project.md` (concept, twist, scene outline, c
 - **Full screen:** the Open click asks for real full screen (Fullscreen API, no tabs or address bar). Esc leaves it; a `full screen` toggle sits next to `sound on`.
 - **Searchlight flare:** every 18 to 24 s on the desktop the searchlight flares for half a second in a colder violet-blue (cyan-white at stage 3), two strokes like lightning.
 - **Not verified yet:** everything that needs a real camera + microphone: the real face mesh in the S1 scan and live in S8, the S9 figure following a real head, the room recording played back in S9, the S10 caret waiting on `faceLost`. Plus the searchlight on a head, Lens shutter on blink, palm answer, and the sound mix.
-- **Waiting on the owner:** a Mac test with webcam and headphones, a read of the copy in `lib/story/content.ts`, the Rive plan decision (watermark), the go-ahead for a Vercel deploy.
+- **Waiting on the owner:** a Mac test with webcam and headphones, a read of the copy in `lib/story/content.ts`, the Rive plan decision (watermark), a playtest on the live URL.
+
+## Deploy (Vercel)
+
+- Project `sararuffini-projects/halloween-hack` (Hobby), connected to `github.com/sararr25/halloween-hack`. A push to `claude/epic-hopper-x8tj3e` (the repo's default branch) deploys production to https://halloween-hack.vercel.app; other branches get preview URLs.
+- To publish work: `git push origin claude/youthful-pascal-m6eofy` then `git push origin HEAD:claude/epic-hopper-x8tj3e` (fast-forward).
+- The build runs `pnpm install`, whose postinstall fetches the MediaPipe models; no environment variables are needed on Vercel (the Deepgram key is only for `scripts/make-voices.mjs`, locally).
+- `.vercelignore` mirrors `.gitignore`, so a CLI deploy can never upload `.env.local`. `vercel link` added a `VERCEL_OIDC_TOKEN` line to `.env.local` (git-ignored, harmless).
+- The `-sararuffini-projects.vercel.app` URLs answer 302 (Vercel protection on team URLs); use `halloween-hack.vercel.app`.
 
 ## How to run
 
@@ -145,7 +153,7 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 | Sound (keystrokes, glitch rotation, shutter, drone) | ⚠️ the owner heard an earlier version (too much glitch, fixed); the new mix is unheard |
 | Mail and Messages redesign | ✅ in-app browser |
 | Safari / Firefox, low-end hardware | ❌ untested |
-| Vercel deploy | ❌ not done |
+| Vercel deploy | ✅ https://halloween-hack.vercel.app (page, models, audio, Rive files served; `.env.local` absent) |
 
 ## Owner actions pending
 
@@ -157,7 +165,7 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 ## Next steps (recommended order)
 
 1. **Webcam + headphones playtest** (owner), whole run, and tuning from it: scan scale (`face.ts`, `face_cloud.wgsl`), S9 figure range and beat timings (`window_across.wgsl`, `Reveal.tsx`), voice levels and timing (`voices.ts`), searchlight flare strength (`overlay_fx.wgsl`, `FLASH_STROKES`).
-2. **Ship**: Vercel (HTTPS for the camera; the build must run `pnpm install` so the models are fetched), then playtest on the deployed URL, `prefers-reduced-motion` pass, Safari/Firefox (speech voices differ), low-end hardware.
+2. **Playtest on the deployed URL** (HTTPS, so the camera works for anyone): `prefers-reduced-motion` pass, Safari/Firefox, low-end hardware.
 3. **Rive plan** (owner): the free-plan watermark shows on load on every Rive canvas.
 
 ## Known issues / gotchas

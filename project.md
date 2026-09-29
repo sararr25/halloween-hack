@@ -128,5 +128,5 @@ Aggiornato il 2026-09-29 (sera). Dettagli in `HANDOVER.md`.
 - [x] S8 log di sessione, S9 reveal (Rive `Across`, audio ambientale), S10 login + lista casi + spegnimento CRT
 - [x] Voci TTS per memo vocali e segreterie (Deepgram Aura-2, `scripts/make-voices.mjs`)
 - [ ] Decidere il piano Rive (watermark)
-- [ ] Deploy su Vercel
+- [x] Deploy su Vercel: https://halloween-hack.vercel.app
 - [ ] Playtest e tuning del ritmo/degli indizi, Safari/Firefox, `prefers-reduced-motion`
