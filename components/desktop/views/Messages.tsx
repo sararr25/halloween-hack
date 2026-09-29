@@ -1,23 +1,27 @@
 "use client";
 
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { CHATS, type ChatLine } from "@/lib/story/content";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
-import { Empty, Row, Split, when } from "./shared";
-import styles from "./views.module.css";
+import { when } from "./shared";
+import styles from "./messages.module.css";
 
 gsap.registerPlugin(useGSAP);
 
+const TYPING_MS = 4200;
+
 // S4 · Messages. Mara or Theo: whichever you read, you learn the same thing (fake choice).
-// Stage 2+: look away while a chat is open and, when you come back, someone has written.
+// Stage 2+: Mara starts typing and never sends; look away while a chat is open and,
+// when you come back, someone has written.
 export default function Messages() {
   const { state, dispatch } = useStory();
   const [openId, setOpenId] = useState<string | null>(null);
   const [extra, setExtra] = useState<Record<string, ChatLine[]>>({});
+  const [typing, setTyping] = useState(false);
   const pane = useRef<HTMLDivElement>(null);
   const chat = CHATS.find((c) => c.id === openId);
   const lines = chat ? [...chat.lines, ...(extra[chat.id] ?? [])] : [];
@@ -26,6 +30,18 @@ export default function Messages() {
     setOpenId(id);
     if (id === "mara" || id === "theo") dispatch({ type: "clue", id: "chat_window" });
   };
+
+  // "Mara is typing…" for a few seconds, then nothing arrives.
+  useEffect(() => {
+    if (openId !== "mara" || state.stage < 2) return;
+    const on = setTimeout(() => setTyping(true), 1500);
+    const off = setTimeout(() => setTyping(false), 1500 + TYPING_MS);
+    return () => {
+      clearTimeout(on);
+      clearTimeout(off);
+      setTyping(false);
+    };
+  }, [openId, state.stage]);
 
   const awaySince = useRef(0);
   usePresenceEvent("change", (s) => {
@@ -44,57 +60,120 @@ export default function Messages() {
   // new bubbles arrive, older ones are already there
   useGSAP(
     () => {
-      const last = pane.current?.querySelector(`.${styles.bubbles} > :last-child`);
+      const last = pane.current?.querySelector(`.${styles.thread} > :last-child`);
       if (last) gsap.from(last, { opacity: 0, y: 6, duration: 0.28, ease: "power3.out" });
-      pane.current?.parentElement?.scrollTo({ top: 1e6 });
+      const scroller = pane.current?.querySelector(`.${styles.thread}`);
+      scroller?.scrollTo({ top: 1e6 });
     },
-    { scope: pane, dependencies: [openId, lines.length] },
+    { scope: pane, dependencies: [openId, lines.length, typing] },
   );
 
   return (
-    <Split
-      list={CHATS.map((c) => {
-        const last = [...c.lines, ...(extra[c.id] ?? [])].at(-1)!;
-        return (
-          <Row
-            key={c.id}
-            active={c.id === openId}
-            unread={!!extra[c.id] && c.id !== openId}
-            onClick={() => open(c.id)}
-            title={c.name}
-            meta={when(last.days)}
-            preview={last.text ?? "voice message"}
-          />
-        );
-      })}
-    >
-      {!chat ? (
-        <Empty>{CHATS.length} conversations</Empty>
-      ) : (
-        <div ref={pane} className={styles.bubbles}>
-          {lines.map((l, i) => (
-            <Fragment key={i}>
-              {(i === 0 || lines[i - 1].days !== l.days) && <span className={styles.day}>{when(l.days)}</span>}
-              <div className={`${styles.bubble} ${l.me ? styles.me : ""}`} title={l.time}>
-                {l.text}
-                {l.voice && (
-                  <div className={styles.voice}>
-                    <span className={styles.wave}>
-                      {WAVE.map((h, j) => (
-                        <i key={j} style={{ height: h }} />
-                      ))}
-                      &nbsp;{l.voice.length}
-                    </span>
-                    <span className={styles.transcript}>“{l.voice.transcript}”</span>
-                  </div>
-                )}
-              </div>
-            </Fragment>
-          ))}
-        </div>
-      )}
-    </Split>
+    <div className={styles.messages}>
+      <ul className={styles.list} aria-label="Conversations">
+        {CHATS.map((c) => {
+          const last = [...c.lines, ...(extra[c.id] ?? [])].at(-1)!;
+          return (
+            <li key={c.id}>
+              <button className={`${styles.row} ${c.id === openId ? styles.active : ""}`} onClick={() => open(c.id)}>
+                <span className={styles.avatar} aria-hidden="true">
+                  {c.name.replace(/[^A-Z]/g, "").slice(0, 2)}
+                </span>
+                <span className={styles.rowText}>
+                  <span className={styles.rowHead}>
+                    <span className={`${styles.name} ${extra[c.id] && c.id !== openId ? styles.unread : ""}`}>{c.name}</span>
+                    <span className={styles.meta}>{when(last.days)}</span>
+                  </span>
+                  <span className={styles.preview}>{preview(last)}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div ref={pane} className={styles.pane}>
+        {!chat ? (
+          <p className={styles.meta} style={{ padding: 24 }}>
+            {CHATS.length} conversations
+          </p>
+        ) : (
+          <>
+            <header className={styles.head}>
+              <span className={styles.avatar} aria-hidden="true">
+                {chat.name.replace(/[^A-Z]/g, "").slice(0, 2)}
+              </span>
+              <span>
+                <span className={styles.name}>{chat.name}</span>
+                <span className={styles.status}>{typing ? "typing…" : chat.status}</span>
+              </span>
+            </header>
+            <div className={styles.thread}>
+              {lines.map((l, i) => {
+                const prev = lines[i - 1];
+                const next = lines[i + 1];
+                const newDay = !prev || prev.days !== l.days;
+                const lastOfRun = !next || next.me !== l.me || next.days !== l.days;
+                return (
+                  <Fragment key={i}>
+                    {newDay && <span className={styles.day}>{when(l.days)}</span>}
+                    <Bubble line={l} tail={lastOfRun} onPhoto={() => dispatch({ type: "open", id: "photos" })} />
+                    {l.me && l.read && (!next || !next.me) && <span className={styles.read}>Read {l.read}</span>}
+                  </Fragment>
+                );
+              })}
+              {typing && (
+                <span className={styles.typing} aria-label="Mara is typing">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
-const WAVE = [4, 9, 14, 7, 11, 16, 6, 12, 8, 15, 5, 10, 13, 6, 9, 4, 11, 7];
+function preview(l: ChatLine) {
+  if (l.deleted) return "message deleted";
+  if (l.voice) return `voice message · ${l.voice.length}`;
+  if (l.photo) return "photo";
+  return l.text ?? "";
+}
+
+function Bubble({ line: l, tail, onPhoto }: { line: ChatLine; tail: boolean; onPhoto: () => void }) {
+  const cls = `${styles.bubble} ${l.me ? styles.me : ""} ${tail ? styles.tail : ""}`;
+  if (l.deleted) return <div className={`${cls} ${styles.deleted}`}>This message was deleted</div>;
+  return (
+    <div className={cls} title={l.time}>
+      {l.photo && (
+        <button className={styles.photo} onClick={onPhoto} aria-label={`${l.photo}, open in Photos`}>
+          <svg viewBox="0 0 120 80" aria-hidden="true">
+            <rect width="120" height="80" fill="#07090d" />
+            <rect x="15" y="4" width="90" height="66" fill="#0e131c" />
+            <rect x="72" y="24" width="10" height="13" fill="#8f9aac" />
+            <rect x="0" y="70" width="120" height="10" fill="#050608" />
+          </svg>
+        </button>
+      )}
+      {l.voice && (
+        <span className={styles.voice}>
+          <span className={styles.wave}>
+            {WAVE.map((h, j) => (
+              <i key={j} style={{ height: h }} />
+            ))}
+            <b>{l.voice.length}</b>
+          </span>
+          <span className={styles.transcript}>“{l.voice.transcript}”</span>
+        </span>
+      )}
+      {l.text && <span>{l.text}</span>}
+      <span className={styles.time}>{l.time}</span>
+    </div>
+  );
+}
+
+const WAVE = [4, 9, 14, 7, 11, 16, 6, 12, 8, 15, 5, 10, 13, 6, 9, 4, 11, 7, 12, 5];

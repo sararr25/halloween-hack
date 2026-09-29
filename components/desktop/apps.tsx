@@ -34,13 +34,13 @@ const g = (d: ReactNode) => (
 const doc = g(<><path d="M6 3h9l3 3v15H6z" /><path d="M15 3v3h3" /></>);
 
 export const APPS: AppDef[] = [
-  { id: "mail", title: "Mail", iconFrom: 1, size: { w: 700, h: 460 },
+  { id: "mail", title: "Mail", iconFrom: 1, size: { w: 820, h: 560 },
     glyph: g(<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>),
     body: <Mail /> },
   { id: "photos", title: "Photos", iconFrom: 1, size: { w: 680, h: 540 },
     glyph: g(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="m21 17-5-5-9 8" /></>),
     body: <Photos /> },
-  { id: "messages", title: "Messages", iconFrom: 1, size: { w: 640, h: 500 },
+  { id: "messages", title: "Messages", iconFrom: 1, size: { w: 700, h: 540 },
     glyph: g(<path d="M4 5h16v11H9l-5 4z" />),
     body: <Messages /> },
   { id: "notes", title: "Notes", iconFrom: 1, size: { w: 620, h: 420 },

@@ -83,7 +83,7 @@
 
 .window { position: absolute; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
 /* Windows stack: a denser fill so a window behind never reads through */
-.window.glass { background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 40%), rgba(13, 16, 24, 0.82); }
+.window.glass { background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 40%), rgba(11, 14, 21, 0.96); }
 .titlebar {
   height: 34px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);

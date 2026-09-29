@@ -1,0 +1,58 @@
+/* Messages: a phone chat mirrored on the laptop. */
+
+.messages { display: grid; grid-template-columns: minmax(190px, 34%) 1fr; height: 100%; margin: -20px -22px; }
+.list { list-style: none; overflow: auto; border-right: 1px solid rgba(255, 255, 255, 0.07); padding: 6px; }
+.pane { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+
+.row { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 9px 10px; border-radius: 10px; transition: background 120ms; }
+.row:hover { background: rgba(255, 255, 255, 0.04); }
+.active, .active:hover { background: rgba(255, 255, 255, 0.08); }
+.rowText { display: grid; gap: 2px; min-width: 0; }
+.rowHead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.name { font-size: 13.5px; font-weight: 500; color: var(--text); }
+.unread::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 6px; vertical-align: middle; }
+.preview { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; color: var(--text); letter-spacing: 0.02em;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.head { display: flex; gap: 10px; align-items: center; padding: 12px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.head > span:last-child { display: grid; gap: 1px; }
+.status { font-size: 11.5px; color: var(--muted); }
+
+.thread { overflow: auto; padding: 14px 18px 22px; display: flex; flex-direction: column; gap: 3px; }
+.day { align-self: center; font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); margin: 14px 0 6px; }
+
+.bubble {
+  align-self: flex-start; max-width: 72%; position: relative;
+  padding: 8px 12px 18px; border-radius: 16px; font-size: 14px; line-height: 1.45;
+  background: rgba(255, 255, 255, 0.07); color: var(--text); display: grid; gap: 6px;
+}
+.me { align-self: flex-end; background: rgba(238, 240, 244, 0.16); }
+.tail { border-bottom-left-radius: 5px; margin-bottom: 6px; }
+.me.tail { border-bottom-left-radius: 16px; border-bottom-right-radius: 5px; }
+.time { position: absolute; right: 10px; bottom: 4px; font-family: var(--font-mono), monospace; font-size: 9.5px; color: var(--muted); }
+.deleted { font-style: italic; color: var(--muted); background: transparent; border: 1px dashed rgba(255, 255, 255, 0.16); padding-bottom: 8px; }
+.read { align-self: flex-end; font-size: 10.5px; color: var(--muted); margin: -2px 4px 6px; }
+
+.photo { display: block; width: 200px; border-radius: 10px; overflow: hidden; transition: filter 120ms; }
+.photo:hover { filter: brightness(1.3); }
+.photo svg { display: block; width: 100%; }
+
+.voice { display: grid; gap: 6px; min-width: 220px; }
+.wave { display: flex; gap: 2px; align-items: center; height: 20px; color: var(--text); }
+.wave i { width: 2px; background: currentColor; border-radius: 1px; opacity: 0.8; }
+.wave b { font-family: var(--font-mono), monospace; font-weight: 400; font-size: 10.5px; color: var(--muted); margin-left: 8px; }
+.transcript { font-size: 12.5px; color: var(--muted); font-style: italic; }
+
+/* someone is typing and never sends */
+.typing { align-self: flex-start; display: flex; gap: 4px; padding: 11px 13px; border-radius: 16px; background: rgba(255, 255, 255, 0.07); margin-top: 4px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: dot 1.2s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; }
+.typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }

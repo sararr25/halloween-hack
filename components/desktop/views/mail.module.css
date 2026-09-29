@@ -1,0 +1,116 @@
+/* Mail: inbox on the left, a real email on the right. Body in a serif, a little larger. */
+
+.mail { display: grid; grid-template-columns: minmax(210px, 36%) 1fr; height: 100%; margin: -20px -22px; }
+.list { list-style: none; overflow: auto; border-right: 1px solid rgba(255, 255, 255, 0.07); padding: 6px; }
+.pane { overflow: auto; padding: 26px 30px 34px; }
+
+.row {
+  display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; width: 100%; text-align: left;
+  padding: 10px; border-radius: 10px; transition: background 120ms;
+}
+.row:hover { background: rgba(255, 255, 255, 0.04); }
+.active, .active:hover { background: rgba(255, 255, 255, 0.08); }
+.rowText { display: grid; gap: 3px; min-width: 0; }
+.rowHead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.from { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unread { font-weight: 600; }
+.unread::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin: 0 6px 2px 0; }
+.rowSubject { font-family: var(--font-serif), serif; font-size: 13.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  font-size: 11px; letter-spacing: 0.02em; color: var(--text);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* the email */
+.reader { max-width: 620px; }
+.subject { font-family: var(--font-serif), serif; font-weight: 500; font-size: 24px; line-height: 1.25; letter-spacing: -0.01em; margin-bottom: 16px; }
+.header {
+  display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center;
+  padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); font-size: 13px;
+}
+.sender { color: var(--text); font-weight: 500; }
+.address { color: var(--muted); font-size: 12px; }
+.to { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.date { font-family: var(--font-mono), monospace; font-size: 11px; color: var(--muted); }
+
+.body { display: grid; gap: 14px; font-family: var(--font-serif), serif; font-size: 16.5px; line-height: 1.65; color: var(--text); max-width: 58ch; }
+.empty { font-family: var(--font-serif), serif; font-style: italic; color: var(--muted); }
+
+/* kinds: a friend writes loosely, a company writes in a box, a newsletter has a masthead */
+.service .body { font-family: var(--font-sans), sans-serif; font-size: 14.5px; }
+.newsletter .subject { font-style: italic; }
+.self .subject { font-style: italic; color: var(--muted); }
+
+.chip {
+  display: inline-block; margin-bottom: 18px; padding: 5px 10px; border-radius: 999px;
+  font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.04);
+}
+
+.quote {
+  margin-top: 22px; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, 0.18);
+  display: grid; gap: 8px; font-family: var(--font-serif), serif; font-style: italic; font-size: 15px; color: var(--muted);
+}
+.quoteHead { font-style: normal; font-family: var(--font-sans), sans-serif; font-size: 12px; }
+
+.attachment {
+  display: inline-flex; gap: 10px; align-items: center; margin-top: 18px; padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; font-family: var(--font-mono), monospace; font-size: 12px;
+}
+.attachment small { color: var(--muted); }
+
+.receipt { margin-top: 26px; font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); }
+
+/* drawn blocks */
+.card {
+  margin-top: 18px; padding: 14px 16px; border-radius: 12px; display: grid; gap: 12px; list-style: none;
+  background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cardLabel { font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); letter-spacing: 0.03em; }
+
+.map { width: 100%; max-width: 320px; }
+.map line { stroke: rgba(255, 255, 255, 0.08); stroke-width: 6; }
+.home { fill: var(--text); }
+.them { fill: var(--accent); }
+.ring { fill: none; stroke: var(--accent); stroke-width: 1; opacity: 0.6; }
+.facts { display: grid; grid-template-columns: 70px 1fr; gap: 4px 12px; font-size: 13px; }
+.facts dt { color: var(--muted); font-size: 12px; }
+.action {
+  justify-self: start; padding: 7px 14px; border-radius: 999px; font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2); transition: border-color 120ms, color 120ms;
+}
+.action:hover { border-color: var(--accent); color: var(--accent); }
+.answer { font-size: 13px; color: var(--text); }
+
+.bars { width: 100%; max-width: 360px; }
+.bars rect { fill: rgba(216, 220, 229, 0.25); }
+.bars rect.night { fill: var(--accent); }
+.bars text { font-family: var(--font-mono), monospace; font-size: 5px; fill: var(--muted); }
+
+.route { gap: 0; }
+.route li { display: grid; grid-template-columns: 50px 1fr; gap: 10px; font-size: 13px; padding: 7px 0 7px 16px; border-left: 1px solid rgba(255, 255, 255, 0.12); position: relative; }
+.route li::before { content: ""; position: absolute; left: -3px; top: 12px; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
+.route .last::before { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.route .last { color: var(--accent); }
+
+.sheet { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 360px; }
+.frame {
+  aspect-ratio: 3 / 2; border-radius: 2px; position: relative; display: block;
+  background: linear-gradient(160deg, #2a3040, #07090d);
+}
+.frame span { position: absolute; left: 3px; bottom: 1px; font-family: var(--font-mono), monospace; font-size: 8px; color: rgba(216, 220, 229, 0.7); }
+/* frame 6: almost black, one window burned white, top right */
+.burned { background: radial-gradient(circle at 74% 26%, #f4f5f7 0 7%, rgba(244, 245, 247, 0.4) 12%, transparent 20%), #030406; cursor: pointer; outline: 1px solid rgba(255, 255, 255, 0.25); }
+.burned:hover { outline-color: var(--accent); }
+
+.books { list-style: none; display: grid; gap: 12px; margin-top: 18px; }
+.books li { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; font-family: var(--font-serif), serif; font-size: 14.5px; line-height: 1.45; }
+.cover {
+  aspect-ratio: 2 / 3; display: grid; place-items: end start; padding: 6px; border-radius: 2px;
+  font-family: var(--font-serif), serif; font-size: 9px; line-height: 1.15; color: #d8dce5;
+  background: linear-gradient(170deg, #2b3242, #0b0e15); box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.8);
+}

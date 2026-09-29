@@ -113,13 +113,13 @@ function Phases() {
     case "reveal":
       return (
         <div className={styles.screen}>
-          <p className={styles.mono}>S9 · reveal — to be built</p>
+          <p className={styles.mono}>S9 · reveal · to be built</p>
         </div>
       );
     case "login":
       return (
         <div className={styles.screen}>
-          <p className={styles.mono}>S10 · login — to be built</p>
+          <p className={styles.mono}>S10 · login · to be built</p>
         </div>
       );
   }

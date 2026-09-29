@@ -11,10 +11,21 @@
 export type Mail = {
   id: string;
   from: string;
+  address: string;
   subject: string;
   days: number;
   time: string;
+  /** how it is laid out: a friend, a company, a newsletter, a note to self */
+  kind: "personal" | "service" | "newsletter" | "self";
   body: string[];
+  /** a visual block drawn inside the mail (Mail.tsx) */
+  block?: "signin" | "usage" | "tracking" | "contact" | "books";
+  /** quoted earlier message, shown under the reply */
+  quote?: { from: string; days: number; text: string[] };
+  /** the sender is told you read it */
+  receipt?: boolean;
+  /** a scheduled send: it was set to arrive today */
+  scheduled?: boolean;
   attachment?: string;
   key?: boolean;
 };
@@ -31,8 +42,20 @@ export type Photo = {
 };
 
 export type Voice = { length: string; transcript: string };
-export type ChatLine = { me: boolean; text?: string; voice?: Voice; days: number; time: string };
-export type Chat = { id: string; name: string; lines: ChatLine[] };
+export type ChatLine = {
+  me: boolean;
+  text?: string;
+  voice?: Voice;
+  /** a photo from Photos, sent in the chat (opens Photos) */
+  photo?: string;
+  /** "This message was deleted" */
+  deleted?: boolean;
+  /** read receipt time, on E.V.'s own messages */
+  read?: string;
+  days: number;
+  time: string;
+};
+export type Chat = { id: string; name: string; status: string; lines: ChatLine[] };
 
 export type Note = { id: string; title: string; days: number; body: string[]; typed?: boolean; key?: boolean };
 
@@ -56,62 +79,76 @@ export function fill(text: string, ctx: { entry: string; now: string; today: str
 }
 
 // ─── Mail ────────────────────────────────────────────────────────────────────
+// Each mail is its own kind of email, and each hides a small piece of the theme:
+// a sign-in near home, a bill that knows when the lights were on, a parcel signed
+// for at the empty flat, a contact sheet with one burned frame.
 
 export const MAILS: Mail[] = [
   {
     id: "security",
     from: "Account Security",
+    address: "no-reply@accounts.mail",
     subject: "New sign-in to your account",
     days: 1,
     time: "03:12",
-    body: [
-      "A new device signed in to your account.",
-      "Location: approximate — 40 m from your home address.",
-      "If this was you, no action is needed.",
-    ],
+    kind: "service",
+    block: "signin",
+    body: ["We noticed a new sign-in to your account. If this was you, you don't need to do anything."],
   },
   {
     id: "bill",
     from: "Northgrid Energy",
+    address: "bills@northgrid.energy",
     subject: "Your September bill is ready",
     days: 3,
     time: "08:00",
+    kind: "service",
+    block: "usage",
     body: [
-      "Your bill for September is £61.40.",
-      "Your usage was higher than last month, mostly between 23:00 and 04:00.",
-      "Tip: lights left on overnight are the most common cause.",
+      "Your bill for September is £61.40, due on the 14th.",
+      "Your usage went up this month. Most of it happened between 23:00 and 04:00. A light left on overnight is the usual reason.",
     ],
   },
   {
     id: "mara-police",
     from: "Mara",
+    address: "mara.okafor@post.me",
     subject: "are you ok",
     days: 5,
     time: "22:47",
+    kind: "personal",
+    receipt: true,
     body: [
-      "I went to the police today. They were nice about it, the way people are nice to someone who's overreacting.",
+      "I went to the police today. They were kind about it, in the way people are kind to someone who's overreacting.",
       "They said your email was used yesterday, so you're probably fine.",
-      "Was it you? Just tell me it was you.",
+      "Was it you? Just tell me it was you. One word is enough.",
     ],
+    quote: {
+      from: "E.V.",
+      days: 9,
+      text: ["I'm fine, honestly. Just tired.", "Weird thing: lately I open emails I'm sure I've already read."],
+    },
   },
   {
     id: "parcel",
     from: "ParcelLine",
-    subject: "We delivered your parcel",
+    address: "tracking@parcelline.co",
+    subject: "Delivered: your parcel",
     days: 6,
     time: "14:31",
-    body: [
-      "Good news! Your parcel (blackout curtains, 2 panels) was delivered.",
-      "We couldn't reach you, so we left it with a neighbour: 17 Harrow Street, flat 4A.",
-      "Signed for by: E.V.",
-    ],
+    kind: "service",
+    block: "tracking",
+    body: ["Good news! Your parcel (blackout curtains, 2 panels) has been delivered."],
   },
   {
     id: "for-later",
     from: "E.V.",
+    address: "ev@post.me",
     subject: "for later",
     days: 7,
     time: "23:58",
+    kind: "self",
+    scheduled: true,
     body: [],
     attachment: "for_later.dat",
     key: true,
@@ -119,54 +156,89 @@ export const MAILS: Mail[] = [
   {
     id: "lab",
     from: "Lumen Film Lab",
-    subject: "Your scans are ready",
+    address: "orders@lumenlab.photo",
+    subject: "Your scans are ready · order 0412",
     days: 9,
     time: "11:05",
+    kind: "service",
+    block: "contact",
     body: [
-      "Hi E., your Harrow St roll is scanned. 11 of 12 frames came out.",
-      "Frame 6 could not be corrected: one area is overexposed (a lit window, top right). The rest of the frame is very dark. We printed it anyway, it's in the envelope.",
-      "— Lumen",
+      "Hi E., your Harrow St roll is scanned. 11 of 12 frames came out well.",
+      "We couldn't correct frame 6: one area is burned out (a lit window, top right) and the rest is almost black. We printed it anyway. It's in the envelope with the others.",
+      "Lumen",
     ],
   },
   {
     id: "theo-sunday",
     from: "Theo",
+    address: "theo.v@post.me",
     subject: "Sunday",
     days: 10,
     time: "19:20",
+    kind: "personal",
     body: ["Mum's doing the lamb. Bring nothing, she says, which means bring wine.", "T."],
   },
   {
     id: "studio",
-    from: "Studio Arden",
-    subject: "Harrow St series — deadline",
+    from: "Ines Arden",
+    address: "ines@studioarden.co",
+    subject: "Harrow St series: one more thing",
     days: 13,
     time: "16:44",
+    kind: "personal",
     body: [
-      "Hi E.V., night-only, as agreed. Twelve frames by the end of the month.",
-      "We loved frame 6 on the contact sheet. Could you reshoot it with the window across lit? Same angle, same time if you can.",
-      "Best, Ines",
+      "Hi E.V.,",
+      "Night only, as agreed. Twelve frames by the end of the month.",
+      "We keep coming back to frame 6 on the contact sheet. Could you reshoot it with the window across lit? Same angle, same time if you can manage it.",
+      "Ines",
     ],
   },
   {
     id: "books",
     from: "Stillwater Books",
-    subject: "Autumn reading list",
+    address: "letters@stillwaterbooks.shop",
+    subject: "Autumn reading: stories you have to read twice",
     days: 15,
     time: "07:00",
-    body: [
-      "Ten novels for the long evenings, chosen by our staff.",
-      "This month's theme: unreliable narrators. Stories you have to read twice.",
-    ],
+    kind: "newsletter",
+    block: "books",
+    body: ["This month our staff picked novels with narrators you shouldn't trust. Read them once for the story, then again for the truth."],
   },
   {
     id: "hale-boiler",
     from: "R. Hale",
+    address: "office@halelettings.co",
     subject: "Boiler service Tuesday",
     days: 20,
     time: "09:15",
-    body: ["Engineer coming Tues between 9 and 12. Please make sure someone is in.", "R. Hale, Hale Lettings"],
+    kind: "personal",
+    body: ["Engineer coming Tuesday between 9 and 12. Please make sure someone is in.", "R. Hale, Hale Lettings"],
   },
+];
+
+/** Blocks drawn inside service mails (Mail.tsx). */
+export const SIGNIN = {
+  device: "unknown device",
+  place: "approx. 40 m from your home",
+  time: "03:12",
+  button: "This wasn't me",
+  answer: "Thanks. We have noted that it was you.",
+};
+
+/** kWh per hour of the day, averaged over September: the nights are wrong. */
+export const USAGE = [0.9, 0.8, 0.8, 0.7, 0.3, 0.2, 0.2, 0.3, 0.3, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.4, 0.4, 0.5, 1.0];
+
+export const TRACKING = [
+  { time: "08:02", step: "Out for delivery" },
+  { time: "14:12", step: "Nobody answered at 16 Harrow Street" },
+  { time: "14:29", step: "Left with a neighbour: 17 Harrow Street, flat 4A" },
+  { time: "14:31", step: "Signed for by E.V." },
+];
+
+export const BOOKS = [
+  { title: "The Tenant Upstairs", note: "A woman hears footsteps in the empty flat above hers. Every night, the same route." },
+  { title: "Everyone Is Watching Harriet", note: "A village, a missing teacher, and a town that remembers her better than she does." },
+  { title: "Twice Read", note: "The second time through, the letters are addressed to you." },
 ];
 
 // ─── Photos ──────────────────────────────────────────────────────────────────
@@ -183,7 +255,7 @@ export const PHOTOS: Photo[] = [
   { id: "IMG_0401", caption: "Harrow St, dusk (1/12)", days: 12, tone: ["#2c3445", "#0b0e15"] },
   { id: "IMG_0397", caption: "bus window, rain", days: 14, tone: ["#36404f", "#10131a"] },
   { id: "IMG_0392", caption: "my desk, finally tidy", days: 16, tone: ["#4a4e57", "#16181e"] },
-  { id: "IMG_0390", caption: "rooftop — Mara, two fingers up. “the only sign that opens anything”", days: 17, tone: ["#565c68", "#1a1d24"] },
+  { id: "IMG_0390", caption: "rooftop, Mara, two fingers up. “the only sign that opens anything”", days: 17, tone: ["#565c68", "#1a1d24"] },
   { id: "IMG_0385", caption: "flowers, Saturday market", days: 19, tone: ["#5b5f68", "#1c1e24"] },
   { id: "IMG_0380", caption: "Theo's dog, refusing the bath", days: 22, tone: ["#4f535c", "#17191f"] },
   { id: "IMG_0374", caption: "Mara, laughing at something I said", days: 24, tone: ["#60646d", "#1d1f25"] },
@@ -191,22 +263,23 @@ export const PHOTOS: Photo[] = [
 ];
 
 // ─── Messages ────────────────────────────────────────────────────────────────
-// Fake choice (The Game): Mara and Theo both lead to the same key fact — the flat across
+// Fake choice (The Game): Mara and Theo both lead to the same key fact. The flat across
 // is empty, its light comes on every night, and the shape in it moves when she moves.
 
 export const CHATS: Chat[] = [
   {
     id: "mara",
     name: "Mara",
+    status: "last seen 5 days ago",
     lines: [
       { me: false, text: "drinks thurs? you still owe me a birthday", days: 12, time: "18:02" },
-      { me: true, text: "yes. god yes.", days: 12, time: "18:40" },
-      { me: true, text: "weird question. have you ever felt like someone knows what you're going to do before you do it", days: 9, time: "23:10" },
+      { me: true, text: "yes. god yes.", days: 12, time: "18:40", read: "18:41" },
+      { me: true, text: "weird question. have you ever felt like someone knows what you're going to do before you do it", days: 9, time: "23:10", read: "23:11" },
       { me: false, text: "every monday. it's called my manager", days: 9, time: "23:12" },
-      { me: true, text: "I mean it", days: 9, time: "23:12" },
+      { me: true, text: "I mean it", days: 9, time: "23:12", read: "23:12" },
       { me: false, text: "ok. what's going on", days: 9, time: "23:13" },
-      { me: true, text: "the flat across from mine. 4A. it's been empty since last year, Hale says so", days: 8, time: "23:01" },
-      { me: true, text: "the light comes on every night. same time", days: 8, time: "23:02" },
+      { me: true, text: "the flat across from mine. 4A. it's been empty since last year, Hale says so", days: 8, time: "23:01", read: "23:04" },
+      { me: true, text: "the light comes on every night. same time", days: 8, time: "23:02", read: "23:04" },
       { me: false, text: "timer? people do that for burglars", days: 8, time: "23:05" },
       {
         me: true,
@@ -217,8 +290,11 @@ export const CHATS: Chat[] = [
         },
         days: 8,
         time: "23:09",
+        read: "23:09",
       },
+      { me: true, deleted: true, days: 8, time: "23:09" },
       { me: false, text: "ev.", days: 8, time: "23:10" },
+      { me: false, text: "what did you delete", days: 8, time: "23:10" },
       { me: false, text: "come stay at mine. tonight. I'm serious", days: 8, time: "23:10" },
       { me: false, text: "you didn't come thursday", days: 7, time: "21:30" },
       { me: false, text: "ev?", days: 6, time: "09:12" },
@@ -229,31 +305,33 @@ export const CHATS: Chat[] = [
   {
     id: "theo",
     name: "Theo",
+    status: "last seen yesterday",
     lines: [
       { me: false, text: "mum's asking if you're coming sunday", days: 10, time: "12:30" },
-      { me: true, text: "tell her yes", days: 10, time: "12:41" },
-      { me: true, text: "can you come and check something at mine. the window", days: 8, time: "23:20" },
+      { me: true, text: "tell her yes", days: 10, time: "12:41", read: "12:50" },
+      { me: true, text: "can you come and check something at mine. the window", days: 8, time: "23:20", read: "23:31" },
       { me: false, text: "what's wrong with the window", days: 8, time: "23:31" },
-      { me: true, text: "nothing's wrong with the window", days: 8, time: "23:31" },
-      { me: true, text: "the flat across is empty. there's someone in it. they copy me. I know how that sounds", days: 8, time: "23:33" },
+      { me: true, text: "nothing's wrong with the window", days: 8, time: "23:31", read: "23:31" },
+      { me: true, text: "the flat across is empty. there's someone in it. they copy me. I know how that sounds", days: 8, time: "23:33", read: "23:33" },
       { me: false, text: "Ev have you been sleeping", days: 8, time: "23:40" },
-      { me: true, text: "I took a photo. don't look at the window. look at the street", days: 8, time: "23:44" },
+      { me: true, photo: "IMG_0418", text: "don't look at the window. look at the street", days: 8, time: "23:44", read: "07:58" },
       { me: false, text: "it's all dark. I can't see anything", days: 7, time: "08:03" },
-      { me: true, text: "look closer", days: 7, time: "08:03" },
+      { me: true, text: "look closer", days: 7, time: "08:03", read: "08:03" },
       { me: false, text: "went by yours. lights off, door locked", days: 6, time: "20:15" },
       { me: false, text: "the flat across had its light on though", days: 6, time: "20:16" },
-      { me: false, text: "police say adults are allowed to leave. that's what they said. allowed", days: 3, time: "17:48" },
+      { me: false, text: "police say adults are allowed to leave. that's the word they used. allowed", days: 3, time: "17:48" },
     ],
   },
   {
     id: "hale",
     name: "R. Hale",
+    status: "last seen yesterday",
     lines: [
-      { me: false, text: "Boiler engineer Tues 9–12", days: 20, time: "09:16" },
-      { me: true, text: "fine, thanks", days: 20, time: "10:02" },
-      { me: true, text: "who's renting 17 Harrow St, 4A?", days: 8, time: "22:58" },
+      { me: false, text: "Boiler engineer Tues 9 to 12", days: 20, time: "09:16" },
+      { me: true, text: "fine, thanks", days: 20, time: "10:02", read: "10:30" },
+      { me: true, text: "who's renting 17 Harrow St, 4A?", days: 8, time: "22:58", read: "23:14" },
       { me: false, text: "Nobody. Not one of mine but I know the owner. Empty over a year.", days: 8, time: "23:15" },
-      { me: true, text: "the light is on every night", days: 8, time: "23:16" },
+      { me: true, text: "the light is on every night", days: 8, time: "23:16", read: "23:29" },
       { me: false, text: "Timer probably.", days: 8, time: "23:30" },
       { me: false, text: "Rent is due Friday. Please confirm you are receiving these messages.", days: 2, time: "10:00" },
     ],
@@ -288,7 +366,7 @@ export const NOTES: Note[] = [
     key: true,
     body: [
       "Set the backup code tonight. Four digits, like a clock.",
-      "The time they come in. Not the light across. The other one — the one who opens this.",
+      "The time they come in. Not the light across. The other one, the one who opens this.",
       "I don't know it yet. I set it anyway. It was already set.",
     ],
   },
@@ -468,12 +546,12 @@ export const TRASH: TrashFile[] = [
     ],
   },
   { id: "dup", name: "IMG_0418 (2).jpg", days: 8, body: ["Preview unavailable: the file was open on another device when it was deleted."] },
-  { id: "invoice", name: "invoice_arden_07.pdf", days: 18, body: ["Invoice 07 — Studio Arden — 4 frames — £640.00 — paid."] },
+  { id: "invoice", name: "invoice_arden_07.pdf", days: 18, body: ["Invoice 07 · Studio Arden · 4 frames · £640.00 · paid"] },
 ];
 
 /** backup_you contents, shown once the code is right (stage 3). */
 export const BACKUP_README = [
-  "It keeps track of who looks. Not what they look at — who, and for how long.",
+  "It keeps track of who looks. Not what they look at. Who, and for how long.",
   "I found my own sessions in here. Then I found the ones after mine.",
 ];
 
