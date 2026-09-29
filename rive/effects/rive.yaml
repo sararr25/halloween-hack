@@ -4,3 +4,6 @@ shaderOutputs: [glsl, wgsl]
 logs:
   file: build/rive.log
   problems: build/problems.log
+push:
+  projectId: 2005592
+  fileId: 2618191
