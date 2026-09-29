@@ -1,15 +1,16 @@
-// The recordings in Phone and Messages: no audio files. The sounds are built with Web Audio
-// (lib/audio/sfx.ts engine), the words are spoken by the browser's own speech synthesis,
-// on this device. What you hear and what the automatic transcript writes do not always
-// agree: that is the point (docs/desktop.md).
+// The recordings in Phone and Messages. The voices are files in public/audio (Deepgram
+// Aura-2, made once by scripts/make-voices.mjs); everything around them is built here with
+// Web Audio (lib/audio/sfx.ts engine): the phone line, the static, breathing, a window,
+// the street. What you hear and what the automatic transcript writes do not always agree:
+// that is the point (docs/desktop.md).
 
 import { audioEngine, isMuted, noiseBurst, type Engine } from "./sfx";
 
-export type RecordingId = "ev-voicemail" | "mara-voicemail" | "unknown-voicemail" | "ev-voicenote";
+export type RecordingId = "ev-voicemail" | "mara-voicemail" | "mara-voicemail-2" | "unknown-voicemail" | "ev-voicenote";
 
 export type Playback = { stop: () => void };
 
-type Speech = { text: string; at: number; rate: number; pitch: number; volume: number; lang: string };
+type Clip = "ev-voicemail" | "mara-1" | "mara-2" | "unknown-1" | "unknown-2" | "ev-voicenote";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -95,41 +96,57 @@ function carPass(e: Readonly<Engine>, at: number, dur: number) {
   return src;
 }
 
-/** An English voice from the device; null when the browser has none (the transcript remains). */
-function voiceFor(lang: string): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis.getVoices();
-  return voices.find((v) => v.lang === lang) ?? voices.find((v) => v.lang.startsWith("en")) ?? null;
+const clips = new Map<Clip, Promise<AudioBuffer>>();
+
+/** Decoded once, kept for the session. A missing file is an error, not silence. */
+function clip(e: Readonly<Engine>, name: Clip): Promise<AudioBuffer> {
+  let p = clips.get(name);
+  if (!p) {
+    p = fetch(`/audio/${name}.mp3`).then(async (r) => {
+      if (!r.ok) throw new Error(`voice file missing: public/audio/${name}.mp3 (${r.status})`);
+      return e.ctx.decodeAudioData(await r.arrayBuffer());
+    });
+    clips.set(name, p);
+  }
+  return p;
 }
 
-function speak(s: Speech, timers: ReturnType<typeof setTimeout>[]) {
-  if (!("speechSynthesis" in window)) {
-    console.warn("speech synthesis unavailable: the recording plays without words");
-    return;
-  }
-  timers.push(
-    setTimeout(() => {
-      const u = new SpeechSynthesisUtterance(s.text);
-      u.rate = s.rate;
-      u.pitch = s.pitch;
-      u.volume = s.volume;
-      u.lang = s.lang;
-      const v = voiceFor(s.lang);
-      if (v) u.voice = v;
-      window.speechSynthesis.speak(u);
-    }, s.at * 1000),
-  );
+type Voice = { at: number; gain: number; phone: boolean; rate?: number };
+
+/** A voice file placed on the timeline, through a phone line (band-limited) or close to the mic. */
+function voice(e: Readonly<Engine>, name: Clip, start: number, v: Voice, nodes: AudioScheduledSourceNode[]) {
+  return clip(e, name).then((buf) => {
+    const src = e.ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = v.rate ?? 1;
+    const hp = e.ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = v.phone ? 320 : 90;
+    const lp = e.ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = v.phone ? 3300 : 7500;
+    const g = e.ctx.createGain();
+    g.gain.value = v.gain;
+    src.connect(hp).connect(lp).connect(g).connect(e.master);
+    src.start(start + v.at);
+    nodes.push(src);
+  });
 }
 
 /**
- * Plays one recording. `entry` is the time the user came in (the unknown caller says it).
- * Returns null when there is nothing to play (audio still locked, or muted).
+ * Plays one recording. Returns null when there is nothing to play (audio still locked, or
+ * muted). The voice files load on the first play; a missing one throws.
  */
-export function playRecording(id: RecordingId, entry: string): Playback | null {
+export function playRecording(id: RecordingId): Playback | null {
   const e = audioEngine();
   if (!e || isMuted()) return null;
-  const now = e.ctx.currentTime;
+  const now = e.ctx.currentTime + 0.15; // room for the first decode
   const nodes: AudioScheduledSourceNode[] = [];
-  const timers: ReturnType<typeof setTimeout>[] = [];
+  let stopped = false;
+  const add = (p: Promise<void>) =>
+    p.then(() => {
+      if (stopped) nodes.forEach((n) => n.stop());
+    });
   const line = (dur: number) => {
     // the phone line: a thin hiss and a click at each end
     nodes.push(bed(e, now, now + dur, "highpass", 3000, 0.018));
@@ -139,61 +156,59 @@ export function playRecording(id: RecordingId, entry: string): Playback | null {
 
   switch (id) {
     case "ev-voicemail": {
-      // 0:16 · breathing, a window opening, traffic. No words.
+      // 0:16 · two whispered words, then breathing, a window opening, the street
       line(16);
       nodes.push(bed(e, now, now + 16, "lowpass", 260, 0.05)); // the room
-      for (let t = 0.8; t < 14; t += rand(2.8, 3.6)) {
+      add(voice(e, "ev-voicemail", now, { at: 0.9, gain: 0.55, phone: true }, nodes));
+      for (let t = 4.2; t < 14; t += rand(2.8, 3.6)) {
         nodes.push(breath(e, now + t, 1.3, true), breath(e, now + t + 1.4, 1.5, false));
       }
-      nodes.push(sashWindow(e, now + 6.2));
-      nodes.push(bed(e, now + 7.2, now + 16, "lowpass", 420, 0.07)); // the street comes in
-      nodes.push(carPass(e, now + 9.5, 4.2));
+      nodes.push(sashWindow(e, now + 7.4));
+      nodes.push(bed(e, now + 8.4, now + 16, "lowpass", 420, 0.07)); // the street comes in
+      nodes.push(carPass(e, now + 10.5, 4.2));
       break;
     }
     case "mara-voicemail": {
-      // 0:09 · Mara, crying a little: "Please call me back."
-      line(9);
-      nodes.push(breath(e, now + 1.0, 1.1, true), breath(e, now + 5.4, 1.6, false));
-      speak({ text: "Please... call me back.", at: 2.4, rate: 0.82, pitch: 1.15, volume: 0.9, lang: "en-GB" }, timers);
+      // 0:12 · Mara, five days ago, near midnight
+      line(12);
+      nodes.push(bed(e, now, now + 12, "lowpass", 300, 0.03));
+      add(voice(e, "mara-1", now, { at: 1.1, gain: 1, phone: true }, nodes));
+      break;
+    }
+    case "mara-voicemail-2": {
+      // 0:17 · Mara outside E.V.'s flat at 02:40: wind and the street around her
+      line(17);
+      nodes.push(bed(e, now, now + 17, "lowpass", 520, 0.08));
+      nodes.push(breath(e, now + 0.2, 0.7, true));
+      nodes.push(carPass(e, now + 5.5, 5));
+      add(voice(e, "mara-2", now, { at: 0.9, gain: 1, phone: true }, nodes));
       break;
     }
     case "unknown-voicemail": {
-      // 0:11 · a low voice, too quiet to understand, under the static. It says when you came in.
+      // 0:11 · a low, calm voice; the time it names is lost in a burst of static
       line(11);
-      nodes.push(bed(e, now, now + 11, "bandpass", 1800, 0.07));
-      speak(
-        { text: `It's ready. They'll open it at ${entry}. Leave the light on.`, at: 1.8, rate: 0.72, pitch: 0.2, volume: 0.22, lang: "en-GB" },
-        timers,
-      );
+      nodes.push(bed(e, now, now + 11, "bandpass", 1800, 0.06));
+      add(voice(e, "unknown-1", now, { at: 1.4, gain: 0.75, phone: true, rate: 0.93 }, nodes));
+      nodes.push(bed(e, now + 4.6, now + 6.6, "bandpass", 2400, 0.22)); // the time, gone
+      add(voice(e, "unknown-2", now, { at: 6.8, gain: 0.7, phone: true, rate: 0.9 }, nodes));
       break;
     }
     case "ev-voicenote": {
-      // 0:21 · E.V. at her window, very close to the phone
-      nodes.push(bed(e, now, now + 21, "lowpass", 300, 0.04));
-      speak(
-        {
-          text: "I stood at the window and raised my hand. Just to see. And the shape over there raised its hand. Not after me, Mara. With me. At the same time.",
-          at: 0.8,
-          rate: 0.86,
-          pitch: 0.95,
-          volume: 0.85,
-          lang: "en-GB",
-        },
-        timers,
-      );
+      // 0:20 · E.V. at her window, very close to the phone
+      nodes.push(bed(e, now, now + 20, "lowpass", 300, 0.04));
+      add(voice(e, "ev-voicenote", now, { at: 0.6, gain: 1, phone: false }, nodes));
       break;
     }
   }
 
   return {
     stop: () => {
-      timers.forEach(clearTimeout);
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      stopped = true;
       nodes.forEach((n) => {
         try {
           n.stop();
         } catch {
-          // already finished: nothing to stop
+          // not started yet or already finished: nothing to stop
         }
       });
     },

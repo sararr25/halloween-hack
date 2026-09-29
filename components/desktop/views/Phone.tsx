@@ -11,11 +11,12 @@ import styles from "./views.module.css";
 // Phone, synced from E.V.'s mobile. The automatic transcript is unreliable: what you would
 // hear and what it writes disagree, and only the text knows about your session.
 // Stage 2+: a voicemail from E.V.'s own number, dated after she disappeared.
-// The recordings are played by lib/audio/voices.ts (procedural sound + device speech).
+// The recordings are played by lib/audio/voices.ts (Deepgram voices + procedural sound).
 
 const RECORDING: Record<string, RecordingId> = {
   ev: "ev-voicemail",
   "mara-1": "mara-voicemail",
+  "mara-2": "mara-voicemail-2",
   unknown: "unknown-voicemail",
 };
 

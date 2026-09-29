@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { playRecording, type Playback, type RecordingId } from "@/lib/audio/voices";
-import { useStory } from "@/lib/story/store";
-import { clock } from "@/lib/story/time";
 import styles from "./voice.module.css";
 
 const WAVE = [4, 9, 14, 7, 11, 16, 6, 12, 8, 15, 5, 10, 13, 6, 9, 4, 11, 7, 12, 5, 9, 14, 6, 10];
@@ -16,7 +14,6 @@ const seconds = (length: string) => {
 
 /** Play / stop, a waveform that fills as it plays, the length. One recording at a time. */
 export default function VoicePlayer({ id, length }: { id: RecordingId; length: string }) {
-  const { state } = useStory();
   const [playing, setPlaying] = useState(false);
   const [silent, setSilent] = useState(false);
   const wave = useRef<HTMLSpanElement>(null);
@@ -37,7 +34,7 @@ export default function VoicePlayer({ id, length }: { id: RecordingId; length: s
 
   const play = () => {
     if (playing) return stop();
-    const p = playRecording(id, clock(state.openedAt));
+    const p = playRecording(id);
     if (!p) {
       // audio locked or muted: say so instead of pretending to play
       setSilent(true);

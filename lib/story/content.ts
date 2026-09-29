@@ -286,9 +286,9 @@ export const CHATS: Chat[] = [
       {
         me: true,
         voice: {
-          length: "0:21",
+          length: "0:20",
           transcript:
-            "I stood at the window and raised my hand. Just to see. And the shape over there raised its hand. Not after me, Mara. With me. At the same time.",
+            "Mara. OK. I did something stupid. I stood at the window and I raised my hand. Just to see. And the shape over there, it raised its hand too. Not after me. With me. At the exact same time. I'm not imagining it. I'm not.",
         },
         days: 8,
         time: "23:09",
@@ -485,6 +485,22 @@ export const CALLS: Call[] = [
     },
   },
   {
+    id: "mara-2",
+    who: "Mara",
+    number: "07700 900127",
+    days: 3,
+    time: "02:40",
+    kind: "missed",
+    fromStage: 2,
+    voicemail: {
+      length: "0:17",
+      audio: "Mara outside E.V.'s flat at night, scared: the door open, the laptop on, the light across the road, someone in the window.",
+      // the transcript leaves out what she saw in the window
+      transcript:
+        "Ev pick up. I'm outside yours. The door's open and your laptop's on. Why is your laptop on. And the light across the road, it's on. Ev [inaudible]. Call me. Please call me.",
+    },
+  },
+  {
     id: "mara-1",
     who: "Mara",
     number: "07700 900127",
@@ -492,9 +508,9 @@ export const CALLS: Call[] = [
     time: "23:56",
     kind: "missed",
     voicemail: {
-      length: "0:09",
-      audio: "Mara, crying a little: “Please call me back.”",
-      transcript: "Please call me back.",
+      length: "0:12",
+      audio: "Mara, worried, holding back tears: she asks E.V. to call her back.",
+      transcript: "Ev it's me again. I don't know if you're getting these. Please call me back. OK. Please.",
     },
   },
   {
@@ -506,7 +522,7 @@ export const CALLS: Call[] = [
     kind: "missed",
     voicemail: {
       length: "0:11",
-      audio: "a low voice, too quiet to understand. Then the call ends.",
+      audio: "a low, calm voice. The time it names is lost in a burst of static.",
       transcript: "It's ready. They'll open it at {{entry}}. [inaudible] Leave the light on.",
     },
   },
