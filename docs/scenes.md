@@ -166,6 +166,11 @@ L'escalation va dal subliminale all'esplicito:
 - **Uscita:** la timeline finisce e lo schermo va a nero.
 - **Built (2026-09-29):** closing the log starts it. Windows close themselves in reverse open order (collapse + glitch each). Then Rive `Across` (`rive/story/window_across.wgsl`): the building of IMG_0418 at night, second-person lines from real data, the window lights up with a tube stutter, push-in, a backlit bust behind a sheer curtain steps in and copies `headX/headY` 1:1 with no smoothing. 1.2 s of the room is recorded at 9 s and played back at 12.4 s (memory only; no mic: tape warble). Block corruption with channel split, black, then S10. The webcam `mirror_dither` was dropped: a Rive script cannot sample a video, and a figure that only moves like you is more ambiguous than your own face.
 
+### Interlude · the case goes back to E.V. (added 2026-09-30)
+- After the session log: the desktop goes quiet (no glitches, no searchlight, `viewers 1`), the system reopens E.V.'s case, Mara writes that E.V.'s phone is on in 4A across the road, Find My opens on flat 4A. "View live" starts S9. The relief is the setup: the user goes looking for E.V. in 4A and finds themselves.
+- **Built:** `Desktop.tsx` (`useInterlude`, `calm` in the store), `views/Locate.tsx`.
+- **S9 end (added):** after the room recording, the lit window corrupts into the live webcam as "CAM 2, flat 4A" for ~7 s (`LiveFeed.tsx`), then black.
+
 ### S10 · Login finale
 - **Rive** artboard `login`: campo utente vuoto, caret che lampeggia.
 - **Interazione:** se `faceLost`, il caret si ferma e la schermata "aspetta". Quando il volto torna, il caret riparte. Senza camera, il caret si ferma quando il mouse è fermo per 5 s.

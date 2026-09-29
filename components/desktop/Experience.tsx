@@ -31,7 +31,12 @@ const between = ([a, b]: [number, number]) => (a + Math.random() * (b - a)) * 10
 const DRONE: Record<Stage, number> = { 1: 0.5, 2: 0.8, 3: 1 };
 const DOM_GLITCH_MS = 140;
 // The searchlight that follows the user's head (mouse without camera), per stage.
-const BEAM: Record<Stage, number> = { 1: 0.25, 2: 0.6, 3: 1 };
+const BEAM: Record<Stage, number> = { 1: 0.35, 2: 0.6, 3: 1 };
+// Seconds the searchlight stays [on], [off] before stage 3, where it never leaves.
+const BEAM_RHYTHM: Record<1 | 2, [[number, number], [number, number]]> = {
+  1: [[5, 8], [35, 60]],
+  2: [[12, 20], [8, 15]],
+};
 // Every ~20 s it flares for an instant, colder, like lightning: two strokes and a tail.
 const FLASH_EVERY: [number, number] = [18, 24];
 const FLASH_STROKES = [0, 1, 0.12, 0.85, 0.3, 0];
@@ -48,7 +53,7 @@ function Overlay() {
   const [pulse, setPulse] = useState(0);
   const live = phase !== "premise";
   // the reveal and the login set their own pace: glitches only when they ask for one
-  const scheduled = live && phase !== "reveal" && phase !== "login";
+  const scheduled = live && phase !== "reveal" && phase !== "login" && !state.calm;
 
   // One glitch = shader tear + DOM RGB split + sound, at the same moment.
   useEffect(() => {
@@ -85,15 +90,15 @@ function Overlay() {
 
   useEffect(() => {
     if (!live) return;
-    drone(phase === "login" ? 0 : phase === "reveal" ? 0.4 : DRONE[stage]);
-  }, [live, phase, stage]);
+    drone(phase === "login" ? 0 : phase === "reveal" ? 0.4 : state.calm ? 0.25 : DRONE[stage]);
+  }, [live, phase, stage, state.calm]);
 
   // The searchlight: the head position goes straight to the shader, a little late
   // (like something turning to look), without re-rendering React on every frame.
   const set = useRef<FxSetter | null>(null);
   const head = useRef({ x: 0, y: 0 });
-  const beam = phase === "desktop" ? BEAM[stage] : 0;
-  const beamRef = useRef(beam);
+  const beam = phase === "desktop" && !state.calm ? BEAM[stage] : 0;
+  const beamRef = useRef(0);
   const onVm = useCallback((s: FxSetter) => {
     set.current = s;
     s("beam", beamRef.current); // the overlay may load after the stage was set
@@ -111,14 +116,44 @@ function Overlay() {
       },
     });
   });
+  // It is not always there. Stage 1: now and then, for a few seconds. Stage 2: more often
+  // than not. Stage 3: always. It fades in and out like a lamp being turned.
   useEffect(() => {
-    beamRef.current = beam;
-    set.current?.("beam", beam);
-  }, [beam]);
+    const b = { v: beamRef.current };
+    const fade = (to: number, dur = 2.2) =>
+      gsap.to(b, {
+        v: to,
+        duration: dur,
+        ease: "sine.inOut",
+        overwrite: true,
+        onUpdate: () => {
+          beamRef.current = b.v;
+          set.current?.("beam", b.v);
+        },
+      });
+    if (beam === 0 || stage === 3) {
+      const t = fade(beam);
+      return () => void t.kill();
+    }
+    const [on, off] = BEAM_RHYTHM[stage];
+    let timer: ReturnType<typeof setTimeout>;
+    let lit = false;
+    const next = () => {
+      lit = !lit;
+      fade(lit ? beam : 0);
+      timer = setTimeout(next, between(lit ? on : off));
+    };
+    fade(0);
+    timer = setTimeout(next, between(off));
+    return () => {
+      clearTimeout(timer);
+      gsap.killTweensOf(b);
+    };
+  }, [beam, stage]);
 
-  // The searchlight flares now and then, on the desktop only.
+  // The searchlight flares now and then, on the desktop only, never in the quiet interlude.
   useEffect(() => {
-    if (phase !== "desktop") return;
+    if (phase !== "desktop" || state.calm) return;
     const f = { v: 0 };
     let timer: ReturnType<typeof setTimeout>;
     const next = () => {
@@ -140,7 +175,7 @@ function Overlay() {
       gsap.killTweensOf(f);
       set.current?.("flash", 0);
     };
-  }, [phase]);
+  }, [phase, state.calm]);
 
   // S10: the screen switches off; crtOff(0) restores the overlay once the page is black.
   useEffect(() => {
@@ -177,7 +212,8 @@ function Interruptions() {
 /** Outside the desktop the sound toggle floats bottom right; on the desktop it lives in the menubar. */
 function FloatingSound() {
   const { state } = useStory();
-  if (state.phase === "desktop") return null;
+  // on the desktop they live in the menubar; in the reveal nothing may break the image
+  if (state.phase === "desktop" || state.phase === "reveal") return null;
   return (
     <span className={styles.floatControls}>
       <FullscreenToggle className={styles.soundMenu} />

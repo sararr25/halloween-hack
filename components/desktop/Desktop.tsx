@@ -34,6 +34,15 @@ function Clock() {
 
 const IDLE_NUDGE_MS = 100_000;
 
+// After each wrong backup code: where the time is written (the "for later" mail arrives at
+// the minute you came in, the unknown caller's transcript names it, a live search types it).
+const CODE_HINTS = [
+  "…she scheduled a mail for someone. Look at when it arrived.",
+  "…someone called about tonight. Read what the phone heard.",
+  "…look at what is still being searched.",
+  "…it's the minute you came in.",
+];
+
 /**
  * Turns clues into story beats: the stage changes only on key clues (photo figure → 2,
  * backup opened → 3) and the anonymous sender "helps" — guidance that looks like help.
@@ -42,6 +51,11 @@ function useDirector() {
   const { state, dispatch } = useStory();
   const { stage, clues, wrongCodes, openedAt } = state;
   const said = useRef(new Set<string>());
+  // the interlude has its own voice: no idle nudges once it has started
+  const calm = useRef(state.calm);
+  useEffect(() => {
+    calm.current = state.calm;
+  });
   const say = (key: string, from: "anon" | "system", text: string, delay = 0) => {
     if (said.current.has(key)) return;
     said.current.add(key);
@@ -91,7 +105,9 @@ function useDirector() {
   }, [stage, clues]);
 
   useEffect(() => {
-    if (wrongCodes >= 2) say("code", "anon", "…check her notes.");
+    // Each wrong code points at a place where the answer is already written.
+    const hint = CODE_HINTS[Math.min(wrongCodes, CODE_HINTS.length) - 1];
+    if (hint) say(`code${wrongCodes}`, "anon", hint);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrongCodes]);
 
@@ -100,7 +116,7 @@ function useDirector() {
     const t = setTimeout(() => {
       if (stage === 1) say("idle1", "anon", "…look at her photos. Closely.");
       if (stage === 2) say("idle2", "anon", "…it's a time. Four digits.");
-      if (stage === 3) say("idle3", "anon", "…open the one in progress.");
+      if (stage === 3 && !calm.current) say("idle3", "anon", "…open the one in progress.");
     }, IDLE_NUDGE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,25 +124,63 @@ function useDirector() {
 }
 
 const CLOSE_GAP_MS = 420;
+// The interlude: after the session log closes, how long until "View live" happens anyway.
+const LOCATE_NUDGE_MS = 30_000;
+const LOCATE_TIMEOUT_MS = 55_000;
 
 /**
- * S9 starts on the desktop: once session_0418.log has been opened and then closed (by the
- * user or by itself), every window shuts itself in reverse open order, each one collapsing
- * like an old screen, then the phase moves to the reveal.
+ * The interlude after S8. When session_0418.log closes (by the user or by itself) the case
+ * seems to go back to E.V.: everything goes quiet (no glitches, no searchlight, one viewer),
+ * the system reopens her case, Mara writes that E.V.'s phone just came back on, across the
+ * road, and Find My opens by itself on flat 4A. Its "View live" starts the reveal.
  */
-function useReveal() {
+function useInterlude() {
   const { state, dispatch } = useStory();
   const wasOpen = useRef(false);
   const started = useRef(false);
   const sessionOpen = state.windows.some((w) => w.id === "session");
+
+  useEffect(() => {
+    if (sessionOpen) wasOpen.current = true;
+    if (sessionOpen || !wasOpen.current || started.current) return;
+    started.current = true;
+    const at = (ms: number, run: () => void) => setTimeout(run, ms);
+    const timers = [
+      at(400, () => {
+        glitchNow(0.6);
+        dispatch({ type: "calm", calm: true });
+        dispatch({ type: "notify", from: "system", text: "operator review 0418 · closed · nothing found" });
+      }),
+      at(3200, () => dispatch({ type: "notify", from: "system", text: "case reopened · E.V. · new signal" })),
+      at(6500, () => dispatch({ type: "notify", from: "mara", text: "ev?? your phone just came on" })),
+      at(11000, () => dispatch({ type: "notify", from: "mara", text: "it says you're in 4A. across the road. the empty one" })),
+      at(15500, () => {
+        dispatch({ type: "notify", from: "system", text: "Find My · E.V.'s iPhone is online" });
+        dispatch({ type: "open", id: "locate" });
+      }),
+      at(15500 + LOCATE_NUDGE_MS, () => dispatch({ type: "notify", from: "anon", text: "…go on. look." })),
+      at(15500 + LOCATE_TIMEOUT_MS, () => dispatch({ type: "clue", id: "look_live" })),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [sessionOpen, dispatch]);
+}
+
+/**
+ * S9 starts on the desktop: once "View live" is chosen in Find My (or the interlude times
+ * out), every window shuts itself in reverse open order, each one collapsing like an old
+ * screen, then the phase moves to the reveal.
+ */
+function useReveal() {
+  const { state, dispatch } = useStory();
+  const started = useRef(false);
+  const look = "look_live" in state.clues;
   const order = useRef(state.windows.map((w) => w.id));
   useEffect(() => {
     order.current = state.windows.map((w) => w.id);
   });
 
   useEffect(() => {
-    if (sessionOpen) wasOpen.current = true;
-    if (sessionOpen || !wasOpen.current || started.current) return;
+    if (!look || started.current) return;
     started.current = true;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const rest = [...order.current].reverse();
@@ -147,7 +201,7 @@ function useReveal() {
     // on a timer, not on the tweens: a throttled tab still reaches the reveal
     timers.push(setTimeout(() => dispatch({ type: "phase", phase: "reveal" }), 600 + rest.length * CLOSE_GAP_MS + 1200));
     return () => timers.forEach(clearTimeout);
-  }, [sessionOpen, dispatch]);
+  }, [look, dispatch]);
 }
 
 /** Menubar "Recovery" menu: the session log, where the entry time can be read again. */
@@ -194,6 +248,7 @@ export default function Desktop() {
   const { state, dispatch } = useStory();
   const { stage, windows } = state;
   useDirector();
+  useInterlude();
   useReveal();
   useEffect(prewarmLens, []);
 
@@ -217,7 +272,7 @@ export default function Desktop() {
         </span>
         <span className={styles.menuRight}>
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
-          <span className={stage === 3 ? styles.viewersNeon : undefined}>viewers {stage}</span>
+          <span className={stage === 3 && !state.calm ? styles.viewersNeon : undefined}>viewers {state.calm ? 1 : stage}</span>
           {stage >= 2 && <span className={styles.rec}>● REC</span>}
           <FullscreenToggle className={styles.soundMenu} />
           <SoundToggle className={styles.soundMenu} />

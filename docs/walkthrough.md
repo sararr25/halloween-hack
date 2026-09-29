@@ -19,12 +19,13 @@ A full run takes 10 to 15 minutes. Without a camera everything works with the mo
 - **The clue:** open **Photos → IMG_0418**. Move the lens over the street. A woman stands by the lamp post, looking up at a lit window. **Hold the lens on her for about a second.**
 - She only moves while you are not looking (turn away, or move the mouse off the page).
 - Stuck for 100 s: "…look at her photos. Closely."
+- The searchlight is not always there: in stage 1 it comes and goes (a few seconds every half minute or so), in stage 2 it is on more often than not, in stage 3 it never leaves. Every ~20 s it flares.
 
 ## 3 · Stage 2: someone else is watching
 - **Expect:** `viewers 2`, `● REC`, the Camera window opens by itself (a lens that follows you and fires when you blink), a cyan folder `backup_you`, IMG_0419 "source: unknown device", searches typing themselves in History, Mara "typing…" forever.
 - **Listen:** Phone → E.V.'s voicemail (dated after she vanished), Mara's two voicemails (the second outside E.V.'s flat), the Unknown caller (the time he names is lost in static; the transcript shows it). Messages → E.V.'s voice note.
 - **Do:** open **backup_you** and type the four digits of the time you came in (`HHMM`, from `session opened`, also in the menubar **Recovery** menu). With the camera on, two fingers up opens it too.
-- Two wrong codes: "…check her notes." Stuck: "…it's a time. Four digits."
+- Each wrong code, the anonymous sender points at a place where the time is written: the "for later" mail (it arrived at that minute), the Unknown caller's transcript, the searches still being typed in History, then plainly "…it's the minute you came in." Her note dated today is a red herring. Stuck: "…it's a time. Four digits."
 
 ## 4 · Stage 3: corrupted
 - **Expect:** "you spent Ns getting here", `viewers 3` in cyan, the screen cracks, the searchlight turns cyan and flares, the polaroid is rewritten, the wallpaper changes the first time you look away (a window lit across the street, someone in it).
@@ -36,12 +37,20 @@ A full run takes 10 to 15 minutes. Without a camera everything works with the mo
 - **Try:** look away while it is open. It writes it down at once.
 - It closes by itself after 20 s.
 
-## 6 · Reveal (S9)
+## 6 · Interlude: the case goes back to E.V.
+- Everything goes quiet: no glitches, no searchlight, `viewers 1`. "operator review 0418 · closed · nothing found", then "case reopened · E.V. · new signal".
+- Mara writes: E.V.'s phone just came back on, in 4A across the road, the empty one.
+- **Find My** opens by itself: a map of Harrow St, E.V.'s home at 16, her phone pulsing at 17, flat 4A.
+- **Try:** Play sound (it pings in your own headphones). Move: the dot moves a little with you.
+- **Do:** click **View live** (after a while the sender writes "…go on. look.", and it happens anyway).
+
+## 7 · Reveal (S9)
 - Every window closes by itself, in reverse order. The building across, at night. Lines in second person built from your session.
 - A window lights up. Someone steps into the light and **moves exactly as you move** (your head, or your mouse).
-- Then about a second of **your own room**, recorded a moment earlier (never stored or sent). Then black.
+- Then about a second of **your own room**, recorded a moment earlier (never stored or sent).
+- The window corrupts and becomes the live camera of flat 4A: **you**, in cyan 1-bit dither, `● LIVE · 17 HARROW ST · FLAT 4A · CAM 2`, for about 7 s. Without a camera: your guessed face, following the mouse. Then black.
 
-## 7 · Login (S10)
+## 8 · Login (S10)
 - `RECOVERY/4`, `operator`, an empty field. The caret stops when your face leaves the frame (or the mouse stays still for 5 s).
 - **Do:** type a name, press Enter.
 - **Expect:** a case list: E.V. missing, two closed cases, and `#0418 <your name> open`. The screen switches off like an old tube. "No frames or audio left your device."

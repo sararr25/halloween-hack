@@ -17,7 +17,8 @@ gsap.registerPlugin(useGSAP);
 // Left: the operator scan from S1, now live (the real face mesh every frame, or the guessed
 // head turning with the mouse). Right: a log that writes itself from real session data.
 // Looking away while it is open is written down at once. It closes itself after 20 s,
-// and closing it (either way) starts the reveal (S9, see useReveal in Desktop.tsx).
+// and closing it (either way) starts the interlude, then the reveal (useInterlude and
+// useReveal in Desktop.tsx).
 const CLOSE_AFTER_MS = 20_000;
 const LINE_EVERY_MS = 650;
 

@@ -31,3 +31,31 @@
   .scene { animation-duration: 0.01s; }
   .line { animation: none; }
 }
+
+/* the live camera in flat 4A: full screen, hard pixels, a surveillance HUD */
+.feedWrap { position: absolute; inset: 0; animation: feedIn 0.5s steps(4) both; }
+.feedWrap[data-cut="true"] { animation: feedCut 0.5s steps(3) both; }
+.feed { position: absolute; inset: 0; background: #000; }
+@keyframes feedIn { from { opacity: 0; filter: brightness(3); } to { opacity: 1; filter: none; } }
+@keyframes feedCut {
+  0% { clip-path: inset(0); }
+  40% { clip-path: inset(42% 0 38% 0); transform: translateX(3%); }
+  100% { clip-path: inset(50% 0 50% 0); opacity: 0; }
+}
+.feedCanvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.feedScan { position: absolute; left: 50%; top: 50%; width: min(60vh, 90vw); aspect-ratio: 480 / 576; transform: translate(-50%, -50%); }
+.hud { position: absolute; inset: 4vh 4vw; pointer-events: none; font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.08em; color: var(--neon); }
+.hudTop { position: absolute; left: 0; top: 0; }
+.hudTop b { font-weight: 400; animation: recBlink 1s steps(2) infinite; }
+.hudBottom { position: absolute; left: 0; bottom: 0; }
+@keyframes recBlink { 50% { opacity: 0.2; } }
+.bracket {
+  position: absolute; left: 50%; top: 46%; width: 30vh; height: 38vh; transform: translate(-50%, -50%);
+  background:
+    linear-gradient(var(--neon), var(--neon)) top left / 22px 1px, linear-gradient(var(--neon), var(--neon)) top left / 1px 22px,
+    linear-gradient(var(--neon), var(--neon)) top right / 22px 1px, linear-gradient(var(--neon), var(--neon)) top right / 1px 22px,
+    linear-gradient(var(--neon), var(--neon)) bottom left / 22px 1px, linear-gradient(var(--neon), var(--neon)) bottom left / 1px 22px,
+    linear-gradient(var(--neon), var(--neon)) bottom right / 22px 1px, linear-gradient(var(--neon), var(--neon)) bottom right / 1px 22px;
+  background-repeat: no-repeat; opacity: 0.7;
+}
+@media (prefers-reduced-motion: reduce) { .feedWrap, .feedWrap[data-cut="true"], .hudTop b { animation: none; } }

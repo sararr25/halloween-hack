@@ -8,7 +8,7 @@ export type Phase = "premise" | "boot" | "desktop" | "reveal" | "login";
 export type Stage = 1 | 2 | 3;
 export type AppId =
   | "mail" | "photos" | "messages" | "notes" | "history" | "phone" | "trash" | "camera" | "backup"
-  | "invitation" | "screenshot" | "manual" | "session";
+  | "invitation" | "screenshot" | "manual" | "session" | "locate";
 
 export type WindowState = { id: AppId; z: number; x: number; y: number };
 
@@ -29,10 +29,14 @@ export type StoryState = {
   wrongCodes: number;
   /** Epoch ms of every time the user looked away (or left the page): S8 counts them. */
   interruptions: number[];
+  /** The interlude after the session log: the case seems to go back to E.V. and the
+   * desktop goes quiet (no glitches, no searchlight) until the reveal. */
+  calm: boolean;
 };
 
-/** "anon" = the anonymous sender (help that is really guidance); "system" = the OS. */
-export type Notice = { id: number; from: "anon" | "system"; text: string };
+/** "anon" = the anonymous sender (help that is really guidance); "system" = the OS;
+ * "mara" = a message from Mara arriving on E.V.'s laptop. */
+export type Notice = { id: number; from: "anon" | "system" | "mara"; text: string };
 
 /** Facts about the user, gathered in S1 and reused by the story (S8/S9). */
 export type Session = {
@@ -55,7 +59,8 @@ type Action =
   | { type: "notify"; from: Notice["from"]; text: string }
   | { type: "dismiss"; id: number }
   | { type: "wrongCode" }
-  | { type: "interrupt"; at: number };
+  | { type: "interrupt"; at: number }
+  | { type: "calm"; calm: boolean };
 
 function reducer(s: StoryState, a: Action): StoryState {
   switch (a.type) {
@@ -92,6 +97,8 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, wrongCodes: s.wrongCodes + 1 };
     case "interrupt":
       return { ...s, interruptions: [...s.interruptions, a.at] };
+    case "calm":
+      return { ...s, calm: a.calm };
   }
 }
 
@@ -118,6 +125,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     notices: [],
     wrongCodes: 0,
     interruptions: [],
+    calm: false,
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/D/R/L jumps phase.

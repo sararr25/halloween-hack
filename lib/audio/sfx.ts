@@ -378,3 +378,35 @@ export function tubeOff() {
   noiseBurst(e, now, 0.25, 3000, 0.8, 0.07);
   noiseBurst(e, now + 0.05, 0.12, 160, 1.2, 0.12);
 }
+
+/**
+ * Find My's "play sound": a bright two-tone ping, three times. It plays in the user's own
+ * headphones, dead centre, as if the phone were in the room. A fainter copy answers from
+ * the right, a little late.
+ */
+export function phonePing() {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const ping = (at: number, level: number, pan: number) => {
+    [1318.5, 1760].forEach((f, i) => {
+      const o = e.ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = f;
+      const g = e.ctx.createGain();
+      const t = at + i * 0.12;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(level, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      const p = e.ctx.createStereoPanner();
+      p.pan.value = pan;
+      o.connect(g).connect(p).connect(e.master);
+      o.start(t);
+      o.stop(t + 0.4);
+    });
+  };
+  for (let i = 0; i < 3; i++) {
+    ping(now + i * 0.9, 0.05, 0);
+    ping(now + i * 0.9 + 0.23, 0.012, 0.8);
+  }
+}

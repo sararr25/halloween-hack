@@ -10,8 +10,9 @@ import styles from "./desktop.module.css";
 gsap.registerPlugin(useGSAP);
 
 const SHOW_MS = 8000;
+const LABEL: Record<Notice["from"], string> = { anon: "unknown sender", system: "system", mara: "Mara · Messages" };
 
-// Mono notifications, top right. The anonymous sender types; the system just appears.
+// Mono notifications, top right. The anonymous sender and Mara type; the system just appears.
 export default function Notices() {
   const { state } = useStory();
   return (
@@ -32,7 +33,7 @@ function Item({ notice }: { notice: Notice }) {
     if (!el.current || !text) return;
     gsap.from(el.current, { opacity: 0, y: -6, duration: 0.28, ease: "power3.out" });
     blip();
-    if (notice.from === "anon") {
+    if (notice.from !== "system") {
       // someone is typing it, key by key
       const n = notice.text.length;
       const typed = { n: 0 };
@@ -63,7 +64,7 @@ function Item({ notice }: { notice: Notice }) {
 
   return (
     <div ref={el} className={`${styles.notice} ${styles.glass}`}>
-      <span>{notice.from === "anon" ? "unknown sender" : "system"}</span>
+      <span>{LABEL[notice.from]}</span>
       <p>{notice.text}</p>
     </div>
   );

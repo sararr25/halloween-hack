@@ -1,0 +1,34 @@
+/* Interlude · Find My: a flat night map of Harrow St, E.V.'s phone pulsing across the road */
+
+.locate { display: grid; grid-template-columns: 1fr 190px; gap: 18px; height: 100%; }
+.map { width: 100%; height: auto; border-radius: 8px; display: block; }
+.ground { fill: #0b0e14; }
+.house { fill: #151a24; stroke: rgba(216, 220, 229, 0.08); }
+.home { fill: #1c2230; stroke: rgba(216, 220, 229, 0.35); }
+.target { fill: #1a2029; stroke: rgba(216, 220, 229, 0.5); }
+.street { fill: #10141c; }
+.streetName { fill: var(--muted); font-family: var(--font-mono), monospace; font-size: 9px; letter-spacing: 0.3em; text-anchor: middle; }
+.num { fill: var(--muted); font-family: var(--font-mono), monospace; font-size: 8px; text-anchor: middle; }
+.homeLabel { fill: var(--text); font-family: var(--font-mono), monospace; font-size: 8px; text-anchor: middle; opacity: 0.7; }
+.halo { fill: rgba(216, 220, 229, 0.08); stroke: rgba(216, 220, 229, 0.2); }
+.dot { fill: var(--accent); }
+.pulse {
+  fill: none; stroke: var(--accent); stroke-width: 1.2;
+  transform-box: fill-box; transform-origin: center;
+  animation: pulse 1.8s ease-out infinite;
+}
+@keyframes pulse { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(2.2); opacity: 0; } }
+
+.info { display: grid; align-content: start; gap: 6px; font-size: 13px; color: var(--text); }
+.info p { margin: 0; }
+.device { font-size: 15px; font-weight: 500; }
+.meta { font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); }
+.actions { display: grid; gap: 8px; margin-top: 14px; }
+.button {
+  padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(216, 220, 229, 0.25);
+  font-size: 12.5px; color: var(--text); text-align: left; transition: border-color 120ms, background 120ms;
+}
+.button:hover, .button:focus-visible { border-color: var(--text); background: rgba(216, 220, 229, 0.06); }
+.primary { border-color: rgba(216, 220, 229, 0.55); }
+
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }

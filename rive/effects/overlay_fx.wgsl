@@ -88,27 +88,32 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     }
 
-    // the searchlight: a cold beam from above the window, its spot a little late on the
-    // user's head. Faint concentric rings inside it: the lens of something looking back.
+    // the searchlight: a cold, out-of-focus beam from above the window, its spot a little
+    // late on the user's head. No hard edge anywhere: gaussian falloff, a slow breathing,
+    // the faint unsteadiness of a hand-held lamp.
     if (u.beam > 0.001 || u.flash > 0.001) {
         let aspect = u.width / max(u.height, 1.0);
         let aim = vec2<f32>(0.5 + u.headX * 0.42, 0.52 + u.headY * 0.3);
-        let origin = vec2<f32>(0.5 + u.headX * 0.1, -0.25);
+        let origin = vec2<f32>(0.5 + u.headX * 0.1, -0.3);
         let q = (in.uv - aim) * vec2<f32>(aspect, 1.0);
-        let spot = 1.0 - smoothstep(0.05, 0.3, length(q));
-        let rings = 0.5 + 0.5 * sin(length(q) * 140.0 - u.time * 1.5);
-        // the cone: distance from the segment src -> aim
+        let breathe = 1.0 + 0.06 * sin(u.time * 0.9) + 0.03 * sin(u.time * 2.3 + 1.7);
+        let r2 = dot(q, q) / (0.042 * breathe);
+        let spot = exp(-r2) * 0.85 + exp(-r2 * 0.18) * 0.25; // a soft core and a wide halo
+        // the cone: gaussian around the axis origin -> aim, widening and fading upwards
         let ab = (aim - origin) * vec2<f32>(aspect, 1.0);
         let ap = (in.uv - origin) * vec2<f32>(aspect, 1.0);
         let t = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
-        let cone = (1.0 - smoothstep(0.02 + 0.2 * t, 0.06 + 0.3 * t, length(ap - ab * t))) * t;
+        let off = length(ap - ab * t);
+        let width = 0.05 + 0.2 * t;
+        let cone = exp(-(off * off) / (width * width)) * t * t;
+        let flicker = 0.94 + 0.06 * hash(vec2<f32>(floor(u.time * 18.0), 3.0));
         let tint = mix(vec3<f32>(0.85, 0.88, 0.94), vec3<f32>(0.0, 0.94, 1.0), u.neon * 0.6);
-        let light = (spot * (0.55 + 0.25 * rings) + cone * 0.25) * u.beam * 0.22;
+        let light = (spot * 0.7 + cone * 0.2) * u.beam * 0.3 * flicker;
         rgb += tint * light;
         alpha += light * 0.35;
         // the flare: the same beam, suddenly much brighter and a colder, violet-blue light
         let flareTint = mix(vec3<f32>(0.5, 0.58, 1.0), vec3<f32>(0.78, 1.0, 1.0), u.neon);
-        let flare = (spot * (0.8 + 0.4 * rings) + cone * 0.55) * u.flash * 0.5;
+        let flare = (spot + cone * 0.5) * u.flash * 0.5;
         rgb += flareTint * flare;
         alpha += flare * 0.75;
     }
