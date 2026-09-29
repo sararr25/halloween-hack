@@ -43,3 +43,14 @@ Agreed with the owner on 2026-09-29 (Q&A session). Scene specs stay in `docs/sce
 | Backup password | **The local time the user opened the site**, `HHMM` (e.g. `2114`) |
 | Password clue | Cryptic note by E.V. ("the password is when they came in"). Entry time is visible in boot log / menubar history. A nudge follows 2 wrong tries |
 | Nudges | Sent by the **anonymous sender** as mono notifications ("…check her notes."). They look like help, but they are guidance, which foreshadows The Game |
+
+## Audio & voice decisions
+
+| Topic | Decision |
+|---|---|
+| Listening content | E.V.'s voice memos (Notes attachments or a Voice Memos app), voice messages in Messages chats, voicemail from someone who never introduces themselves, and a recording in the S9 reveal |
+| Voices | Quality AI TTS (e.g. ElevenLabs free tier). **Check the licence and credits before use** |
+| Microphone | **Yes, in S9**: the reveal plays back ~1 s of the user's own ambient audio, processed locally and never stored or sent. The permission must be asked **in S1 together with the camera** (diegetic "operator verification"), because a browser prompt in the middle of the reveal would break it. If the user refuses, S9 falls back to a reconstructed recording |
+| Premise text | Cold and short: "E.V. has been missing for 7 days. You have access now. Look carefully." |
+
+Open: voicemail needs a home (a Phone/Voicemail app, or files in Mail?).
