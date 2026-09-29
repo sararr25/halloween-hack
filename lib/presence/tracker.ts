@@ -33,14 +33,14 @@ const GESTURES: Record<string, Gesture> = {
 
 // Tuning
 const EMA = 0.3;
-const YAW_RANGE = 28; // degrees mapped to headX = ±1
-const PITCH_RANGE = 18;
+const YAW_RANGE = 18; // degrees mapped to headX = ±1
+const PITCH_RANGE = 12;
 const AWAY_YAW = 25; // |yaw| beyond this counts as looking away
 const AWAY_AFTER_MS = 1500;
 const LOST_AFTER_MS = 3000;
 const BLINK_ON = 0.5;
 const BLINK_OFF = 0.3;
-const GESTURE_SCORE = 0.7;
+const GESTURE_SCORE = 0.6;
 const GESTURE_HOLD_MS = 300;
 const MIN_FRAME_MS = 30; // ~33 Hz is plenty for a head
 

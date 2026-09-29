@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import PresenceEye, { type EyeHandle } from "@/components/PresenceEye";
 import FxOverlay from "@/components/FxOverlay";
-import { PresenceTracker, type PresenceState } from "@/lib/presence/tracker";
+import { PresenceTracker, type Gesture, type PresenceState } from "@/lib/presence/tracker";
 import styles from "./lab.module.css";
 
 type Phase = "idle" | "requesting" | "calibrating" | "watching";
@@ -14,6 +14,17 @@ gsap.registerPlugin(useGSAP);
 
 // Stage 1 · perfect: subliminal grain and glitch (see HANDOVER stage table)
 const STAGE1_FX = { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0 };
+
+// The system answers a gesture it was never told to watch for. Placeholder lines, to be written.
+const GESTURE_LINES: Partial<Record<Gesture, string>> = {
+  palm: "non serve coprirti",
+  fist: "calma",
+  point: "ti vedo anche io",
+  victory: "due. come la volta scorsa",
+  thumbUp: "lo sappiamo",
+  thumbDown: "non dipende da te",
+  love: "anche noi",
+};
 
 // S1 · Boot: the camera is asked for inside the fiction, as operator identity verification.
 export default function Boot() {
@@ -47,7 +58,14 @@ export default function Boot() {
         eye.current?.blink();
         setLastEvent("blink");
       },
-      onGesture: (g) => setLastEvent(`gesture: ${g}`),
+      onGesture: (g) => {
+        setLastEvent(`gesture: ${g}`);
+        const reply = GESTURE_LINES[g];
+        if (reply) {
+          eye.current?.blink();
+          setLine(reply);
+        }
+      },
     });
     t.startMouse();
     tracker.current = t;
