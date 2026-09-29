@@ -7,8 +7,9 @@ import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
-import { CalendarWidget, Crack, Polaroid, TheSign } from "./Decor";
+import { CalendarWidget, Crack, Polaroid, TheSign, Wallpaper } from "./Decor";
 import Notices from "./Notices";
+import FullscreenToggle from "./FullscreenToggle";
 import SoundToggle from "./SoundToggle";
 import Window from "./Window";
 import styles from "./desktop.module.css";
@@ -192,7 +193,7 @@ export default function Desktop() {
 
   return (
     <div className={styles.desktop} data-stage={stage} data-glitch>
-      <div className={styles.wallpaper} aria-hidden="true" />
+      <Wallpaper />
 
       <TheSign />
 
@@ -205,6 +206,7 @@ export default function Desktop() {
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
           <span className={stage === 3 ? styles.viewersNeon : undefined}>viewers {stage}</span>
           {stage >= 2 && <span className={styles.rec}>● REC</span>}
+          <FullscreenToggle className={styles.soundMenu} />
           <SoundToggle className={styles.soundMenu} />
           <span>71%</span>
           <Clock />

@@ -27,6 +27,7 @@
         <ViewModelPropertyNumber name="headY" id="0:58"/>
         <ViewModelPropertyNumber name="beam" id="0:59"/>
         <ViewModelPropertyNumber name="crt" id="0:60"/>
+        <ViewModelPropertyNumber name="flash" id="0:61"/>
         <ViewModelInstance exports="true" name="Stage1" id="0:51">
             <ViewModelInstanceNumber propertyValue="0.25" viewModelPropertyId="0:52" id="0:85"/>
             <ViewModelInstanceNumber propertyValue="0.35" viewModelPropertyId="0:53" id="0:86"/>
@@ -37,6 +38,7 @@
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:58" id="0:92"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:59" id="0:93"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:60" id="0:94"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:61" id="0:95"/>
         </ViewModelInstance>
     </ViewModel>
 

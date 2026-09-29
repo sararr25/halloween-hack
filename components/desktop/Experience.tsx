@@ -5,12 +5,14 @@ import gsap from "gsap";
 import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay";
 import { drone, glitchSound, unlockAudio } from "@/lib/audio/sfx";
 import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
+import { enterFullscreen } from "@/lib/fullscreen";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
 import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
 import Desktop from "./Desktop";
 import Login, { CASE_KEY } from "./Login";
 import Reveal from "./Reveal";
+import FullscreenToggle from "./FullscreenToggle";
 import SoundToggle from "./SoundToggle";
 import styles from "./desktop.module.css";
 
@@ -30,6 +32,9 @@ const DRONE: Record<Stage, number> = { 1: 0.5, 2: 0.8, 3: 1 };
 const DOM_GLITCH_MS = 140;
 // The searchlight that follows the user's head (mouse without camera), per stage.
 const BEAM: Record<Stage, number> = { 1: 0.25, 2: 0.6, 3: 1 };
+// Every ~20 s it flares for an instant, colder, like lightning: two strokes and a tail.
+const FLASH_EVERY: [number, number] = [18, 24];
+const FLASH_STROKES = [0, 1, 0.12, 0.85, 0.3, 0];
 
 /**
  * One overlay for the whole experience, mounted once. Rive instances that render GPU
@@ -111,6 +116,32 @@ function Overlay() {
     set.current?.("beam", beam);
   }, [beam]);
 
+  // The searchlight flares now and then, on the desktop only.
+  useEffect(() => {
+    if (phase !== "desktop") return;
+    const f = { v: 0 };
+    let timer: ReturnType<typeof setTimeout>;
+    const next = () => {
+      timer = setTimeout(() => {
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          gsap.to(f, {
+            keyframes: { v: FLASH_STROKES },
+            duration: 0.55,
+            ease: "none",
+            onUpdate: () => set.current?.("flash", f.v),
+          });
+        }
+        next();
+      }, between(FLASH_EVERY));
+    };
+    next();
+    return () => {
+      clearTimeout(timer);
+      gsap.killTweensOf(f);
+      set.current?.("flash", 0);
+    };
+  }, [phase]);
+
   // S10: the screen switches off; crtOff(0) restores the overlay once the page is black.
   useEffect(() => {
     const crt = { v: 0 };
@@ -147,7 +178,12 @@ function Interruptions() {
 function FloatingSound() {
   const { state } = useStory();
   if (state.phase === "desktop") return null;
-  return <SoundToggle className={styles.soundFloat} />;
+  return (
+    <span className={styles.floatControls}>
+      <FullscreenToggle className={styles.soundMenu} />
+      <SoundToggle className={styles.soundMenu} />
+    </span>
+  );
 }
 
 /** Someone who reached the end before is remembered, quietly. */
@@ -179,6 +215,7 @@ function Phases() {
             className={styles.cta}
             onClick={() => {
               unlockAudio(); // audio stays locked until a user gesture
+              enterFullscreen(); // so is full screen: no tabs, no address bar
               dispatch({ type: "phase", phase: "boot" });
             }}
           >

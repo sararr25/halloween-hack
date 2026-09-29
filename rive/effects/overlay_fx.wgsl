@@ -14,6 +14,10 @@ struct Uniforms {
     headY: f32,
     beam: f32,      // 0..1, the searchlight that follows the user
     crt: f32,       // 0..1, the screen switching off (S10): collapse to a line, a dot, black
+    flash: f32,     // 0..1, the searchlight flaring for an instant, colder (the page fires it)
+    pad1: f32,
+    pad2: f32,
+    pad3: f32,
 };
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -86,7 +90,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // the searchlight: a cold beam from above the window, its spot a little late on the
     // user's head. Faint concentric rings inside it: the lens of something looking back.
-    if (u.beam > 0.001) {
+    if (u.beam > 0.001 || u.flash > 0.001) {
         let aspect = u.width / max(u.height, 1.0);
         let aim = vec2<f32>(0.5 + u.headX * 0.42, 0.52 + u.headY * 0.3);
         let origin = vec2<f32>(0.5 + u.headX * 0.1, -0.25);
@@ -102,6 +106,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let light = (spot * (0.55 + 0.25 * rings) + cone * 0.25) * u.beam * 0.22;
         rgb += tint * light;
         alpha += light * 0.35;
+        // the flare: the same beam, suddenly much brighter and a colder, violet-blue light
+        let flareTint = mix(vec3<f32>(0.5, 0.58, 1.0), vec3<f32>(0.78, 1.0, 1.0), u.neon);
+        let flare = (spot * (0.8 + 0.4 * rings) + cone * 0.55) * u.flash * 0.5;
+        rgb += flareTint * flare;
+        alpha += flare * 0.75;
     }
 
     // an old tube switching off: the picture collapses to a white-hot line, then to a dot

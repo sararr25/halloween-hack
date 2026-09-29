@@ -29,6 +29,7 @@ local function value(self: Fx, name: string, fallback: number): number
     if name == "headY" then return fx.headY.value end
     if name == "beam" then return fx.beam.value end
     if name == "crt" then return fx.crt.value end
+    if name == "flash" then return fx.flash.value end
     return fx.neon.value
 end
 
@@ -45,7 +46,7 @@ function init(self: Fx, context: Context): boolean
         vertexLayout = {},
         colorTargets = { { format = canvas.format } },
     })
-    local ubo = GPUBuffer.new({ size = 48, usage = "uniform" })
+    local ubo = GPUBuffer.new({ size = 64, usage = "uniform" })
     self.pipeline = pipeline
     self.ubo = ubo
     self.group = GPUBindGroup.new({
@@ -96,6 +97,7 @@ function draw(self: Fx, renderer: Renderer)
     buffer.writef32(d, 36, value(self, "headY", 0))
     buffer.writef32(d, 40, value(self, "beam", 0))
     buffer.writef32(d, 44, value(self, "crt", 0))
+    buffer.writef32(d, 48, value(self, "flash", 0))
     ubo:write(d)
 
     local pass = canvas:beginRenderPass({
@@ -116,7 +118,7 @@ return function(context: Context): Layout<Fx>
         pipeline = nil,
         ubo = nil,
         group = nil,
-        data = buffer.create(48),
+        data = buffer.create(64),
         sampler = ImageSampler("clamp", "clamp", "bilinear"),
         size = Vector.xy(0, 0),
         time = 0,
