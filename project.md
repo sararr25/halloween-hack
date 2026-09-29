@@ -103,6 +103,9 @@ Tre agganci reali, tutti banali in JS vanilla, zero backend:
 - [ ] Direzione visiva/design (in corso, gestita separatamente)
 - [ ] Tono e voce dei testi (quanto letterario vs secco/clinico)
 - [ ] Lista precisa degli asset da produrre (quante foto, mail, note, messaggi chat)
+- [x] Spec scene/animazioni/interazioni (`docs/scenes.md`) e setup Rive CLI · WGSL · MediaPipe · GSAP (`docs/tech-setup.md`)
+- [ ] Validare la tesi di interazione in `docs/scenes.md`
+- [ ] Consentire `releases.rive.app` / `*.rive.app` nell'allowlist di rete e fare `rive login`
 - [ ] Setup tecnico del progetto (stack, struttura file)
 - [ ] Build delle 10 schermate
 - [ ] Playtest e tuning del ritmo/degli indizi

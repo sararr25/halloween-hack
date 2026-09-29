@@ -60,3 +60,13 @@ Glitches and animations are disabled under `prefers-reduced-motion`.
 3. Monochrome UI can hide what's clickable — solve with motion (hover glow, breathing) rather than colour.
 4. Build the real app: Next.js + TypeScript on Vercel (owner's default stack, pnpm). Port the tokens above to CSS variables/Tailwind theme; windows must become draggable, openable apps (Notes, Photos, Messages, History, Trash, backup folder).
 5. Session-data twist (open time, time to find clues, back-navigation) is only mocked with `Date` in the prototype; needs real tracking in-app (client-side only, no personal data sent anywhere).
+
+## Animation stack (2026-09-29)
+
+Full spec in `docs/scenes.md`, install/usage in `docs/tech-setup.md`.
+
+- **Rive** (sponsor): living objects authored as text with the Rive CLI (RML + Luau). A shared `Presence` view model is driven by the host app.
+- **Rive WGSL shaders**: diegetic post-process (grain/vignette, RGB glitch, lens, corruption, webcam dither). Uniforms are bound to stage/corruption.
+- **GSAP**: OS-layer motion (windows, toasts, typewriter).
+- **MediaPipe Tasks Vision**: head pose + gestures, client-side only. Camera is asked for inside the fiction; every interaction has a mouse fallback.
+- **genjutsu** skill is installed globally and re-installed by the repo SessionStart hook.
