@@ -48,9 +48,21 @@ rive docs / rive schema <Type> # documentazione e tipi, offline
 - Solo vertex + fragment, massimo 4 bind group. Niente compute shader, niente `override`, f64, push constants.
 - Lo shader disegna su un `GPUCanvas` da uno script Luau: `context:gpuCanvas{}`, `context:shader('Nome')`, `GPUPipeline.new{}`, `canvas:beginRenderPass{}`, `pass:draw(3)`, `renderer:drawImage(canvas.image, ...)`.
 - **Uniform**: `GPUBuffer` in `GPUBindGroup` (`@group/@binding` combacianti). Il valore arriva da script input o da **data binding**, quindi l'app JS lo pilota tramite view model (è così che MediaPipe arriva fino allo shader).
-- **Post-process di un artboard**: lo si renderizza in un canvas offscreen (`srcCanvas:beginFrame`, `instance:draw`) e si campiona `srcCanvas.image:view()` come texture.
+- **Post-process di un artboard** (offscreen `context:canvas()` + `instance:draw` + `image:view()`): funziona nella CLI ma **non sul web** con `@rive-app/webgl2` 2.43.1 ("context:canvas() requires a RenderContext"). Per questo la foto IMG_0418 è disegnata direttamente nello shader (`rive/photo/photo_lens.wgsl`).
 - **Shader targets** (nell'Editor o in `rive.yaml`): per il web servono **GLSL ES 300** (WebGL2) e **WGSL** (WebGPU). Un target non incluso = shader che non si carica su quel backend.
-- Runtime web: `@rive-app/webgl2` (2.43.x), con renderer GPU. Prima del build va verificato che la runtime canvas2d non esegua gli shader. Se non li esegue, si usa solo webgl2.
+- Runtime web: `@rive-app/webgl2` (2.43.x). **Serve `enableGPUCanvas: true`** nelle opzioni di `new Rive({...})`, altrimenti i `GPUCanvas` degli script non vengono disegnati (si vede solo il watermark). Verificato il 2026-09-29.
+
+### Trappole WGSL → GLSL (web, verificate il 2026-09-29)
+
+La CLI compila e mostra tutto bene; sul web lo shader passa per GLSL ES 300 e alcune cose falliscono **in silenzio** (nessun errore in console, output nero):
+
+| Problema | Soluzione |
+|---|---|
+| Identificatori riservati in GLSL (`half`, e per prudenza `window`, `sample`, `input`, `output`) | rinominare (`hs`, `pane`, …) |
+| Colori decodificati da `u32` con shift (`(h >> 16u) & 255u`) | costanti `vec3<f32>` già calcolate |
+| `GPUSampler.new` nel costruttore dello script | crearlo in `init` (prima non esiste il contesto GPU) |
+
+Test rapido quando lo schermo resta nero: `clearColor` rosso nel render pass. Rosso visibile = il pass gira e il problema è nello shader.
 
 ## 3. MediaPipe (testa + gesture)
 
@@ -100,7 +112,7 @@ Installata globalmente in `~/.agents/skills/genjutsu` con link in `~/.claude/ski
 4. `pnpm dev` → `http://localhost:3000/lab` → "Avvia recupero" → `D` per il pannello debug
 5. `brew install --cask rive-app/tap/rive-cli && rive doctor && rive login`
 6. Una sola volta: `rive push rive/effects` (lega il progetto a un file del tuo account e toglie il watermark se il workspace è Cadet+)
-7. A ogni modifica degli shader: `pnpm rive:publish` e poi commit di `public/rive/effects.riv` (firmato). Finché il file non esiste, l'overlay resta spento e l'app funziona lo stesso.
+7. A ogni modifica degli shader: `pnpm rive:publish` e poi commit di `public/rive/effects.riv` e `public/rive/photo.riv` (firmati). La CLI 1.2.0 a volte va in segmentation fault durante la firma: basta rilanciare. Finché il file non esiste, l'overlay resta spento e l'app funziona lo stesso.
 8. L'occhio (`rive/presence`) non ha script: basta `pnpm rive:build`, anche nel container.
 
 ## 7. Problemi noti e soluzioni

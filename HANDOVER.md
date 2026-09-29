@@ -1,15 +1,16 @@
 # Handover
 
-Status as of 2026-09-29 · branch `claude/youthful-pascal-m6eofy` · no PR opened yet.
+Status as of 2026-09-29 (evening) · branch `claude/youthful-pascal-m6eofy` · no PR opened yet.
 
 Read in this order: this file → `project.md` (concept, twist, scene outline) → `docs/desktop.md` (experience decisions, desktop structure, the Sign) → `docs/scenes.md` (per-scene animation/interaction spec, implementation status, tuning) → `docs/tech-setup.md` (install, Rive CLI, MediaPipe, troubleshooting).
 
 ## TL;DR
 
 - Hackathon: Contra × Rive Halloween challenge, solo, 18 days. Psychological thriller on a fake desktop OS; twist = "you are the one being watched", built from real session data.
-- **Working today:** `/` desktop skeleton (below) and `/lab`, a minimal S1. A Rive eye follows your head via the webcam, blinks when you blink, contracts when you look away, and answers hand gestures. The owner tested it on a Mac and it works.
-- **Desktop skeleton at `/`** (`components/desktop/`, `lib/story/store.tsx`): premise → boot placeholder → desktop with menubar, icons, draggable glass windows, stage 1–3 (REC, `backup_you`, Camera auto-open, FX levels). Apps are placeholders. Dev shortcuts: Alt+1/2/3 = stage, Alt+P/B/D/R/L = phase. The WGSL overlay now loads in the browser **and shows the Rive watermark** (free plan).
-- **Next:** move the `/lab` S1 into the boot phase (camera + mic), then the apps S2–S8.
+- **Working today at `/`:** premise → **S1 boot** (English recovery log, camera + microphone asked in one prompt as "operator verification", calibration, Rive eye) → **desktop with all apps filled** (Mail, Photos, Messages, Notes, History, Phone, Trash, backup_you, Camera). Story content lives in `lib/story/content.ts`.
+- **Progression works end to end:** holding the lens on the figure in IMG_0418 → stage 2 (REC, Camera opens by itself, `backup_you`, IMG_0419, E.V.'s voicemail, live searches) → code = entry time `HHMM` (or Victory gesture with camera) → stage 3. The anonymous sender nudges ("Start with the mail", "…check her notes" after 2 wrong codes, one idle nudge per stage).
+- **WGSL:** IMG_0418 is drawn entirely by a WGSL shader in Rive (`rive/photo`), with a lens that sharpens and magnifies under the cursor. The overlay shader (`rive/effects`) now really renders on the web: it needed `enableGPUCanvas: true` (before, only the watermark showed).
+- **Next:** S8 session log, S9 reveal, S10 login; the Sign; real photos/audio.
 
 ## How to run
 
@@ -31,7 +32,7 @@ Other scripts:
 | Script | Does |
 |---|---|
 | `pnpm rive:build` | compiles `rive/presence` → `public/rive/presence.riv` (no scripts, unsigned is fine, works in the cloud container) |
-| `pnpm rive:publish` | signs `rive/effects` → `public/rive/effects.riv` (**Mac only**, needs `rive login`; commit the output) |
+| `pnpm rive:publish` | signs `rive/effects` and `rive/photo` → `public/rive/*.riv` (**Mac only**, needs `rive login`; commit the output; the CLI sometimes segfaults while signing: rerun) |
 | `pnpm lint` / `pnpm build` | both clean at the last commit |
 
 ## Architecture
@@ -57,9 +58,15 @@ Boot.tsx (S1) ─▶ PresenceEye.tsx ─▶ Rive view model "Presence" (headX, h
 | `rive/effects/` | Rive CLI project: `overlay_fx.wgsl` + `fx.luau` (ScriptedLayout → GPUCanvas → drawImage). `shaderOutputs: [glsl, wgsl]` |
 | `scripts/sync-assets.mjs` | copies MediaPipe/Rive wasm and IIFE bundle into `public/`, downloads models (gitignored) |
 | `.claude/hooks/session-setup.sh` | cloud SessionStart: genjutsu skill, Rive CLI + EGL libs, `pnpm install` |
-| `lib/story/store.tsx` | `StoryProvider` + `useStory()`: reducer with `phase`, `stage`, `windows` (open order kept for S9), `clues` (ms since start), `openedAt`. Dev shortcuts |
-| `components/desktop/Experience.tsx` | phase switch (premise, boot placeholder, desktop, reveal/login placeholders) + small-screen diegetic block |
-| `components/desktop/Desktop.tsx` | menubar (E.V., real clock, REC ≥ stage 2), icons, windows, Camera auto-open on entering stage 2, `STAGE_FX` levels → FxOverlay |
+| `lib/story/store.tsx` | `StoryProvider` + `useStory()`: reducer with `phase`, `stage`, `windows` (open order kept for S9), `clues` (ms since start), `openedAt`, `session` (camera/mic answer + time), `notices`, `wrongCodes`. Dev shortcuts |
+| `lib/story/content.ts` | **all story text**: mails, photos, chats, notes, searches, calls/voicemails, trash, backup readme. Tokens `{{entry}}`, `{{now}}`, `{{today}}` are filled with the user's session data |
+| `lib/story/time.ts` | `clock`, `entryCode` (backup password), `duration`, `daysAgo`, `today` |
+| `lib/presence/context.tsx` | `PresenceProvider`: one `PresenceTracker` for the whole experience, hidden `<video>`, `usePresenceEvent`, `useLookingAway` |
+| `components/desktop/Experience.tsx` | phase switch (premise, S1 boot, desktop, reveal/login placeholders) + small-screen diegetic block |
+| `components/desktop/Boot.tsx` | S1: recovery log (typewriter), camera + mic request, calibration, Rive eye; timer-based hand-off to the desktop |
+| `components/desktop/Desktop.tsx` | menubar (E.V., **Recovery** menu with the session log = where the entry time can be read again, clock, REC), icons, windows, `useDirector` (clues → stages, anonymous nudges), Notices, FxOverlay |
+| `components/desktop/views/*` | one file per app. `PhotoLens.tsx` drives `photo.riv` (lens, figure swap while `lookingAway`, silhouette per stage, "found" after 700 ms on the figure) |
+| `rive/photo/` | IMG_0418: `photo_lens.wgsl` draws the whole night photo + the lens; `lens.luau` feeds uniforms from the `Photo` view model |
 | `components/desktop/Window.tsx` | glass window: GSAP open from icon, fade close, drag by title bar, focus/z-order |
 | `components/desktop/apps.tsx` | app registry (title, glyph, size, `iconFrom` stage, placeholder body) |
 | `prototype/design-mockup.html` | static visual mockup of the desktop in the 3 stages (reference only) |
@@ -79,7 +86,10 @@ Key decisions and why:
 | Worker pipeline loads and runs (Playwright + fake camera) | ✅ |
 | Real face + gestures on the owner's Mac (Chrome) | ✅ head direction correct, blink OK, look-away OK, gestures OK (open palm weakest) |
 | Head sensitivity after retune (18°/12°) and faster lag (0.3 s) | ✅ owner confirmed "funziona" |
-| WGSL overlay in a browser | ✅ loads and renders; shows the **Rive free-plan watermark** |
+| WGSL overlay in a browser | ✅ renders (grain, vignette, glitch tears) since `enableGPUCanvas: true`; **Rive free-plan watermark** on top |
+| WGSL photo + lens (IMG_0418) in a browser | ✅ in-app browser (Chrome): lens, found → stage 2 |
+| S1 boot inside `/` | ✅ refusal path (camera blocked in the in-app browser). ❌ **grant path with a real camera + mic not tested yet** |
+| Apps S2–S7, stages 1→2→3, nudges, wrong codes, entry-time password | ✅ in-app browser |
 | Desktop skeleton: open/drag/close/focus windows, stage 1→2→3, Camera opens once | ✅ in-app browser (Chrome) |
 | Safari / Firefox, low-end hardware | ❌ untested |
 | Vercel deploy | ❌ not done |
@@ -91,9 +101,9 @@ Key decisions and why:
 
 ## Next steps (recommended order)
 
-1. Move the `/lab` S1 (eye, camera **+ microphone** request, calibration) into the `boot` phase, in English. Share one `PresenceTracker` across the whole experience.
-2. Apps S2–S8 with real content (see `docs/desktop.md` for volumes: few key items + skimmable noise), incl. Phone (voicemail + unreliable transcript), backup password = entry `HHMM`, anonymous-sender nudges, the Sign.
-3. Scenes S2–S10 per `docs/scenes.md`. Add shaders `lens` (S3), `corruption` (S9), `mirror_dither` (S9, webcam feed stays local).
+1. Owner: test S1 on the Mac with the real camera + mic (one prompt for both), then the whole path to stage 3. Read the content in `lib/story/content.ts` and change the tone where it is off.
+2. S8 session log (Rive `session_log`, real `sessionSeconds`, "no need to cover yourself"), S9 reveal (`corruption` + `mirror_dither` shaders, windows closing in reverse, ~1 s of ambient audio), S10 login + case list + CRT switch-off.
+3. The Sign (design + "moves only when you are not looking"). Photos: AI images for the 15 placeholder tiles (IMG_0418 stays the shader). Audio: TTS for voice memos/voicemails (the Phone app shows a text description of the audio until then).
 4. Gesture polish: per-gesture thresholds (Open_Palm lower), S7 gesture unlock, S8 "non serve coprirti".
 5. Deploy to Vercel (HTTPS needed for camera). Run `pnpm install` in the build so the models are fetched.
 6. Playtest, `prefers-reduced-motion` pass, perf on low-end hardware.
@@ -102,6 +112,8 @@ Key decisions and why:
 
 - The in-app/automation browser pauses `requestAnimationFrame` when the pane is hidden, so GSAP animations (and window close, which completes on animation end) seem stuck. Not a bug: test with the page visible.
 - `docs/scenes.md` S10 is superseded by `docs/desktop.md` (case list + CRT switch-off).
+- **Rive web + WGSL:** `enableGPUCanvas: true` is required; script 2D canvases (`context:canvas()`) do not work on the web; some WGSL compiles in the CLI but draws black on WebGL2 (`half` is reserved, `u32` colour decoding). See `docs/tech-setup.md` §2.
+- In the in-app browser the page is often "hidden": Rive and GSAP draw only when the pane renders frames, so screenshots can look black or stuck. Move the mouse over the canvas / take a second screenshot.
 
 - Dev-only Next overlays from **browser extensions** (`bis_skin_checked` hydration warning, `M_ID` TypeError from `chrome-extension://…`) are not our code. Ignore them, or use incognito.
 - A pnpm error mentioning unrelated packages (alchemy/prisma…) means pnpm is reading another project, or pnpm 11 is in use. See `docs/tech-setup.md` §7.
