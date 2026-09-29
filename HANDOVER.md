@@ -153,7 +153,7 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 3. **Read the copy** in `lib/story/content.ts` (mails, chats, notes, invitation, manual) and mark what's off in tone.
 4. **Rive plan:** the free-plan watermark shows on every Rive canvas. Removing it needs Cadet or higher (paid) plus `rive push` for `rive/photo`.
 
-## Next steps (recommended order)
+## Next step: screens, interactions, animations
 
 1. **Webcam + headphones playtest** (owner), whole run, and tuning from it: scan scale (`face.ts`, `face_cloud.wgsl`), S9 figure range and beat timings (`window_across.wgsl`, `Reveal.tsx`), speech voices and volumes (`voices.ts`), searchlight flare strength (`overlay_fx.wgsl`, `FLASH_STROKES`).
 2. **Ship**: Vercel (HTTPS for the camera; the build must run `pnpm install` so the models are fetched), then playtest on the deployed URL, `prefers-reduced-motion` pass, Safari/Firefox (speech voices differ), low-end hardware.
@@ -168,6 +168,8 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 - `docs/scenes.md` S10 is superseded by `docs/desktop.md` (case list + CRT switch-off).
 - A pnpm error mentioning unrelated packages (alchemy/prisma…) means pnpm is reading another project, or pnpm 11 is in use. See `docs/tech-setup.md` §7.
 - `rive login` cannot complete inside cloud containers (localhost OAuth redirect).
+- After any Rive build on the Mac, `scene.rml` may change (the CLI writes ids back). Commit it along with the `.riv`.
+- If a push is rejected on the Mac: `git stash && git pull --rebase && git push && git stash pop`.
 - `next dev` rewrites the `AGENTS.md` Next block. Commit it as is.
 - `prototype/design-mockup.html` is the old static mockup (placeholder content), reference only.
 
