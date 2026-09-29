@@ -10,9 +10,9 @@
         </LayoutComponent>
         <StateMachine name="Overlay" id="0:7">
             <StateMachineLayer name="Layer 1" id="0:8">
-                <AnyState x="200" y="-120"/>
-                <ExitState x="400" y="-120"/>
-                <EntryState/>
+                <AnyState x="200" y="-120" id="0:82"/>
+                <ExitState x="400" y="-120" id="0:83"/>
+                <EntryState id="0:84"/>
             </StateMachineLayer>
         </StateMachine>
     </Artboard>
@@ -23,17 +23,17 @@
         <ViewModelPropertyNumber name="glitch" id="0:54"/>
         <ViewModelPropertyNumber name="neon" id="0:55"/>
         <ViewModelInstance exports="true" name="Stage1" id="0:51">
-            <ViewModelInstanceNumber propertyValue="0.25" viewModelPropertyId="0:52"/>
-            <ViewModelInstanceNumber propertyValue="0.35" viewModelPropertyId="0:53"/>
-            <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="0:54"/>
-            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:55"/>
+            <ViewModelInstanceNumber propertyValue="0.25" viewModelPropertyId="0:52" id="0:85"/>
+            <ViewModelInstanceNumber propertyValue="0.35" viewModelPropertyId="0:53" id="0:86"/>
+            <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="0:54" id="0:87"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:55" id="0:88"/>
         </ViewModelInstance>
     </ViewModel>
 
     <ViewModel defaultInstanceId="0:41" name="Overlay" id="0:40">
         <ViewModelPropertyViewModel viewModelReferenceId="0:50" name="fx" id="0:45"/>
         <ViewModelInstance exports="true" name="Instance" id="0:41">
-            <ViewModelInstanceViewModel propertyValue="0:51" viewModelPropertyId="0:45"/>
+            <ViewModelInstanceViewModel propertyValue="0:51" viewModelPropertyId="0:45" id="0:89"/>
         </ViewModelInstance>
     </ViewModel>
 
