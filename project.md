@@ -122,11 +122,11 @@ Aggiornato il 2026-09-29 (sera). Dettagli in `HANDOVER.md`.
 
 **Da fare**
 
-- [ ] Generare le immagini AI e collegarle (foto, wallpaper, polaroid)
+- [x] Generare le immagini AI e collegarle (foto, wallpaper, polaroid); IMG_0418 rifatta su IMG_0413
 - [ ] Test sul Mac con webcam e cuffie del percorso completo (consenso camera, faro, otturatore, palmo, volumi)
 - [ ] Rilettura dei testi da parte della proprietaria (tono)
-- [ ] S8 log di sessione, S9 reveal (shader `corruption` + `mirror_dither`, audio ambientale), S10 login + lista casi + spegnimento CRT
-- [ ] Voci TTS per memo vocali e segreterie
+- [x] S8 log di sessione, S9 reveal (Rive `Across`, audio ambientale), S10 login + lista casi + spegnimento CRT
+- [x] Voci TTS per memo vocali e segreterie (Deepgram Aura-2, `scripts/make-voices.mjs`)
 - [ ] Decidere il piano Rive (watermark)
 - [ ] Deploy su Vercel
 - [ ] Playtest e tuning del ritmo/degli indizi, Safari/Firefox, `prefers-reduced-motion`
