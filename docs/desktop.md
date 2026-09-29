@@ -33,3 +33,13 @@ Agreed with the owner on 2026-09-29 (Q&A session). Scene specs stay in `docs/sce
 - **Rule:** it moves **only when you are not looking** (`lookingAway`; without the camera: mouse far away or `document.hidden`), and each reappearance comes with a glitch flash. It moves more often as the stage rises. This keeps it inside the interaction thesis: it reacts to you and never loops for decoration.
 - **Where:** desktop/wallpaper, inside the apps (a photo, a mail, a reflection), and the final login (S10).
 - **Not clickable:** it vanishes when the cursor gets near.
+
+## Content & puzzle decisions
+
+| Topic | Decision |
+|---|---|
+| Volume | "Rich" desktop (~10 mails, 15 photos, 3 chats, 8 notes, 25 searches, Trash files), but **mixed**: a few key items truly worth reading or **listening to** (voice memos / audio), and the rest is unrelated everyday noise, skimmable by title or preview. The noise must still feed the core theme: a perfect life that slowly feels observed, anxiety and dread, never filler for its own sake |
+| Photos | AI-generated + retouched, so hidden details (blurred figure, the Sign) are fully controlled |
+| Backup password | **The local time the user opened the site**, `HHMM` (e.g. `2114`) |
+| Password clue | Cryptic note by E.V. ("the password is when they came in"). Entry time is visible in boot log / menubar history. A nudge follows 2 wrong tries |
+| Nudges | Sent by the **anonymous sender** as mono notifications ("…check her notes."). They look like help, but they are guidance, which foreshadows The Game |
