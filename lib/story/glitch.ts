@@ -3,7 +3,9 @@
 
 export const GLITCH_EVENT = "recovery:glitch";
 
-/** strength 0..1 */
-export function glitchNow(strength = 0.8) {
-  window.dispatchEvent(new CustomEvent<number>(GLITCH_EVENT, { detail: strength }));
+export type GlitchRequest = { strength: number; sound: boolean };
+
+/** strength 0..1; `sound: false` for frequent, small moments (the Sign moving). */
+export function glitchNow(strength = 0.8, { sound = true }: { sound?: boolean } = {}) {
+  window.dispatchEvent(new CustomEvent<GlitchRequest>(GLITCH_EVENT, { detail: { strength, sound } }));
 }

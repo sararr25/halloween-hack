@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import FxOverlay, { type FxLevels } from "@/components/FxOverlay";
-import { drone, glitch, unlockAudio } from "@/lib/audio/sfx";
-import { GLITCH_EVENT } from "@/lib/story/glitch";
+import { drone, glitchSound, unlockAudio } from "@/lib/audio/sfx";
+import { GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
 import { PresenceProvider } from "@/lib/presence/context";
 import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
@@ -18,8 +18,11 @@ const STAGE_FX: Record<Stage, Omit<FxLevels, "pulse">> = {
   3: { grain: 0.7, vignette: 0.75, glitch: 0.9, neon: 1 },
 };
 
-// Seconds between glitches [min, max] and room-tone level, per stage.
+// Seconds between visual glitches [min, max], per stage.
 const CADENCE: Record<Stage, [number, number]> = { 1: [6, 11], 2: [2.5, 5], 3: [0.8, 2] };
+// Glitch sounds are much rarer than the visual ones: the user has to be able to read.
+const SOUND_CADENCE: Record<Stage, [number, number]> = { 1: [30, 50], 2: [18, 30], 3: [10, 16] };
+const between = ([a, b]: [number, number]) => (a + Math.random() * (b - a)) * 1000;
 const DRONE: Record<Stage, number> = { 1: 0.5, 2: 0.8, 3: 1 };
 const DOM_GLITCH_MS = 140;
 
@@ -38,24 +41,29 @@ function Overlay() {
   // One glitch = shader tear + DOM RGB split + sound, at the same moment.
   useEffect(() => {
     if (!live) return;
-    const fire = (strength: number) => {
+    const fire = (strength: number, sound: boolean) => {
       setPulse((p) => p + 1);
-      glitch(strength);
+      if (sound) glitchSound(strength);
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       document.body.classList.add("glitching");
       setTimeout(() => document.body.classList.remove("glitching"), DOM_GLITCH_MS);
     };
     let timer: ReturnType<typeof setTimeout>;
+    let soundDue = Date.now() + between(SOUND_CADENCE[stage]);
     const next = () => {
-      const [a, b] = CADENCE[stage];
       timer = setTimeout(() => {
-        fire(STAGE_FX[stage].glitch);
+        const sound = Date.now() >= soundDue;
+        if (sound) soundDue = Date.now() + between(SOUND_CADENCE[stage]);
+        fire(STAGE_FX[stage].glitch, sound);
         next();
-      }, (a + Math.random() * (b - a)) * 1000);
+      }, between(CADENCE[stage]));
     };
     next();
     // story moments ask for a glitch now (see lib/story/glitch.ts)
-    const onDemand = (e: Event) => fire((e as CustomEvent<number>).detail);
+    const onDemand = (e: Event) => {
+      const { strength, sound } = (e as CustomEvent<GlitchRequest>).detail;
+      fire(strength, sound);
+    };
     window.addEventListener(GLITCH_EVENT, onDemand);
     return () => {
       clearTimeout(timer);

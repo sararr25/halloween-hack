@@ -51,7 +51,7 @@ export function TheSign() {
       setSpot((i) => (i + 1 + Math.floor(Math.random() * (SIGN_SPOTS.length - 1))) % SIGN_SPOTS.length);
     } else if (!s.lookingAway && moved.current) {
       moved.current = false;
-      glitchNow(0.6);
+      glitchNow(0.6, { sound: false });
     }
   });
 

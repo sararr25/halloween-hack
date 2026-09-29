@@ -132,6 +132,82 @@ export function glitch(strength = 0.5) {
   noiseBurst(e, now, dur, rand(900, 5000), 0.7, 0.05 + 0.08 * strength, rand(-0.5, 0.5));
 }
 
+/** Static swell: filtered noise that breathes in and out over ~1.4 s, like a bad signal. */
+export function staticSwell(strength = 0.5) {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const dur = 1.4;
+  const src = e.ctx.createBufferSource();
+  src.buffer = e.noise;
+  src.loop = true;
+  const bp = e.ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.Q.value = 2.5;
+  bp.frequency.setValueAtTime(600, now);
+  bp.frequency.exponentialRampToValueAtTime(2600, now + dur * 0.6);
+  bp.frequency.exponentialRampToValueAtTime(900, now + dur);
+  const g = e.ctx.createGain();
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.04 + 0.05 * strength, now + dur * 0.5);
+  g.gain.linearRampToValueAtTime(0, now + dur);
+  src.connect(bp).connect(g).connect(e.master);
+  src.start(now);
+  src.stop(now + dur + 0.05);
+}
+
+/** Warped tape: a low tone whose pitch sags and wobbles, as if the recording slowed down. */
+export function tapeWarble(strength = 0.5) {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const dur = 1.1;
+  const o = e.ctx.createOscillator();
+  o.type = "triangle";
+  o.frequency.setValueAtTime(rand(260, 340), now);
+  o.frequency.exponentialRampToValueAtTime(rand(90, 130), now + dur);
+  const wobble = e.ctx.createOscillator();
+  wobble.frequency.value = 7;
+  const depth = e.ctx.createGain();
+  depth.gain.value = 12;
+  wobble.connect(depth).connect(o.frequency);
+  const g = e.ctx.createGain();
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.035 + 0.04 * strength, now + 0.08);
+  g.gain.linearRampToValueAtTime(0, now + dur);
+  o.connect(g).connect(e.master);
+  o.start(now);
+  wobble.start(now);
+  o.stop(now + dur + 0.05);
+  wobble.stop(now + dur + 0.05);
+}
+
+/** Sub thud: felt more than heard, like something heavy in the next room. */
+export function subThud(strength = 0.5) {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  const o = e.ctx.createOscillator();
+  o.frequency.setValueAtTime(70, now);
+  o.frequency.exponentialRampToValueAtTime(34, now + 0.5);
+  const g = e.ctx.createGain();
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.12 + 0.1 * strength, now + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+  o.connect(g).connect(e.master);
+  o.start(now);
+  o.stop(now + 0.75);
+}
+
+const GLITCH_SOUNDS = [glitch, staticSwell, tapeWarble, subThud];
+let nextGlitchSound = 0;
+
+/** The four glitch sounds in turn, so the ear never gets the same one twice in a row. */
+export function glitchSound(strength = 0.5) {
+  GLITCH_SOUNDS[nextGlitchSound](strength);
+  nextGlitchSound = (nextGlitchSound + 1) % GLITCH_SOUNDS.length;
+}
+
 /** Soft notification: two low sine tones, never a chime. */
 export function blip() {
   const e = engine;
