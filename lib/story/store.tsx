@@ -20,6 +20,16 @@ export type StoryState = {
   clues: Record<string, number>;
   /** Epoch ms of the first load of this session (the backup password is its HHMM). */
   openedAt: number;
+  session: Session;
+};
+
+/** Facts about the user, gathered in S1 and reused by the story (S8/S9). */
+export type Session = {
+  /** "granted" | "denied" once the S1 verification ran; null before. */
+  camera: "granted" | "denied" | null;
+  mic: "granted" | "denied" | null;
+  /** Epoch ms of the S1 verification answer. */
+  verifiedAt: number | null;
 };
 
 type Action =
@@ -29,7 +39,8 @@ type Action =
   | { type: "close"; id: AppId }
   | { type: "focus"; id: AppId }
   | { type: "move"; id: AppId; x: number; y: number }
-  | { type: "clue"; id: string };
+  | { type: "clue"; id: string }
+  | { type: "session"; session: Partial<Session> };
 
 function reducer(s: StoryState, a: Action): StoryState {
   switch (a.type) {
@@ -54,6 +65,8 @@ function reducer(s: StoryState, a: Action): StoryState {
     case "clue":
       if (a.id in s.clues) return s;
       return { ...s, clues: { ...s.clues, [a.id]: Date.now() - s.openedAt } };
+    case "session":
+      return { ...s, session: { ...s.session, ...a.session } };
   }
 }
 
@@ -76,6 +89,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     topZ: 10,
     clues: {},
     openedAt: Date.now(),
+    session: { camera: null, mic: null, verifiedAt: null },
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/D/R/L jumps phase.

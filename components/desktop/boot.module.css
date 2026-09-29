@@ -1,0 +1,63 @@
+/* S1 · Boot — recovery log + the Rive eye */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.eye {
+  width: min(58vmin, 520px);
+  aspect-ratio: 1;
+  opacity: 0.1;
+  filter: blur(6px);
+}
+
+.panel {
+  position: absolute;
+  left: 50%;
+  bottom: 9vh;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  display: grid;
+  gap: 22px;
+  justify-items: start;
+}
+
+.log {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+/* the line being written is the only one in body colour */
+.log li { white-space: nowrap; }
+.log li:last-child { color: var(--text); }
+
+.cta {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 22px;
+  border: 1px solid var(--muted);
+  border-radius: 999px;
+  transition: border-color 120ms, color 120ms;
+}
+.cta:hover { border-color: var(--accent); color: var(--accent); }
+
+.bar {
+  width: 180px;
+  height: 1px;
+  background: linear-gradient(to right, var(--text) 0 0) no-repeat left / 0% 100%, rgba(216, 220, 229, 0.12);
+  animation: fill 2s linear forwards;
+}
+@keyframes fill {
+  to { background-size: 100% 100%, auto; }
+}

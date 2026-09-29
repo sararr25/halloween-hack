@@ -114,16 +114,32 @@ export class PresenceTracker {
     };
   }
 
-  /** Must be called from a user gesture. Resolves false if the camera is refused or unsupported. */
-  async startCamera(video: HTMLVideoElement): Promise<boolean> {
+  /** True when the microphone was granted together with the camera (its track is stopped at once). */
+  micGranted = false;
+
+  /**
+   * Must be called from a user gesture. Resolves false if the camera is refused or unsupported.
+   * With `withMic`, camera and microphone are asked in one prompt; the audio track is stopped
+   * right away, only the permission is kept for S9. If the combined request fails, the camera
+   * alone is tried (e.g. no microphone on the device).
+   */
+  async startCamera(video: HTMLVideoElement, { withMic = false }: { withMic?: boolean } = {}): Promise<boolean> {
+    const videoConstraints = { width: 640, height: 480, facingMode: "user" };
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: "user" },
-        audio: false,
-      });
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: withMic });
+      this.micGranted = withMic;
     } catch {
-      return false;
+      if (!withMic) return false;
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+      } catch {
+        return false;
+      }
     }
+    this.stream.getAudioTracks().forEach((t) => {
+      t.stop();
+      this.stream?.removeTrack(t);
+    });
     video.srcObject = this.stream;
     video.muted = true;
     video.playsInline = true;

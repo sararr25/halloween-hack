@@ -1,6 +1,8 @@
 "use client";
 
+import { PresenceProvider } from "@/lib/presence/context";
 import { StoryProvider, useStory } from "@/lib/story/store";
+import Boot from "./Boot";
 import Desktop from "./Desktop";
 import styles from "./desktop.module.css";
 
@@ -19,15 +21,7 @@ function Phases() {
         </div>
       );
     case "boot":
-      // Placeholder: the /lab S1 (camera + mic verification) moves here next.
-      return (
-        <div className={styles.screen}>
-          <p className={styles.mono}>data recovery · session pending</p>
-          <button className={styles.cta} onClick={() => dispatch({ type: "phase", phase: "desktop" })}>
-            Start recovery
-          </button>
-        </div>
-      );
+      return <Boot />;
     case "desktop":
       return <Desktop />;
     case "reveal":
@@ -48,7 +42,9 @@ function Phases() {
 export default function Experience() {
   return (
     <StoryProvider>
-      <Phases />
+      <PresenceProvider>
+        <Phases />
+      </PresenceProvider>
       <div className={styles.small} role="alert">
         <p className={styles.mono}>This device cannot run the recovery. Use a desktop.</p>
       </div>
