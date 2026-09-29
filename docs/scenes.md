@@ -32,7 +32,7 @@ Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e r
 | Tracking testa, battito, sguardo altrove | ✅ provato sul Mac | `lib/presence/tracker.ts`, `public/presence-worker.js` |
 | Gesture + risposta (battito dell'occhio + riga di stato) | ✅ provato sul Mac (la mano aperta è la più fragile) | `app/lab/Boot.tsx` (`GESTURE_LINES`, testi segnaposto) |
 | S1 minimale: richiesta camera diegetica, calibrazione 2 s, rifiuto salvato | ✅ | `app/lab/Boot.tsx` |
-| Overlay WGSL (grain, vignette, scanline, strappi glitch) | ⏳ compilato e visto negli screenshot della CLI; da firmare sul Mac | `rive/effects/`, `components/FxOverlay.tsx` |
+| Overlay WGSL (grain, vignette, scanline, strappi glitch) | ✅ firmato e visto nel browser sul Mac; livelli fissi a stage 1 | `rive/effects/`, `components/FxOverlay.tsx`, `public/rive/effects.riv` |
 | Shader `lens`, `corruption`, `mirror_dither` | ⬜ da fare | — |
 | S2–S10, desktop OS, finestre GSAP | ⬜ da fare | — |
 

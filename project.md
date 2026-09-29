@@ -106,10 +106,10 @@ Tre agganci reali, tutti banali in JS vanilla, zero backend:
 - [x] Rete aperta per `*.rive.app`, Rive CLI installata (container + Mac)
 - [x] Setup tecnico: Next.js 16 + TS + pnpm, Rive, MediaPipe in Web Worker, GSAP
 - [x] S1 minimale in `/lab`: occhio Rive che segue la testa, battito, sguardo altrove, gesture con risposta. Provata sul Mac
-- [ ] Firmare gli shader (`rive login` + `pnpm rive:publish` sul Mac) e vedere l'overlay WGSL nel browser
+- [x] Shader firmati sul Mac (`rive push` + `pnpm rive:publish`), overlay WGSL visibile nel browser (2026-09-29)
 - [ ] Tono e voce dei testi (quanto letterario vs secco/clinico); le risposte alle gesture sono segnaposto
 - [ ] Lista precisa degli asset da produrre (quante foto, mail, note, messaggi chat)
-- [ ] Desktop OS vero: finestre trascinabili, app (Mail, Foto, Chat, Note, Cronologia, Backup)
+- [ ] **Prossimo step:** shell del desktop OS (finestre, icone, store di stage e dati di sessione), poi le schermate S1→S10 con interazioni e animazioni (piano in `HANDOVER.md`)
 - [ ] Build delle 10 schermate
 - [ ] Deploy su Vercel
 - [ ] Playtest e tuning del ritmo/degli indizi

@@ -8,8 +8,8 @@ Read in this order: this file → `project.md` (concept, twist, scene outline) �
 
 - Hackathon: Contra × Rive Halloween challenge, solo, 18 days. Psychological thriller on a fake desktop OS; twist = "you are the one being watched", built from real session data.
 - **Working today:** `/lab`, a minimal S1. A Rive eye follows your head via the webcam, blinks when you blink, contracts when you look away, and answers hand gestures. The owner tested it on a Mac and it works.
-- **Built but not yet seen in a browser:** the Rive WGSL overlay (grain, vignette, glitch). It carries Luau scripts, so it must be signed on the Mac (`rive login` + `pnpm rive:publish`).
-- **Next:** sign the shaders, then build the desktop OS shell and scenes S2–S10.
+- **Also working:** the Rive WGSL overlay (grain, vignette, glitch). It was signed on the Mac (`rive push` bound it to file 2618191 in project 2005592) and shows in the browser.
+- **Next step:** build the screens, interactions and animations. Start with the desktop OS shell, then S1→S10 (plan below).
 
 ## How to run
 
@@ -48,7 +48,7 @@ Boot.tsx (S1) ─▶ PresenceEye.tsx ─▶ Rive view model "Presence" (headX, h
 | `lib/presence/tracker.ts` | `PresenceTracker`: public API `startMouse()`, `startCamera(video)`, `calibrate()`, `stop()`, events `onChange/onBlink/onGesture`. All tuning constants at the top |
 | `public/presence-worker.js` | classic worker, `importScripts('/mediapipe/vision_bundle.js')` (IIFE global `Vision`). One frame in flight |
 | `components/PresenceEye.tsx` | loads `/rive/presence.riv` with `@rive-app/webgl2`, writes the view model |
-| `components/FxOverlay.tsx` | mounts `/rive/effects.riv` only if it exists (HEAD check); a 404 in the console until it is signed is expected |
+| `components/FxOverlay.tsx` | mounts the signed `/rive/effects.riv` (HEAD check first); levels are passed in as props |
 | `rive/presence/` | Rive CLI project, the eye: RML only, data binding + state machine (Blink, Attention layers), cubic lag converters |
 | `rive/effects/` | Rive CLI project: `overlay_fx.wgsl` + `fx.luau` (ScriptedLayout → GPUCanvas → drawImage). `shaderOutputs: [glsl, wgsl]` |
 | `scripts/sync-assets.mjs` | copies MediaPipe/Rive wasm and IIFE bundle into `public/`, downloads models (gitignored) |
@@ -70,30 +70,43 @@ Key decisions and why:
 | Worker pipeline loads and runs (Playwright + fake camera) | ✅ |
 | Real face + gestures on the owner's Mac (Chrome) | ✅ head direction correct, blink OK, look-away OK, gestures OK (open palm weakest) |
 | Head sensitivity after retune (18°/12°) and faster lag (0.3 s) | ✅ owner confirmed "funziona" |
-| WGSL overlay in a browser | ❌ not yet: needs signing |
+| WGSL overlay in a browser (signed) | ✅ owner confirmed on Mac |
 | Safari / Firefox, low-end hardware | ❌ untested |
 | Vercel deploy | ❌ not done |
 
 ## Owner actions pending
 
-1. On the Mac: `brew install --cask rive-app/tap/rive-cli`, `rive login`, `rive push rive/effects` (once), `pnpm rive:publish`, then commit `public/rive/effects.riv`.
-2. Tell us the Rive plan: publishing without a watermark needs Cadet or higher.
-3. Decide tone and voice of the copy (replaces the placeholder gesture replies).
+1. Tell us the Rive plan: a watermark appears if the workspace is below Cadet. None reported so far.
+2. Decide the tone and voice of the copy. It replaces the placeholder gesture replies and will be needed for every screen.
+3. Every time `rive/effects` changes: `pnpm rive:publish` on the Mac, then commit `public/rive/effects.riv` **and** any `scene.rml` id write-back.
 
-## Next steps (recommended order)
+## Next step: screens, interactions, animations
 
-1. Sign the overlay and wire `FxOverlay` levels to a global `stage` (1/2/3) using the HANDOVER stage table.
-2. Desktop OS shell: frosted-glass windows (drag, open/close with GSAP Flip), icons, stage state machine, session-data tracker (open time, time to clue, back-navigation, client-side only).
-3. Scenes S2–S10 per `docs/scenes.md`. Add shaders `lens` (S3), `corruption` (S9), `mirror_dither` (S9, webcam feed stays local).
-4. Gesture polish: per-gesture thresholds (Open_Palm lower), S7 gesture unlock, S8 "non serve coprirti".
-5. Deploy to Vercel (HTTPS needed for camera). Run `pnpm install` in the build so the models are fetched.
-6. Playtest, `prefers-reduced-motion` pass, perf on low-end hardware.
+Follow `docs/scenes.md` per scene. Suggested build order, each step demoable on its own:
+
+1. **Experience state** (`lib/experience/`): one store (React context + reducer, or `useSyncExternalStore`) holding `stage` (1–3), `scene` (S1–S10), found clues, and `session` data: open time, time to each clue, back-navigations, camera refused, look-away count. Persist the session part in `localStorage` for the "not your first time" beat. Everything stays client-side.
+2. **Stage → effects:** map `stage` to `FxOverlay` levels (stage table below), tweened with GSAP over 1.2–2 s. Map it to the `Presence` eye behaviour too.
+3. **Desktop shell** (`components/os/`): wallpaper, icon grid, frosted-glass `Window` (drag, focus/z-order, open with GSAP Flip from the icon at 280 ms `cubic-bezier(0.2,0,0,1)`, close at 180 ms opacity), toast system. Port the look from `prototype/design-mockup.html`. Keep hover glow and breathing for affordance (monochrome UI).
+4. **Move S1 out of `/lab`** into the real flow: boot → desktop. Keep `/lab` as the sandbox with the `D` overlay.
+5. **Apps and scenes in story order:** S2 Mail, S3 Photos (needs WGSL `lens` shader), S4 Chat (fake choice, `webcam_widget` Rive), S5 Notes (real date, SplitText typewriter), S6 History (`ghost_cursor` Rive), S7 Backup (password + gesture unlock, `backup_you` neon), S8 session log (data-bound Rive text), S9 reveal (GSAP master timeline + `corruption` and `mirror_dither` shaders, `window_across` Rive), S10 login.
+6. **Rive asset split:** script-free assets (eye, silhouette, cursor, folders) go in their own projects under `rive/`, buildable in the cloud with `pnpm rive:build`-style scripts. Anything with Luau/WGSL goes in `rive/effects` (or a sibling), signed on the Mac.
+7. **Content:** placeholder copy is fine while building, marked `// COPY:` so it is easy to find and replace.
+
+Per screen, done means: works with the camera and with the mouse fallback, respects `prefers-reduced-motion`, neon rule held (≤2 cyan elements), lint/build clean, a screenshot sent to the owner.
+
+## Later
+
+- Gesture polish: per-gesture thresholds (Open_Palm lower).
+- Deploy to Vercel (HTTPS is required for the camera). The build must run `pnpm install` so the models are fetched.
+- Playtest, `prefers-reduced-motion` pass, perf on low-end hardware, Safari/Firefox.
 
 ## Known issues / gotchas
 
 - Dev-only Next overlays from **browser extensions** (`bis_skin_checked` hydration warning, `M_ID` TypeError from `chrome-extension://…`) are not our code. Ignore them, or use incognito.
 - A pnpm error mentioning unrelated packages (alchemy/prisma…) means pnpm is reading another project, or pnpm 11 is in use. See `docs/tech-setup.md` §7.
 - `rive login` cannot complete inside cloud containers (localhost OAuth redirect).
+- After any Rive build on the Mac, `scene.rml` may change (the CLI writes ids back). Commit it along with the `.riv`.
+- If a push is rejected on the Mac: `git stash && git pull --rebase && git push && git stash pop`.
 - `next dev` rewrites the `AGENTS.md` Next block. Commit it as is.
 - The mockup in `prototype/` still has placeholder content (`m.lenhart`, CSS photos).
 
