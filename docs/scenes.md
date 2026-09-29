@@ -32,11 +32,13 @@ Spec scena per scena per le 10 schermate di `project.md` §6. Palette, stage e r
 | Obiettivo di sorveglianza (finestra Camera) | ✅ ghiera che ruota con la testa, diaframma che si chiude se guardi altrove, otturatore sul battito (o sul clic senza camera) | `rive/presence/` (artboard `Lens`), `views/Camera.tsx` |
 | Tracking testa, battito, sguardo altrove, gesture | ✅ provato sul Mac (la mano aperta è la più fragile) | `lib/presence/` |
 | Overlay WGSL (grain, vignette, scanline, strappi glitch sincronizzati, faro) | ✅ visibile nel browser con `enableGPUCanvas: true` | `rive/effects/`, `Experience.tsx` (`Overlay`) |
-| Foto IMG_0418 + lente (S3) | ✅ la foto è disegnata interamente nello shader | `rive/photo/`, `views/PhotoLens.tsx` |
+| Foto IMG_0418 + lente (S3) | ✅ real photo (IMG_0413 view) + cut-out figure drawn in Luau, lens by clip + transform, lit window from WGSL | `rive/photo/`, `views/PhotoLens.tsx`, `scripts/make-photo-plates.py` |
 | S9 shader (`window_across`: building, figure, block corruption) | ✅ (replaces `corruption` + `mirror_dither`, see S9) | `rive/story/window_across.wgsl` |
 | S1 dentro `/` (camera + microfono, silhouette) | ✅ percorso "rifiuto"; percorso "consenso" da riprovare sul Mac | `components/desktop/Boot.tsx` |
 | S2–S7 con contenuti, progressione 1 → 2 → 3 | ✅ | `components/desktop/`, `lib/story/content.ts` |
-| Suono procedurale | ✅ scritto, mix nuovo non ancora ascoltato | `lib/audio/sfx.ts` |
+| Suono procedurale + voci | ✅ written; the owner has not heard the latest mix or the Deepgram voices yet | `lib/audio/sfx.ts`, `lib/audio/voices.ts`, `public/audio/` |
+| Foto AI, sfondo, polaroid | ✅ wired | `public/photos/`, `public/wallpaper/` |
+| Deploy | ✅ https://halloween-hack.vercel.app | Vercel `sararuffini-projects/halloween-hack` |
 | S8–S10 | ✅ mouse path verified; camera + mic path to test on the Mac | `views/Session.tsx`, `Reveal.tsx`, `Login.tsx` |
 
 ### Taratura attuale (in `lib/presence/tracker.ts`)
@@ -122,7 +124,7 @@ L'escalation va dal subliminale all'esplicito:
 - **Shader:** `lens` segue il cursore; con camera attiva si sposta di poco anche con la testa (sporgerti in avanti = zoom? da testare con la scala dei landmark).
 - **Interazione:** zoom su 10 foto. Nella foto chiave, lo sfondo sfocato **cambia posizione quando distogli lo sguardo** (lookingAway → swap di frame in Rive).
 - **Uscita:** zoom sulla figura sfocata → passaggio a **stage 2** (transizione uniform 1.5 s) e compare la cartella `backup_you` (primo neon, respiro Rive 4 s).
-- **Realizzato:** IMG_0418 è interamente nello shader (il runtime web non ha canvas 2D offscreen per gli script). Foto morbida e con grana ovunque, nitida e ingrandita ×2.4 sotto la lente. La figura in strada cambia posto (x 330 ↔ 820) solo mentre guardi altrove; la silhouette nella finestra illuminata cresce con lo stage (0.12 / 0.45 / 0.9). Lente ferma 700 ms sulla figura → stage 2. Le altre 15 foto sono in attesa delle immagini AI (`docs/image-prompts.md`). Il respiro di `backup_you` è CSS, non Rive.
+- **Built (updated 2026-09-29):** IMG_0418 is the owner's IMG_0413 (Harrow St at night) rebuilt in Rive: the photo without the woman by the lamp post (`plate_soft/sharp.jpg`) and the woman as a cut-out (`figure_soft/sharp.png`), drawn by `rive/photo/lens.luau`. Soft everywhere, sharp and magnified ×1.8 under the lens (the sharp photo redrawn inside a circular clip). She stands by the lamp or 259 px to the left and moves only while you look away. The window above her is lit from inside by `photo_lens.wgsl`, someone behind the curtain, stronger each stage (0.12 / 0.45 / 0.9). Lens held ~700 ms on her → stage 2. All 16 photos are the AI images in `public/photos/`. The breathing of `backup_you` is CSS, not Rive.
 
 ### S4 · Chat · stage 2 · scelta finta
 - **GSAP:** bolle in entrata con typing indicator. La scelta "chat con Marco / con l'amica" porta alla stessa informazione chiave.

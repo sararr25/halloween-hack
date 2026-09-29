@@ -49,7 +49,7 @@ Agreed with the owner on 2026-09-29 (Q&A session). Scene specs stay in `docs/sce
 | Topic | Decision |
 |---|---|
 | Listening content | E.V.'s voice memos (Notes attachments or a Voice Memos app), voice messages in Messages chats, voicemail from someone who never introduces themselves, and a recording in the S9 reveal |
-| Voices | Quality AI TTS (e.g. ElevenLabs free tier). **Check the licence and credits before use** |
+| Voices | **Deepgram Aura-2** (owner's key in the git-ignored `.env.local`), generated once by `scripts/make-voices.mjs` into `public/audio/`. E.V. `pandora`, Mara `theia`, the unknown caller `draco`. Aura-2 has no emotion control: the feeling is in the writing and the speed. Phone line, static and room sounds are added live (`lib/audio/voices.ts`). No screams (no jumpscares) |
 | Microphone | **Yes, in S9**: the reveal plays back ~1 s of the user's own ambient audio, processed locally and never stored or sent. The permission must be asked **in S1 together with the camera** (diegetic "operator verification"), because a browser prompt in the middle of the reveal would break it. If the user refuses, S9 falls back to a reconstructed recording |
 | Premise text | Cold and short: "E.V. has been missing for 7 days. You have access now. Look carefully." |
 
@@ -105,7 +105,7 @@ Everything invented; references in `project.md` §2.
 | Polaroid | E.V.'s handwriting; opens Photos; at stage 3 the caption becomes "it was never the window" | Memento |
 | Calendar widget | her plans, plus events nobody created ("23:02 leave the light on", then "HH:MM operator") | The Game |
 | Searchlight | a cold beam from above whose spot follows your head | Rear Window, surveillance |
-| Wallpaper | placeholder (window frames + bokeh) until the AI photo exists | the "perfect life" |
+| Wallpaper | E.V. at her window at night (`ev-home.jpg`); at stage 3 it changes to `ev-home-3.jpg` (a lit window across, someone in it) the first time you look away, or after 25 s | the "perfect life", then Rear Window |
 
 ## Mail and Messages as built
 

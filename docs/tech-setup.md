@@ -110,6 +110,12 @@ Regole: richiede HTTPS (Vercel ok, `localhost` ok). I frame non lasciano mai il 
 
 Nessuna dipendenza e nessun file: `lib/audio/sfx.ts` genera tutto con la Web Audio API (rumore filtrato, oscillatori, un compressore sul master). Il browser tiene l'audio bloccato fino a un gesto dell'utente: lo sblocca il clic su "Open" (`unlockAudio()`). Saltando le fasi con `Alt+D` l'audio resta bloccato. Il mute è salvato in `localStorage` (`recovery.muted`). Il browser integrato di Claude non ha audio: i suoni vanno provati su un browser vero.
 
+**Voices (Deepgram).** The spoken parts are mp3 files in `public/audio/`, made once with Deepgram Aura-2 TTS by `node scripts/make-voices.mjs` (reads `DEEPGRAM_API_KEY` from `.env.local`, which is git-ignored and also listed in `.vercelignore`; the key never ships). Existing files are skipped; `node scripts/make-voices.mjs <clip-id>` redoes one. Price: $0.030 per 1,000 characters (the whole set is about 650 characters). `lib/audio/voices.ts` plays them through a phone-line filter with procedural static, breathing and street sounds.
+
+## 3c. Deploy (Vercel)
+
+Project `sararuffini-projects/halloween-hack`, connected to GitHub. A push to `claude/epic-hopper-x8tj3e` (the repo's default branch) deploys production to https://halloween-hack.vercel.app; other branches get previews. No environment variables are needed on Vercel. The build runs `pnpm install`, whose postinstall downloads the MediaPipe models. `vercel link` writes a `VERCEL_OIDC_TOKEN` line into `.env.local`: harmless, git-ignored.
+
 ## 4. GSAP
 
 ```bash

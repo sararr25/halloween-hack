@@ -141,17 +141,22 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 | | Status |
 |---|---|
 | Real face + gestures on the owner's Mac (Chrome), `/lab` | ✅ |
-| S1 boot with real camera + mic on the owner's Mac | ✅ ran; the teardown crash it caused is fixed (`c101230`). ⚠️ not re-tested after the silhouette boot |
+| S1 boot with real camera + mic on the owner's Mac | ✅ ran; the teardown crash it caused is fixed (`c101230`). ⚠️ not re-tested since the point-cloud scan |
 | Refusal path, whole flow to stage 3 (in-app browser, camera blocked) | ✅ |
 | WGSL overlay (grain, tears, searchlight following the mouse) in a browser | ✅ |
-| WGSL photo + lens, found → stage 2 | ✅ |
+| IMG_0418 (real photo, cut-out figure, lens), found → stage 2 | ✅ CLI renders + in-app browser (WebGL2) |
+| Whole story, mouse path, premise → login, re-run 2026-09-29 | ✅ in-app browser, no console errors, lines built from the session |
+| Stage 3 blackout answer (mouse: leave and come back) | ✅ in-app browser; palm version needs the webcam |
+| AI photos, wallpaper swap at stage 3, voice files served and decoded | ✅ in-app browser |
 | Rive Lens in the Camera window (follow, narrow on look-away) | ✅ CLI renders + in-app browser |
 | S1 scan, reconstructed path (Rive point cloud on WebGL2) | ✅ `/lab/scan` + boot in the in-app browser |
 | S1 scan with a real face mesh, S8 live scan with camera | ❌ needs the owner's webcam |
 | S8 log, reverse window close, S9 scene, S10 case list, CRT, returning line | ✅ in-app browser (mouse path) |
 | S9 figure on a real head, room recording playback | ❌ needs webcam + microphone |
 | Lens shutter on a real blink, searchlight on a real head, palm answer | ❌ needs the owner's webcam |
-| Sound (keystrokes, glitch rotation, shutter, drone) | ⚠️ the owner heard an earlier version (too much glitch, fixed); the new mix is unheard |
+| Sound (keystrokes, glitch rotation, shutter, drone, scan, flare, tube) and Deepgram voices | ⚠️ unheard: the in-app browser has no audio. The owner heard only an early mix |
+| Searchlight flare, full screen on Open | ⚠️ written, not seen in a real browser (in-app pane throttles frames and blocks full screen) |
+| Rive free-plan mark hidden (overlay fade-in, prewarmed photo and reveal) | ⚠️ timing guessed (4 s); check on a real load |
 | Mail and Messages redesign | ✅ in-app browser |
 | Safari / Firefox, low-end hardware | ❌ untested |
 | Vercel deploy | ✅ https://halloween-hack.vercel.app (page, models, audio, Rive files served; `.env.local` absent) |
@@ -161,13 +166,14 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 1. **Listen to the voices** (Phone: E.V., Mara x2, Unknown; Messages: E.V.'s voice note). To redo one clip: edit its text in `scripts/make-voices.mjs`, then `node scripts/make-voices.mjs <id>` (uses Deepgram credits, about $0.03 per 1,000 characters).
 2. **Test on the Mac with webcam and headphones**, incognito, whole run: boot scan with your real face, searchlight on the head, Lens shutter on a blink, palm at stage 3, S8 live scan + "looked away" lines, S9 figure copying you and your room played back, S10 caret stopping when you leave the frame, sound levels.
 3. **Read the copy** in `lib/story/content.ts` (mails, chats, notes, invitation, manual) and mark what's off in tone.
-4. **Rive plan:** the free-plan watermark shows on every Rive canvas. Removing it needs Cadet or higher (paid) plus `rive push` for `rive/photo`.
+4. **Rive plan:** every published Rive file opens with the Rive mark (checked: even a pushed project is watermarked on the free plan). It is hidden by timing now; only a paid plan (Cadet or higher) + `rive push` of each project removes it.
 
 ## Next steps (recommended order)
 
 1. **Webcam + headphones playtest** (owner), whole run, and tuning from it: scan scale (`face.ts`, `face_cloud.wgsl`), S9 figure range and beat timings (`window_across.wgsl`, `Reveal.tsx`), voice levels and timing (`voices.ts`), searchlight flare strength (`overlay_fx.wgsl`, `FLASH_STROKES`).
 2. **Playtest on the deployed URL** (HTTPS, so the camera works for anyone): `prefers-reduced-motion` pass, Safari/Firefox, low-end hardware.
-3. **Rive plan** (owner): the free-plan watermark shows on load on every Rive canvas.
+3. **Rive plan** (owner decision, see above).
+4. **Copy pass** after the owner's read of `lib/story/content.ts`.
 
 ## Known issues / gotchas
 
@@ -235,6 +241,5 @@ Glitches and motion are reduced under `prefers-reduced-motion` (no DOM glitch, n
 
 ### Design open points
 
-1. The wallpaper is a CSS placeholder (window frames + bokeh) until `ev-home.jpg` exists.
-2. The Sign is a first design (`SignGlyph` in `Decor.tsx`): an eye that is also a standing figure. Owner to approve or redraw.
-3. A monochrome UI can hide what's clickable: solved with motion (hover glow, breathing) rather than colour; keep checking in playtests.
+1. The Sign is a first design (`SignGlyph` in `Decor.tsx`): an eye that is also a standing figure. Owner to approve or redraw.
+2. A monochrome UI can hide what's clickable: solved with motion (hover glow, breathing) rather than colour; keep checking in playtests.
