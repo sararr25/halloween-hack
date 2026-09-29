@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { key } from "@/lib/audio/sfx";
 import { NOTES } from "@/lib/story/content";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
@@ -50,10 +51,16 @@ export default function Notes() {
             n: typo.length,
             duration: typo.length * 0.04,
             ease: `steps(${typo.length})`,
-            onUpdate: () => void (line.textContent = typo.slice(0, Math.round(state.n))),
+            onUpdate: () => {
+              line.textContent = typo.slice(0, Math.round(state.n));
+              key();
+            },
           });
           tl.to({}, { duration: 0.35 });
-          tl.call(() => void (line.textContent = typo.slice(0, -1)));
+          tl.call(() => {
+            line.textContent = typo.slice(0, -1); // backspace
+            key();
+          });
           tl.to({}, { duration: 0.2 });
           const start = typo.length - 1;
           const rest = { n: start };
@@ -61,14 +68,20 @@ export default function Notes() {
             n: text.length,
             duration: (text.length - start) * 0.036,
             ease: `steps(${text.length - start})`,
-            onUpdate: () => void (line.textContent = text.slice(0, Math.round(rest.n))),
+            onUpdate: () => {
+              line.textContent = text.slice(0, Math.round(rest.n));
+              key();
+            },
           });
         } else {
           tl.to(state, {
             n: text.length,
             duration: text.length * 0.036,
             ease: `steps(${Math.max(1, text.length)})`,
-            onUpdate: () => void (line.textContent = text.slice(0, Math.round(state.n))),
+            onUpdate: () => {
+              line.textContent = text.slice(0, Math.round(state.n));
+              key();
+            },
           });
         }
         tl.to({}, { duration: 0.3 });

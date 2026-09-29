@@ -1,19 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import PresenceEye, { type EyeHandle } from "@/components/PresenceEye";
-import { usePresence, usePresenceEvent } from "@/lib/presence/context";
+import { key } from "@/lib/audio/sfx";
+import { usePresence } from "@/lib/presence/context";
+import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
 import styles from "./boot.module.css";
 
 gsap.registerPlugin(useGSAP);
 
-type Step = "idle" | "running" | "calibrating" | "done";
+type Step = "idle" | "running" | "mapping" | "done";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Head-and-shoulders outline, drawn while the operator "holds still". Nothing here
+// follows the user: showing tracking now would spoil it (docs/scenes.md, "the unsaid").
+const OUTLINE =
+  "M150 46 C 112 46 92 76 92 114 C 92 150 108 182 128 196 L 128 222 C 96 232 58 246 40 270 C 26 290 20 318 18 340 M150 46 C 188 46 208 76 208 114 C 208 150 192 182 172 196 L 172 222 C 204 232 242 246 260 270 C 274 290 280 318 282 340";
+const POINTS: [number, number][] = [
+  [128, 112], [172, 112], [150, 138], [136, 162], [164, 162], [150, 176], [150, 72], [110, 128], [190, 128],
+];
 
 // S1 · Boot: a clinical recovery log. Camera and microphone are asked inside the fiction,
 // as operator verification. Refusing changes nothing but the record.
@@ -21,26 +30,16 @@ export default function Boot() {
   const { state, dispatch } = useStory();
   const { tracker, video } = usePresence();
   const [step, setStep] = useState<Step>("idle");
+  const [refused, setRefused] = useState(false);
   const [lines, setLines] = useState<string[]>(() => [
     "RECOVERY/4 · device image E.V. · 118.4 GB",
     `session opened ${clock(state.openedAt, true)}`,
   ]);
   const root = useRef<HTMLDivElement>(null);
-  const eye = useRef<EyeHandle | null>(null);
-
-  const onEye = useCallback(
-    (handle: EyeHandle) => {
-      eye.current = handle;
-      handle.update(tracker.state);
-    },
-    [tracker],
-  );
-  usePresenceEvent("change", (s) => eye.current?.update(s));
-  usePresenceEvent("blink", () => eye.current?.blink());
 
   const log = (line: string) => setLines((l) => [...l, line]);
 
-  // Every new line types in, like a log being written (28 ms/char, steps — docs/scenes.md).
+  // Every new line types in, like a log being written, with a keystroke per character.
   useGSAP(
     () => {
       const items = root.current?.querySelectorAll(`.${styles.log} li`);
@@ -49,23 +48,41 @@ export default function Boot() {
       // lines already written stay whole, even if a new one interrupts their typing
       gsap.killTweensOf(items);
       gsap.set(items, { clipPath: "none" });
+      if (lines.length <= 2) return; // the first two lines are already there
       const n = last.textContent?.length ?? 10;
-      gsap.fromTo(
-        last,
-        { clipPath: "inset(0 100% 0 0)" },
-        { clipPath: "inset(0 0% 0 0)", duration: Math.min(1.1, n * 0.028), ease: `steps(${n})` },
-      );
+      const typed = { n: 0 };
+      let shown = 0;
+      gsap.to(typed, {
+        n,
+        duration: Math.min(1.1, n * 0.028),
+        ease: "none",
+        onUpdate: () => {
+          const c = Math.floor(typed.n);
+          if (c !== shown) {
+            shown = c;
+            key();
+          }
+          (last as HTMLElement).style.clipPath = `inset(0 ${100 - (c / n) * 100}% 0 0)`;
+        },
+      });
     },
     { scope: root, dependencies: [lines.length] },
   );
 
-  // The eye is out of focus until verification starts, then it finds you.
+  // The mapping: the outline is traced, a scan line passes, reference points tick in.
   useGSAP(
     () => {
-      if (step === "idle") return;
-      gsap.to(`.${styles.eye}`, { opacity: 1, filter: "blur(0px)", duration: 1.6, ease: "sine.inOut" });
+      if (step !== "mapping") return;
+      const path = root.current?.querySelector<SVGPathElement>(`.${styles.outline}`);
+      if (!path) return;
+      const len = path.getTotalLength();
+      const tl = gsap.timeline();
+      tl.set(`.${styles.figure}`, { opacity: 1 });
+      tl.fromTo(path, { strokeDasharray: len, strokeDashoffset: len }, { strokeDashoffset: 0, duration: 1.6, ease: "power1.inOut" });
+      tl.fromTo(`.${styles.scan}`, { y: 20, opacity: 0.9 }, { y: 340, opacity: 0, duration: 1.4, ease: "sine.inOut" }, 0.2);
+      tl.from(`.${styles.point}`, { opacity: 0, scale: 0, transformOrigin: "center", duration: 0.08, stagger: { each: 0.09, onStart: key } }, 1.2);
     },
-    { scope: root, dependencies: [step === "idle"] },
+    { scope: root, dependencies: [step] },
   );
 
   useEffect(() => {
@@ -87,7 +104,8 @@ export default function Boot() {
     log("mounting image ........ ok");
     await wait(500);
     log("integrity ............. 3 sectors unreadable");
-    await wait(600);
+    glitchNow(0.4);
+    await wait(700);
     log("operator verification required by protocol");
     await wait(500);
     log("camera + microphone · processed on this device only");
@@ -105,30 +123,49 @@ export default function Boot() {
     });
 
     if (!ok) {
-      // Refusal is data too: the story will remember it.
+      // Refusal is data too: the story will remember it. And the mapping happens anyway.
       try {
         localStorage.setItem("recovery.cameraDenied", new Date(at).toISOString());
-      } catch {}
+      } catch {
+        // storage blocked: the refusal is still in the story state for this session
+      }
+      setRefused(true);
+      glitchNow(0.9);
       log(`verification refused · ${clock(at, true)}`);
-      await wait(900);
+      await wait(700);
+      log("reconstructing operator from input");
+      setStep("mapping");
+      await wait(2400);
       log("access granted anyway");
       setStep("done");
       return;
     }
 
-    setStep("calibrating");
     log("hold still");
+    setStep("mapping");
     await wait(2000);
     tracker.calibrate();
-    log(`operator recognised · ${clock(Date.now(), true)}`);
+    log(`operator mapped · ${clock(Date.now(), true)}`);
+    glitchNow(0.5);
     await wait(900);
     log("access granted");
     setStep("done");
   };
 
   return (
-    <div ref={root} className={styles.screen}>
-      <PresenceEye onReady={onEye} className={styles.eye} />
+    <div ref={root} className={styles.screen} data-glitch>
+      <div className={styles.viewfinder} aria-hidden="true">
+        <svg viewBox="0 0 300 360" className={styles.figure}>
+          <path className={styles.outline} d={OUTLINE} />
+          {POINTS.map(([x, y], i) => (
+            <circle key={i} className={styles.point} cx={x} cy={y} r="2.2" />
+          ))}
+          <line className={styles.scan} x1="0" x2="300" y1="0" y2="0" />
+        </svg>
+        {step === "mapping" && (
+          <span className={styles.caption}>{refused ? "operator · reconstructed" : "operator · mapping"}</span>
+        )}
+      </div>
 
       <div className={styles.panel}>
         <ol className={styles.log} aria-live="polite">
@@ -141,7 +178,6 @@ export default function Boot() {
             Start recovery
           </button>
         )}
-        {step === "calibrating" && <div className={styles.bar} />}
       </div>
     </div>
   );

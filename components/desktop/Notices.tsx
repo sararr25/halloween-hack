@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { blip, key } from "@/lib/audio/sfx";
 import { useStory, type Notice } from "@/lib/story/store";
 import styles from "./desktop.module.css";
 
@@ -30,9 +31,27 @@ function Item({ notice }: { notice: Notice }) {
     const text = el.current?.querySelector("p");
     if (!el.current || !text) return;
     gsap.from(el.current, { opacity: 0, y: -6, duration: 0.28, ease: "power3.out" });
+    blip();
     if (notice.from === "anon") {
+      // someone is typing it, key by key
       const n = notice.text.length;
-      gsap.fromTo(text, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: n * 0.045, delay: 0.3, ease: `steps(${n})` });
+      const typed = { n: 0 };
+      let shown = 0;
+      text.style.clipPath = "inset(0 100% 0 0)";
+      gsap.to(typed, {
+        n,
+        duration: n * 0.045,
+        delay: 0.3,
+        ease: "none",
+        onUpdate: () => {
+          const c = Math.floor(typed.n);
+          if (c !== shown) {
+            shown = c;
+            key();
+          }
+          text.style.clipPath = `inset(0 ${100 - (c / n) * 100}% 0 0)`;
+        },
+      });
     }
   });
 

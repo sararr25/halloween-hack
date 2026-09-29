@@ -8,11 +8,30 @@
   overflow: hidden;
 }
 
-.eye {
-  width: min(58vmin, 520px);
-  aspect-ratio: 1;
-  opacity: 0.1;
-  filter: blur(6px);
+/* Viewfinder: four corner marks, empty until the operator is mapped */
+.viewfinder {
+  position: relative;
+  width: min(34vmin, 300px);
+  aspect-ratio: 300 / 360;
+  margin-bottom: 18vh;
+  background:
+    linear-gradient(var(--muted), var(--muted)) top left / 18px 1px,
+    linear-gradient(var(--muted), var(--muted)) top left / 1px 18px,
+    linear-gradient(var(--muted), var(--muted)) top right / 18px 1px,
+    linear-gradient(var(--muted), var(--muted)) top right / 1px 18px,
+    linear-gradient(var(--muted), var(--muted)) bottom left / 18px 1px,
+    linear-gradient(var(--muted), var(--muted)) bottom left / 1px 18px,
+    linear-gradient(var(--muted), var(--muted)) bottom right / 18px 1px,
+    linear-gradient(var(--muted), var(--muted)) bottom right / 1px 18px;
+  background-repeat: no-repeat;
+}
+.figure { width: 100%; height: 100%; opacity: 0; overflow: visible; }
+.outline { fill: none; stroke: var(--text); stroke-width: 1.2; stroke-linecap: round; }
+.point { fill: var(--accent); }
+.scan { stroke: var(--accent); stroke-width: 1; opacity: 0; }
+.caption {
+  position: absolute; left: 0; bottom: -26px;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.06em; color: var(--muted);
 }
 
 .panel {
@@ -52,12 +71,3 @@
 }
 .cta:hover { border-color: var(--accent); color: var(--accent); }
 
-.bar {
-  width: 180px;
-  height: 1px;
-  background: linear-gradient(to right, var(--text) 0 0) no-repeat left / 0% 100%, rgba(216, 220, 229, 0.12);
-  animation: fill 2s linear forwards;
-}
-@keyframes fill {
-  to { background-size: 100% 100%, auto; }
-}

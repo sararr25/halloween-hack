@@ -6,7 +6,9 @@ import { createContext, useContext, useEffect, useReducer, type ReactNode } from
 
 export type Phase = "premise" | "boot" | "desktop" | "reveal" | "login";
 export type Stage = 1 | 2 | 3;
-export type AppId = "mail" | "photos" | "messages" | "notes" | "history" | "phone" | "trash" | "camera" | "backup";
+export type AppId =
+  | "mail" | "photos" | "messages" | "notes" | "history" | "phone" | "trash" | "camera" | "backup"
+  | "invitation" | "screenshot" | "manual";
 
 export type WindowState = { id: AppId; z: number; x: number; y: number };
 

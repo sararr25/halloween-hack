@@ -13,7 +13,7 @@ type Phase = "idle" | "requesting" | "calibrating" | "watching";
 gsap.registerPlugin(useGSAP);
 
 // Stage 1 · perfect: subliminal grain and glitch (see HANDOVER stage table)
-const STAGE1_FX = { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0 };
+const STAGE1_FX = { grain: 0.25, vignette: 0.35, glitch: 0.1, neon: 0, pulse: 0 };
 
 // The system answers a gesture it was never told to watch for. Placeholder lines, to be written.
 const GESTURE_LINES: Partial<Record<Gesture, string>> = {

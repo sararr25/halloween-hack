@@ -22,11 +22,13 @@
         <ViewModelPropertyNumber name="vignette" id="0:53"/>
         <ViewModelPropertyNumber name="glitch" id="0:54"/>
         <ViewModelPropertyNumber name="neon" id="0:55"/>
+        <ViewModelPropertyNumber name="pulse" id="0:56"/>
         <ViewModelInstance exports="true" name="Stage1" id="0:51">
             <ViewModelInstanceNumber propertyValue="0.25" viewModelPropertyId="0:52" id="0:85"/>
             <ViewModelInstanceNumber propertyValue="0.35" viewModelPropertyId="0:53" id="0:86"/>
             <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="0:54" id="0:87"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:55" id="0:88"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:56" id="0:90"/>
         </ViewModelInstance>
     </ViewModel>
 

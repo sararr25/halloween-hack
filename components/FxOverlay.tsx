@@ -5,7 +5,8 @@ import { Fit, Layout, Rive, RuntimeLoader } from "@rive-app/webgl2";
 
 RuntimeLoader.setWasmUrl("/rive/rive.wasm");
 
-export type FxLevels = { grain: number; vignette: number; glitch: number; neon: number };
+/** `pulse`: change it to fire one glitch tear now (the page schedules them, see Experience). */
+export type FxLevels = { grain: number; vignette: number; glitch: number; neon: number; pulse: number };
 
 const SRC = "/rive/effects.riv";
 

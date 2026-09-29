@@ -476,3 +476,52 @@ export const BACKUP_README = [
   "It keeps track of who looks. Not what they look at — who, and for how long.",
   "I found my own sessions in here. Then I found the ones after mine.",
 ];
+
+// ─── Desktop decor ───────────────────────────────────────────────────────────
+// References (docs/desktop.md, project.md): The Game (an invitation from a company that
+// arranges "experiences"), Black Mirror (the audience, the recurring Sign, the cracked
+// screen, the screenshot of your own screen), Memento (a polaroid with a handwritten note).
+// All names and marks are invented.
+
+/** invitation.pdf — The Game. Sent 16 days ago, before anything started. */
+export const INVITATION = {
+  days: 16,
+  company: "PARALLAX",
+  tagline: "private experiences",
+  body: [
+    "Dear E.V.,",
+    "Your enrolment has been accepted. Your experience has been arranged around you.",
+    "It began before this letter reached you. It ends when you stop looking for the edges.",
+    "You will not be told the rules. You will recognise them.",
+    "Please do not try to contact us. We will know when you need us.",
+  ],
+  footer: "enrolment 0418",
+};
+
+/** operator_manual.pdf — the system's own voice: clinical, and about you. */
+export const MANUAL = {
+  title: "RECOVERY/4 · operator guidelines (excerpt)",
+  sections: [
+    "§1  The operator is given access to one device image. Other images are not their concern.",
+    "§2  Sessions are recorded in full: duration, pauses, where the operator looks.",
+    "§3  The operator is not informed that the session is observed. If the operator asks, the session continues.",
+    "§4  A session ends when the operator stops. Operators who do not stop are enrolled.",
+    "§5  Case numbers are not reused.",
+  ],
+};
+
+/** Calendar widget. `fromStage` events appear on their own; nobody created them. */
+export const CALENDAR: { when: string; what: string; fromStage?: 2 | 3 }[] = [
+  { when: "Thu", what: "drinks with Mara · declined" },
+  { when: "Fri", what: "Harrow St series due · Arden" },
+  { when: "Sun", what: "Mum's · bring wine" },
+  { when: "today 23:02", what: "leave the light on", fromStage: 2 },
+  { when: "today {{now}}", what: "operator", fromStage: 3 },
+];
+
+/** The polaroid stuck to the desktop (handwritten). Rewritten at stage 3. */
+export const POLAROID: Record<1 | 2 | 3, string> = {
+  1: "the window across. don't trust 23:02",
+  2: "the window across. don't trust 23:02",
+  3: "it was never the window",
+};

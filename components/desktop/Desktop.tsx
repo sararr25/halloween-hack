@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
-import { APPS } from "./apps";
+import { APPS, type AppDef } from "./apps";
+import { CalendarWidget, Crack, Polaroid, TheSign } from "./Decor";
 import Notices from "./Notices";
+import SoundToggle from "./SoundToggle";
 import Window from "./Window";
 import styles from "./desktop.module.css";
 
@@ -100,6 +102,21 @@ function RecoveryMenu() {
   );
 }
 
+/** One click opens (people expect a web page to answer a single click). */
+function Icon({ app }: { app: AppDef }) {
+  const { dispatch } = useStory();
+  return (
+    <button
+      data-icon={app.id}
+      className={`${styles.icon} ${app.id === "backup" ? styles.neon : ""} ${app.place === "file" ? styles.file : ""}`}
+      onClick={() => dispatch({ type: "open", id: app.id })}
+    >
+      <span className={`${styles.glyph} ${styles.glass}`}>{app.glyph}</span>
+      <span>{app.title}</span>
+    </button>
+  );
+}
+
 export default function Desktop() {
   const { state, dispatch } = useStory();
   const { stage, windows } = state;
@@ -113,8 +130,10 @@ export default function Desktop() {
   }, [stage, dispatch]);
 
   return (
-    <div className={styles.desktop} data-stage={stage}>
+    <div className={styles.desktop} data-stage={stage} data-glitch>
       <div className={styles.wallpaper} aria-hidden="true" />
+
+      <TheSign />
 
       <header className={`${styles.menubar} ${styles.glass}`}>
         <span className={styles.menuLeft}>
@@ -122,31 +141,37 @@ export default function Desktop() {
           <RecoveryMenu />
         </span>
         <span className={styles.menuRight}>
+          {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
+          <span className={stage === 3 ? styles.viewersNeon : undefined}>viewers {stage}</span>
           {stage >= 2 && <span className={styles.rec}>● REC</span>}
+          <SoundToggle className={styles.soundMenu} />
+          <span>71%</span>
           <Clock />
         </span>
       </header>
 
-      <nav className={styles.icons} aria-label="Desktop">
-        {APPS.filter((a) => a.iconFrom !== null && stage >= a.iconFrom).map((a) => (
-          <button
-            key={a.id}
-            data-icon={a.id}
-            className={`${styles.icon} ${a.id === "backup" ? styles.neon : ""}`}
-            onDoubleClick={() => dispatch({ type: "open", id: a.id })}
-            onKeyDown={(e) => e.key === "Enter" && dispatch({ type: "open", id: a.id })}
-          >
-            <span className={`${styles.glyph} ${styles.glass}`}>{a.glyph}</span>
-            <span>{a.title}</span>
-          </button>
+      <nav className={styles.icons} aria-label="Apps">
+        {APPS.filter((a) => !a.place && a.iconFrom !== null && stage >= a.iconFrom).map((a) => (
+          <Icon key={a.id} app={a} />
         ))}
       </nav>
+
+      <CalendarWidget />
+
+      <nav className={styles.files} aria-label="Files on the desktop">
+        {APPS.filter((a) => a.place === "file").map((a) => (
+          <Icon key={a.id} app={a} />
+        ))}
+      </nav>
+
+      <Polaroid />
 
       {windows.map((w) => (
         <Window key={w.id} win={w} />
       ))}
 
       <Notices />
+      <Crack />
     </div>
   );
 }

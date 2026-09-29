@@ -1,5 +1,6 @@
--- Runs fx.wgsl over the whole artboard. Bursts of glitch are scheduled here so the
--- host only sets intensities: grain, vignette, glitch (burst rate/strength), neon.
+-- Runs overlay_fx.wgsl over the whole artboard. The host sets intensities (grain,
+-- vignette, glitch strength, neon) and fires tears by changing `pulse`: the page
+-- schedules them so the shader tear, the DOM glitch and the glitch sound land together.
 type Fx = {
     fx: Input<Data.Effects>?,
     canvas: GPUCanvas?,
@@ -11,7 +12,7 @@ type Fx = {
     size: Vector,
     time: number,
     burst: number,
-    nextBurst: number,
+    lastPulse: number,
     seed: number,
 }
 
@@ -23,6 +24,7 @@ local function value(self: Fx, name: string, fallback: number): number
     if name == "grain" then return fx.grain.value end
     if name == "vignette" then return fx.vignette.value end
     if name == "glitch" then return fx.glitch.value end
+    if name == "pulse" then return fx.pulse.value end
     return fx.neon.value
 end
 
@@ -59,14 +61,12 @@ end
 
 function advance(self: Fx, seconds: number): boolean
     self.time += seconds
-    -- glitch 0..1 maps to the stage cadence in HANDOVER: every ~12 s at low, ~1.5 s at full
-    local glitch = value(self, "glitch", 0)
     self.burst = math.max(0, self.burst - seconds * 9)
-    if glitch > 0.01 and self.time >= self.nextBurst then
+    local pulse = value(self, "pulse", 0)
+    if pulse ~= self.lastPulse then
+        self.lastPulse = pulse
         self.burst = 1
         self.seed = math.random() * 100
-        local gap = 12 - 10.5 * glitch
-        self.nextBurst = self.time + gap * (0.7 + math.random() * 0.6)
     end
     return true
 end
@@ -113,7 +113,7 @@ return function(context: Context): Layout<Fx>
         size = Vector.xy(0, 0),
         time = 0,
         burst = 0,
-        nextBurst = 1,
+        lastPulse = 0,
         seed = 0,
         init = init,
         resize = resize,

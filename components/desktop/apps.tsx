@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { AppId, Stage } from "@/lib/story/store";
 import Backup from "./views/Backup";
 import Camera from "./views/Camera";
+import { Invitation, Manual, Screenshot } from "./views/Docs";
 import History from "./views/History";
 import Mail from "./views/Mail";
 import Messages from "./views/Messages";
@@ -15,6 +16,8 @@ export type AppDef = {
   title: string;
   /** Lowest stage at which the icon shows on the desktop; null = never an icon (opens by itself). */
   iconFrom: Stage | null;
+  /** "file" = a loose file on the right of the desktop instead of an app in the left column. */
+  place?: "file";
   size: { w: number; h: number };
   glyph: ReactNode;
   body: ReactNode;
@@ -27,6 +30,8 @@ const g = (d: ReactNode) => (
     {d}
   </svg>
 );
+
+const doc = g(<><path d="M6 3h9l3 3v15H6z" /><path d="M15 3v3h3" /></>);
 
 export const APPS: AppDef[] = [
   { id: "mail", title: "Mail", iconFrom: 1, size: { w: 700, h: 460 },
@@ -53,6 +58,12 @@ export const APPS: AppDef[] = [
   { id: "backup", title: "backup_you", iconFrom: 2, size: { w: 560, h: 360 },
     glyph: g(<path d="M3 6h6l2 2h10v11H3z" />),
     body: <Backup /> },
+  { id: "invitation", title: "invitation.pdf", iconFrom: 1, place: "file", size: { w: 460, h: 480 },
+    glyph: doc, body: <Invitation /> },
+  { id: "manual", title: "operator_manual.pdf", iconFrom: 1, place: "file", size: { w: 560, h: 380 },
+    glyph: doc, body: <Manual /> },
+  { id: "screenshot", title: "Screenshot 23.02.png", iconFrom: 1, place: "file", size: { w: 520, h: 400 },
+    glyph: g(<><rect x="3" y="5" width="18" height="14" rx="1.5" /><path d="M3 9h18" /></>), body: <Screenshot /> },
   { id: "camera", title: "Camera", iconFrom: null, size: { w: 320, h: 240 },
     glyph: g(<><rect x="3" y="6" width="14" height="12" rx="2" /><path d="m17 10 4-2v8l-4-2" /></>),
     body: <Camera /> },

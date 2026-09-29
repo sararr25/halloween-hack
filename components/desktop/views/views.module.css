@@ -88,3 +88,13 @@
 .camLabel { position: absolute; left: 10px; top: 8px; font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--text); }
 .camTime { position: absolute; right: 10px; bottom: 8px; font-family: var(--font-mono), monospace; font-size: 10.5px; color: var(--muted); }
 .q { display: inline-block; }
+
+/* desktop files */
+.letter { display: grid; justify-items: start; }
+.letterMark { color: var(--text); margin-bottom: 10px; }
+.letterHead { font-size: 13px; letter-spacing: 0.4em; margin-bottom: 20px; display: grid; gap: 4px; }
+.letterHead small { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+.shot { display: grid; gap: 10px; }
+.shotScreen { position: relative; width: 100%; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; background: radial-gradient(ellipse at 70% 30%, #1a2030, transparent 60%), #06080d; overflow: hidden; }
+.shotBar { position: absolute; inset: 0 0 auto; height: 3%; background: rgba(255, 255, 255, 0.06); }
+.shotWin { position: absolute; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(13, 16, 24, 0.9); border-radius: 3px; }

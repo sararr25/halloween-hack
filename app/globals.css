@@ -30,3 +30,17 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
     transition-duration: 0.01ms !important;
   }
 }
+
+/* One glitch frame (140 ms), fired together with the shader tear and the sound. */
+body.glitching [data-glitch] {
+  text-shadow: -2px 0 rgba(138, 150, 179, 0.8), 2px 0 rgba(0, 240, 255, 0.35);
+  transform: translateX(3px) skewX(-0.6deg);
+}
+body.glitching [data-glitch]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(transparent 44%, rgba(216, 220, 229, 0.06) 44% 47%, transparent 47% 71%, rgba(0, 240, 255, 0.05) 71% 72%, transparent 72%);
+  mix-blend-mode: screen;
+}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { key } from "@/lib/audio/sfx";
 import { LAST_SEARCH_RESULT, LIVE_SEARCHES, SEARCHES } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
 import { useFill, when } from "./shared";
@@ -31,7 +32,11 @@ export default function History() {
       const first = root.current?.querySelector<HTMLElement>(`.${styles.live} .${styles.q}`);
       if (!first || !live.length) return;
       const n = first.textContent?.length ?? 10;
-      gsap.fromTo(first, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: n * 0.05, ease: `steps(${n})` });
+      gsap.fromTo(
+        first,
+        { clipPath: "inset(0 100% 0 0)" },
+        { clipPath: "inset(0 0% 0 0)", duration: n * 0.05, ease: `steps(${n})`, onUpdate: key },
+      );
     },
     { scope: root, dependencies: [live.length] },
   );

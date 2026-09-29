@@ -10,7 +10,11 @@ Read in this order: this file → `project.md` (concept, twist, scene outline) �
 - **Working today at `/`:** premise → **S1 boot** (English recovery log, camera + microphone asked in one prompt as "operator verification", calibration, Rive eye) → **desktop with all apps filled** (Mail, Photos, Messages, Notes, History, Phone, Trash, backup_you, Camera). Story content lives in `lib/story/content.ts`.
 - **Progression works end to end:** holding the lens on the figure in IMG_0418 → stage 2 (REC, Camera opens by itself, `backup_you`, IMG_0419, E.V.'s voicemail, live searches) → code = entry time `HHMM` (or Victory gesture with camera) → stage 3. The anonymous sender nudges ("Start with the mail", "…check her notes" after 2 wrong codes, one idle nudge per stage).
 - **WGSL:** IMG_0418 is drawn entirely by a WGSL shader in Rive (`rive/photo`), with a lens that sharpens and magnifies under the cursor. The overlay shader (`rive/effects`) now really renders on the web: it needed `enableGPUCanvas: true` (before, only the watermark showed).
-- **Next:** S8 session log, S9 reveal, S10 login; the Sign; real photos/audio.
+- **Sound (procedural, `lib/audio/sfx.ts`):** Web Audio only, no files: keystrokes on every typed text (boot log, anonymous notes, E.V.'s dated note, live searches), glitch sounds, soft notification, room-tone drone that thickens per stage. Unlocked by the "Open" click; mute toggle (menubar, or bottom right before the desktop), saved in `localStorage`.
+- **Glitch:** scheduled by the page (`Overlay` in `Experience.tsx`): each one fires the shader tear (`fx/pulse`), a 140 ms RGB split of the page (`[data-glitch]`) and the sound together. Cadence 6–11 s / 2.5–5 s / 0.8–2 s per stage. Story moments call `glitchNow()`.
+- **Boot:** no eye (it would reveal the head tracking). A viewfinder; on "hold still" the operator's silhouette is traced with a scan line and reference points ("reconstructed" when the camera is refused).
+- **Desktop decor** (`Decor.tsx`, content in `content.ts`): the Sign on the wallpaper (moves only while you look away), calendar widget with events that appear by themselves, Memento polaroid (rewritten at stage 3), files `invitation.pdf` (The Game), `operator_manual.pdf`, `Screenshot 23.02.png` (shows *your* open windows), `viewers 1→3` in the menubar, cracked glass at stage 2–3. Icons open with a single click.
+- **Next:** S8 session log, S9 reveal, S10 login; real photos/audio.
 
 ## How to run
 
