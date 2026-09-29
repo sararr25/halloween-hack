@@ -1,0 +1,35 @@
+# Desktop structure & experience decisions
+
+Agreed with the owner on 2026-09-29 (Q&A session). Scene specs stay in `docs/scenes.md`; palette/stages in `HANDOVER.md`.
+
+## Experience decisions
+
+| Topic | Decision |
+|---|---|
+| Nature | Interactive narrative storytelling, **not a game** (no score, no fail state) |
+| Length | 8–15 minutes |
+| Language | English |
+| Tone | Mixed: the system speaks clinical/dry (logs, prompts); the missing person is literary in Notes/Messages |
+| Missing person | Initials only: **E.V.** (no full name anywhere) |
+| Premise | Anonymous message before boot: "You've been given access to E.V.'s files…" |
+| Progression | **Hybrid**: Mail, Photos, Messages, Notes, History, Trash open from the start; stages advance only on key clues (photo zoom → stage 2, backup password → stage 3); `backup_you` appears only at stage 2 |
+| Audio | Rich sound design, with a mute toggle and no sudden loud sounds. **Built last**, after the story works in silence |
+| Mobile / small screens | Blocked with a diegetic message ("This device cannot run the recovery. Use a desktop.") |
+
+## Desktop structure
+
+- **Single route `/`**, state machine: `premise → boot (S1) → desktop → reveal (S9) → login (S10)`. `/lab` stays as a test bench.
+- **OS style**: invented, neutral, macOS-inspired without branding. Thin menubar, frosted glass, no coloured dock.
+- **Menubar**: `E.V.`, real clock; REC indicator from stage 2.
+- **Wallpaper**: a serene "perfect life" photo of E.V. that degrades with the stages.
+- **Icons (left column)**: Mail, Photos, Messages, Notes, Browser History, Trash. `backup_you` (neon) from stage 2. The Camera app opens **on its own** in stage 2 (REC).
+- **Window manager**: multiple free windows (drag, z-order, focus); open with GSAP Flip from the icon, close with fade. It keeps the open order so S9 can close the windows in reverse.
+- **Global state**: `stage` 1–3, clues found, open windows, session data (open time, time to each clue, back-navigation, camera denied). Client-side only.
+- **FX overlay** on top of everything, driven by `stage`.
+
+## The Sign (recurring symbol)
+
+- An invented, unexplained pictogram in the spirit of Black Mirror's "White Bear" glyph. The design is still to be drawn.
+- **Rule:** it moves **only when you are not looking** (`lookingAway`; without the camera: mouse far away or `document.hidden`), and each reappearance comes with a glitch flash. It moves more often as the stage rises. This keeps it inside the interaction thesis: it reacts to you and never loops for decoration.
+- **Where:** desktop/wallpaper, inside the apps (a photo, a mail, a reflection), and the final login (S10).
+- **Not clickable:** it vanishes when the cursor gets near.

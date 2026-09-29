@@ -2,13 +2,13 @@
 
 Status as of 2026-09-29 · branch `claude/youthful-pascal-m6eofy` · no PR opened yet.
 
-Read in this order: this file → `project.md` (concept, twist, scene outline) → `docs/scenes.md` (per-scene animation/interaction spec, implementation status, tuning) → `docs/tech-setup.md` (install, Rive CLI, MediaPipe, troubleshooting).
+Read in this order: this file → `project.md` (concept, twist, scene outline) → `docs/desktop.md` (experience decisions, desktop structure, the Sign) → `docs/scenes.md` (per-scene animation/interaction spec, implementation status, tuning) → `docs/tech-setup.md` (install, Rive CLI, MediaPipe, troubleshooting).
 
 ## TL;DR
 
 - Hackathon: Contra × Rive Halloween challenge, solo, 18 days. Psychological thriller on a fake desktop OS; twist = "you are the one being watched", built from real session data.
 - **Working today:** `/lab`, a minimal S1. A Rive eye follows your head via the webcam, blinks when you blink, contracts when you look away, and answers hand gestures. The owner tested it on a Mac and it works.
-- **Built but not yet seen in a browser:** the Rive WGSL overlay (grain, vignette, glitch). It carries Luau scripts, so it must be signed on the Mac (`rive login` + `pnpm rive:publish`).
+- **Signed but not yet seen in a browser:** the Rive WGSL overlay (grain, vignette, glitch). `public/rive/effects.riv` was committed in `89d0305`.
 - **Next:** sign the shaders, then build the desktop OS shell and scenes S2–S10.
 
 ## How to run
