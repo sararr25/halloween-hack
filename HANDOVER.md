@@ -7,9 +7,9 @@ Read in this order: this file → `project.md` (concept, twist, scene outline, c
 ## TL;DR
 
 - **What it is:** Contra × Rive Halloween challenge, solo, 18 days. A psychological thriller on a fake desktop OS. The user "recovers" the files of E.V., missing for 7 days; the twist is that the user is the one being watched, built from real session data (entry time, time to each clue, camera answer).
-- **Playable today at `/`, end to end:** premise → S1 boot → desktop → stage 1 → 2 → 3 → S8 session log → S9 reveal → S10 login → credits. AI photos wired (Photos, wallpaper, polaroid, chat photo); IMG_0418 is now a real photo in Rive; voicemails and the voice note play (procedural sound + the device's speech synthesis). What is left is shipping.
+- **Playable today at `/`, end to end:** premise → S1 boot → desktop → stage 1 → 2 → 3 → S8 session log → S9 reveal → S10 login → credits. AI photos wired (Photos, wallpaper, polaroid, chat photo); IMG_0418 is now a real photo in Rive; voicemails and the voice note play (Deepgram voices + procedural sound), plus a new voicemail from Mara outside E.V.'s flat. What is left is shipping.
 - **Rive + WGSL in use:** four Rive projects. `presence` (Eye for `/lab`, Lens for the Camera window, no scripts), `effects` (full-screen overlay: grain, vignette, glitch tears, searchlight, CRT switch-off), `photo` (IMG_0418 drawn entirely in a WGSL shader, with a magnifying lens), `story` (the operator face scan as a 3D point cloud, S1 + S8; the window across with the figure that copies the user, S9).
-- **Sound:** procedural Web Audio, no files. Keystrokes, four glitch sounds (rare), notification, shutter, room tone, scan sweep, light switch, tube switch-off, room recording playback (S9). Voices: `lib/audio/voices.ts` (breathing, sash window, traffic, phone line; words by `speechSynthesis`).
+- **Sound:** procedural Web Audio, no files. Keystrokes, four glitch sounds (rare), notification, shutter, room tone, scan sweep, light switch, tube switch-off, room recording playback (S9). Voices: Deepgram files in `public/audio` played by `lib/audio/voices.ts` (with phone line, static, breathing, sash window, traffic).
 - **Full screen:** the Open click asks for real full screen (Fullscreen API, no tabs or address bar). Esc leaves it; a `full screen` toggle sits next to `sound on`.
 - **Searchlight flare:** every 18 to 24 s on the desktop the searchlight flares for half a second in a colder violet-blue (cyan-white at stage 3), two strokes like lightning.
 - **Not verified yet:** everything that needs a real camera + microphone: the real face mesh in the S1 scan and live in S8, the S9 figure following a real head, the room recording played back in S9, the S10 caret waiting on `faceLost`. Plus the searchlight on a head, Lens shutter on blink, palm answer, and the sound mix.
@@ -116,7 +116,7 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 
 - **Rive GPU instances are never destroyed mid-session.** With `enableGPUCanvas` the runtime's `cleanup()` can crash (`glDeleteTextures` on an undefined context); the error unmounted the page and switched the camera off. So: one overlay for the whole experience, and the photo lens is a singleton whose canvas is detached, not destroyed.
 - **IMG_0418 is a real photo drawn by the 2D renderer in Luau**, not sampled in WGSL: on the web an image asset's `view()` samples as zeros and `context:canvas()` fails, so the lens is the sharp photo drawn again, scaled around the lens centre and clipped to a circle path. The shader only adds marks on top.
-- **Voices are the device's speech synthesis**, not recorded files: free, keyless, no licence to check, and the voice changes with the user's machine. Only words that need to be understood are spoken; E.V.'s voicemail has no words by design.
+- **Voices are Deepgram Aura-2 files** (`public/audio/*.mp3`, made once by `scripts/make-voices.mjs`, key in the git-ignored `.env.local`, never shipped). Aura-2 has no emotion control, so the feeling is in the writing (hesitations, repeats, broken sentences) and the speed. Voices: E.V. `pandora`, Mara `theia`, the unknown caller `draco`. The phone line, static, breathing, window and street are added live by `lib/audio/voices.ts`. The unknown caller's time is covered by static on purpose: only the transcript shows it. No screams: the design rule is no jumpscares.
 - **Glitches are scheduled by the page**, not by Luau: that's the only way the shader tear, the DOM split and the sound land on the same frame.
 - **Glitch sound is much rarer than the visual glitch** (owner feedback: it broke reading) and rotates between four sounds.
 - **Presence values that change every frame go straight to the view model** (`onVm` setter), not through React state.
@@ -149,13 +149,14 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 
 ## Owner actions pending
 
+1. **Listen to the voices** (Phone: E.V., Mara x2, Unknown; Messages: E.V.'s voice note). To redo one clip: edit its text in `scripts/make-voices.mjs`, then `node scripts/make-voices.mjs <id>` (uses Deepgram credits, about $0.03 per 1,000 characters).
 2. **Test on the Mac with webcam and headphones**, incognito, whole run: boot scan with your real face, searchlight on the head, Lens shutter on a blink, palm at stage 3, S8 live scan + "looked away" lines, S9 figure copying you and your room played back, S10 caret stopping when you leave the frame, sound levels.
 3. **Read the copy** in `lib/story/content.ts` (mails, chats, notes, invitation, manual) and mark what's off in tone.
 4. **Rive plan:** the free-plan watermark shows on every Rive canvas. Removing it needs Cadet or higher (paid) plus `rive push` for `rive/photo`.
 
-## Next step: screens, interactions, animations
+## Next steps (recommended order)
 
-1. **Webcam + headphones playtest** (owner), whole run, and tuning from it: scan scale (`face.ts`, `face_cloud.wgsl`), S9 figure range and beat timings (`window_across.wgsl`, `Reveal.tsx`), speech voices and volumes (`voices.ts`), searchlight flare strength (`overlay_fx.wgsl`, `FLASH_STROKES`).
+1. **Webcam + headphones playtest** (owner), whole run, and tuning from it: scan scale (`face.ts`, `face_cloud.wgsl`), S9 figure range and beat timings (`window_across.wgsl`, `Reveal.tsx`), voice levels and timing (`voices.ts`), searchlight flare strength (`overlay_fx.wgsl`, `FLASH_STROKES`).
 2. **Ship**: Vercel (HTTPS for the camera; the build must run `pnpm install` so the models are fetched), then playtest on the deployed URL, `prefers-reduced-motion` pass, Safari/Firefox (speech voices differ), low-end hardware.
 3. **Rive plan** (owner): the free-plan watermark shows on load on every Rive canvas.
 
