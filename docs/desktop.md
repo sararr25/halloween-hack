@@ -53,4 +53,11 @@ Agreed with the owner on 2026-09-29 (Q&A session). Scene specs stay in `docs/sce
 | Microphone | **Yes, in S9**: the reveal plays back ~1 s of the user's own ambient audio, processed locally and never stored or sent. The permission must be asked **in S1 together with the camera** (diegetic "operator verification"), because a browser prompt in the middle of the reveal would break it. If the user refuses, S9 falls back to a reconstructed recording |
 | Premise text | Cold and short: "E.V. has been missing for 7 days. You have access now. Look carefully." |
 
-Open: voicemail needs a home (a Phone/Voicemail app, or files in Mail?).
+## Phone, reveal & ending decisions
+
+| Topic | Decision |
+|---|---|
+| Voicemail | **Phone app synced to the laptop** (Continuity-style, plain and familiar). It has an **AI transcription that is unreliable**: audio and transcript do not match, and only the transcript contains details from the user's session (e.g. the entry time). One voicemail comes **from E.V.'s own number, dated after she disappeared**. The app list becomes: Mail, Photos, Messages, Notes, Browser History, Phone, Trash (+ Camera, `backup_you`) |
+| S9 ending | The silhouette in the lit window copies the user's movements 1:1, then ~1 s of the user's own ambient audio plays, then black |
+| S10 login | **Supersedes `docs/scenes.md` S10.** When the user types a name and presses Enter, a case list appears with a new entry, `Case #0418 — <typed name>` (you are next). Then a CRT-style screen switch-off animation (the image collapses to a line, then a dot, then black) |
+| Credits | After the switch-off, one small mono line: "No frames or audio left your device." + hackathon credits |
