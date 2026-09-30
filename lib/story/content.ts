@@ -27,6 +27,8 @@ export type Mail = {
   /** a scheduled send: it was set to arrive today */
   scheduled?: boolean;
   attachment?: string;
+  /** a voice memo attached to the mail: played by lib/audio/voices.ts */
+  memo?: { name: string; length: string };
   key?: boolean;
 };
 
@@ -149,7 +151,7 @@ export const MAILS: Mail[] = [
     kind: "self",
     scheduled: true,
     body: [],
-    attachment: "for_later.dat",
+    memo: { name: "for_later.m4a", length: "0:18" },
     key: true,
   },
   {
@@ -495,9 +497,9 @@ export const CALLS: Call[] = [
     kind: "missed",
     fromStage: 2,
     voicemail: {
-      length: "0:12",
+      length: "0:11",
       audio: "Mara inside E.V.'s flat, panicking: the laptop was showing her, filmed from across the road. The line dies mid-word.",
-      transcript: "Ev I went back. I went inside. Your laptop was open and it was showing me. [inaudible] Right now. Ev who is watching this. Who is",
+      transcript: "Ev I went back to yours. Your laptop was still open and it was showing me. [inaudible] Right now. Ev who is watching this. Who is",
     },
   },
   {
@@ -524,11 +526,11 @@ export const CALLS: Call[] = [
     kind: "missed",
     fromStage: 2,
     voicemail: {
-      length: "0:18",
-      audio: "Mara outside E.V.'s flat at night, scared: the door open, the laptop on, the light across the road, someone in the window looking at her.",
+      length: "0:19",
+      audio: "Mara inside E.V.'s flat at night, the door left open: E.V. is not there, the laptop is on showing the street, someone stands in the lit window across and looks at her.",
       // the transcript leaves out what she saw in the window
       transcript:
-        "Ev pick up. I'm outside yours, the door's open. And your laptop's on. Why is your laptop on. And the light across the road, it's on. [inaudible] Call me. Please call me.",
+        "Ev it's me. I'm in your flat. The door was open so I came in. You're not here. Your laptop's on and it's showing the street. And the flat across the road, the light's on. [inaudible] I'm getting out. Call me.",
     },
   },
   {

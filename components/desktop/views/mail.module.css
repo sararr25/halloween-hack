@@ -115,3 +115,7 @@ img.avatar { object-fit: cover; background: none; border: none; transform: scale
   font-family: var(--font-serif), serif; font-size: 9px; line-height: 1.15; color: #d8dce5;
   background: linear-gradient(170deg, #2b3242, #0b0e15); box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.8);
 }
+
+/* the voice memo attached to "for later" */
+.memo { display: grid; gap: 8px; margin-top: 8px; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; background: rgba(255, 255, 255, 0.03); max-width: 420px; }
+.memoName { font-family: var(--font-mono), monospace; font-size: 11px; color: var(--muted); }

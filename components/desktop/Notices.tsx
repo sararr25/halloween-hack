@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { blip, key } from "@/lib/audio/sfx";
@@ -10,6 +10,8 @@ import styles from "./desktop.module.css";
 gsap.registerPlugin(useGSAP);
 
 const SHOW_MS = 8000;
+// a hint that points somewhere stays long enough to be read and followed
+const HINT_MS = 16000;
 const LABEL: Record<Notice["from"], string> = { anon: "unknown sender", system: "system", mara: "Mara · Messages" };
 
 // Mono notifications, top right. The anonymous sender and Mara type; the system just appears.
@@ -58,12 +60,31 @@ function Item({ notice }: { notice: Notice }) {
 
   // Dismissal runs on a timer so a throttled tab still clears it.
   useEffect(() => {
-    const t = setTimeout(() => dispatch({ type: "dismiss", id: notice.id }), SHOW_MS);
+    const t = setTimeout(() => dispatch({ type: "dismiss", id: notice.id }), notice.open ? HINT_MS : SHOW_MS);
     return () => clearTimeout(t);
-  }, [dispatch, notice.id]);
+  }, [dispatch, notice.id, notice.open]);
+
+  const target = notice.open;
+  const follow = () => {
+    if (!target) return;
+    dispatch({ type: "open", id: target });
+    dispatch({ type: "dismiss", id: notice.id });
+  };
+
+
 
   return (
-    <div ref={el} className={`${styles.notice} ${styles.glass}`}>
+    <div
+      ref={el}
+      className={`${styles.notice} ${styles.glass} ${target ? styles.noticeLink : ""}`}
+      // a hint: one click takes you where it points
+      {...(target && {
+        role: "button",
+        tabIndex: 0,
+        onClick: follow,
+        onKeyDown: (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && follow(),
+      })}
+    >
       <span>{LABEL[notice.from]}</span>
       <p>{notice.text}</p>
     </div>

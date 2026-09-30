@@ -5,6 +5,7 @@ import { BOOKS, MAILS, SIGNIN, TRACKING, USAGE, type Mail as MailItem } from "@/
 import { useLookingAway } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { Avatar, when, useFill } from "./shared";
+import VoicePlayer from "./VoicePlayer";
 import styles from "./mail.module.css";
 
 // S2 · Mail. Every mail is its own kind of email; the service ones carry a small drawn
@@ -101,6 +102,16 @@ function Reader({ mail }: { mail: MailItem }) {
           </button>
           {tried && <p className={styles.meta}>format not supported</p>}
         </>
+      )}
+
+      {mail.memo && (
+        // a voice memo she left for whoever opened the laptop
+        <div className={styles.memo}>
+          <span className={styles.memoName}>
+            {mail.memo.name} · voice memo · {mail.memo.length}
+          </span>
+          <VoicePlayer id="ev-forlater" length={mail.memo.length} />
+        </div>
       )}
 
       {mail.receipt && <p className={styles.receipt}>Read receipt sent to {mail.from} · {f("{{now}}")}</p>}

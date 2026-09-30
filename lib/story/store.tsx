@@ -38,7 +38,7 @@ export type StoryState = {
 
 /** "anon" = the anonymous sender (help that is really guidance); "system" = the OS;
  * "mara" = a message from Mara arriving on E.V.'s laptop. */
-export type Notice = { id: number; from: "anon" | "system" | "mara"; text: string };
+export type Notice = { id: number; from: "anon" | "system" | "mara"; text: string; open?: AppId };
 
 /** Facts about the user, gathered in S1 and reused by the story (S8/S9). */
 export type Session = {
@@ -58,7 +58,7 @@ type Action =
   | { type: "move"; id: AppId; x: number; y: number }
   | { type: "clue"; id: string }
   | { type: "session"; session: Partial<Session> }
-  | { type: "notify"; from: Notice["from"]; text: string }
+  | { type: "notify"; from: Notice["from"]; text: string; open?: AppId }
   | { type: "dismiss"; id: number }
   | { type: "wrongCode" }
   | { type: "interrupt"; at: number }
@@ -92,7 +92,7 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, session: { ...s.session, ...a.session } };
     case "notify": {
       const id = (s.notices.at(-1)?.id ?? 0) + 1;
-      return { ...s, notices: [...s.notices, { id, from: a.from, text: a.text }] };
+      return { ...s, notices: [...s.notices, { id, from: a.from, text: a.text, open: a.open }] };
     }
     case "dismiss":
       return { ...s, notices: s.notices.filter((n) => n.id !== a.id) };

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { blackout, glitchNow } from "@/lib/story/glitch";
-import { useStory } from "@/lib/story/store";
+import { useStory, type AppId } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
 import BlinkCapture from "./BlinkCapture";
@@ -35,14 +35,27 @@ function Clock() {
 
 const IDLE_NUDGE_MS = 100_000;
 
-// After each wrong backup code: where the time is written (the "for later" mail arrives at
-// the minute you came in, the unknown caller's transcript names it, a live search types it).
-const CODE_HINTS = [
-  "…she scheduled a mail for someone. Look at when it arrived.",
-  "…someone called about tonight. Read what the phone heard.",
-  "…look at what is still being searched.",
-  "…it's the minute you came in.",
-];
+// Hints that get warmer, one step at a time: every HINT_EVERY without progress (and, at
+// stage 2, every wrong code) the anonymous sender points at the next place to look. Each
+// hint opens that app when clicked. The ladders lead through the voicemails and the notes,
+// so nobody skips them (owner playtest).
+type Hint = [text: string, open?: AppId];
+const HINT_EVERY: Record<1 | 2, number> = { 1: 55_000, 2: 45_000 };
+const LADDER: Record<1 | 2, Hint[]> = {
+  1: [
+    ["…listen to what people left on her phone.", "phone"],
+    ["…Theo asked her about a photo. Read their messages.", "messages"],
+    ["…her last photo. Not the window. The street under it.", "photos"],
+    ["…in IMG_0418, hold the lens on the woman by the lamp post.", "photos"],
+  ],
+  2: [
+    ["…she set the code herself. Read her notes.", "notes"],
+    ["…someone called her about tonight. Listen, then read what the phone heard.", "phone"],
+    ["…she left a voice memo in a mail for later. Listen to it.", "mail"],
+    ["…look at when that mail arrived. Four digits, like a clock.", "mail"],
+    ["…it's the minute you came in. The Recovery menu remembers it."],
+  ],
+};
 
 /**
  * Turns clues into story beats: the stage changes only on key clues (photo figure → 2,
@@ -57,18 +70,26 @@ function useDirector() {
   useEffect(() => {
     calm.current = state.calm;
   });
-  const say = (key: string, from: "anon" | "system", text: string, delay = 0) => {
+  const say = (key: string, from: "anon" | "system", text: string, delay = 0, open?: AppId) => {
     if (said.current.has(key)) return;
     said.current.add(key);
     setTimeout(() => {
       // the interlude has its own voices: a late message from the sender stays unsent
       if (from === "anon" && calm.current) return;
-      dispatch({ type: "notify", from, text });
+      dispatch({ type: "notify", from, text, open });
     }, delay);
+  };
+  const level = useRef<Record<1 | 2, number>>({ 1: 0, 2: 0 });
+  const hint = (st: 1 | 2) => {
+    const i = level.current[st];
+    const step = LADDER[st][i];
+    if (!step) return;
+    level.current[st] = i + 1;
+    say(`hint${st}-${i}`, "anon", step[0], 0, step[1]);
   };
 
   useEffect(() => {
-    say("welcome", "anon", "She kept everything. Start with the mail.", 2500);
+    say("welcome", "anon", "She kept everything. Start with the mail.", 2500, "mail");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,19 +144,25 @@ function useDirector() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, clues]);
 
+  // A wrong code is a step down the ladder at once.
   useEffect(() => {
-    // Each wrong code points at a place where the answer is already written.
-    const hint = CODE_HINTS[Math.min(wrongCodes, CODE_HINTS.length) - 1];
-    if (hint) say(`code${wrongCodes}`, "anon", hint);
+    if (wrongCodes > 0 && stage === 2) hint(2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrongCodes]);
 
-  // Stuck: one nudge per stage, never more.
+  // No progress for a while: the next hint. Any new clue restarts the wait.
   useEffect(() => {
+    if (stage === 3) return;
+    const t = setInterval(() => hint(stage), HINT_EVERY[stage]);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, Object.keys(clues).length]);
+
+  // Stage 3: one nudge, never more.
+  useEffect(() => {
+    if (stage !== 3) return;
     const t = setTimeout(() => {
-      if (stage === 1) say("idle1", "anon", "…look at her photos. Closely.");
-      if (stage === 2) say("idle2", "anon", "…it's a time. Four digits.");
-      if (stage === 3 && !calm.current) say("idle3", "anon", "…open the one in progress.");
+      if (!calm.current) say("idle3", "anon", "…open the one in progress.", 0, "backup");
     }, IDLE_NUDGE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

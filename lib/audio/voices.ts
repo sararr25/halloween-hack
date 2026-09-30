@@ -12,12 +12,13 @@ export type RecordingId =
   | "mara-voicemail-2"
   | "mara-voicemail-3"
   | "mum-voicemail"
+  | "ev-forlater"
   | "unknown-voicemail"
   | "ev-voicenote";
 
 export type Playback = { stop: () => void };
 
-type Clip = "ev-voicemail" | "mara-1" | "mara-2" | "mara-3" | "mum" | "unknown-1" | "unknown-2" | "ev-voicenote";
+type Clip = "ev-voicemail" | "ev-forlater" | "mara-1" | "mara-2" | "mara-3" | "mum" | "unknown-1" | "unknown-2" | "ev-voicenote";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -185,27 +186,34 @@ export function playRecording(id: RecordingId): Playback | null {
       break;
     }
     case "mara-voicemail-2": {
-      // 0:18 · Mara outside E.V.'s flat at 02:40: wind and the street around her
-      line(18);
-      nodes.push(bed(e, now, now + 18, "lowpass", 520, 0.08));
+      // 0:19 · Mara inside E.V.'s flat at 02:40, the door left open: a still room, the street outside
+      line(19);
+      nodes.push(bed(e, now, now + 19, "lowpass", 380, 0.06));
       nodes.push(breath(e, now + 0.2, 0.7, true));
       nodes.push(carPass(e, now + 5.5, 5));
       add(voice(e, "mara-2", now, { at: 0.9, gain: 1, phone: true }, nodes));
       break;
     }
+    case "ev-forlater": {
+      // 0:18 · E.V.'s voice memo, recorded at her desk the night before: close, a quiet room
+      nodes.push(bed(e, now, now + 18, "lowpass", 260, 0.05));
+      noiseBurst(e as Engine, now + 0.2, 0.03, 1800, 2, 0.06); // the record button
+      add(voice(e, "ev-forlater", now, { at: 1.0, gain: 1, phone: false }, nodes));
+      break;
+    }
     case "mara-voicemail-3": {
       // 0:12 · Mara inside E.V.'s flat, yesterday, breathing hard; the line dies mid-word
-      line(12.2);
-      nodes.push(bed(e, now, now + 12.2, "lowpass", 300, 0.05));
+      line(11);
+      nodes.push(bed(e, now, now + 11, "lowpass", 300, 0.05));
       nodes.push(breath(e, now + 0.1, 0.5, true));
-      add(voice(e, "mara-3", now, { at: 0.5, gain: 1, phone: true, cut: 11.5 }, nodes));
+      add(voice(e, "mara-3", now, { at: 0.5, gain: 1, phone: true, cut: 10.05 }, nodes));
       break;
     }
     case "mum-voicemail": {
       // 0:19 · Mum, four days ago, at home late at night: a quiet kitchen
       line(19.2);
       nodes.push(bed(e, now, now + 19.2, "lowpass", 180, 0.04));
-      add(voice(e, "mum", now, { at: 1.0, gain: 1, phone: true }, nodes));
+      add(voice(e, "mum", now, { at: 1.0, gain: 1, phone: true, rate: 0.97 }, nodes));
       break;
     }
     case "unknown-voicemail": {
