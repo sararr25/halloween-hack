@@ -7,13 +7,15 @@ import { usePresence } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import styles from "./reflection.module.css";
 
-// The black mirror. Once, a little after the backup opens (stage 3), the screen goes dark
-// like a monitor switching off, and in the dark glass there is the player's own reflection:
-// the webcam, mirrored, soft, grey, faint, behind a sheen of glare. Three seconds, then the
-// desktop comes back as if nothing happened. Without a camera the glass stays empty and
-// only the glare moves. The frames are drawn on the page and never kept.
+// The black mirror. Once, a little after the backup opens (stage 3), the screen dims for a
+// moment like a monitor saving power, and in the dark glass there might be someone: the
+// webcam, mirrored, reduced to a shape, barely there. It must leave a doubt, not an answer
+// (owner playtest: a clear face gave the ending away). Without a camera the glass stays
+// empty and only the glare moves. The frames are drawn on the page and never kept.
 const AFTER_MS = 16_000;
-const HOLD_MS = 3200;
+const HOLD_MS = 1400;
+// so few pixels that only a shape survives: a head, shoulders, never a face
+const GHOST = { w: 40, h: 23 };
 
 export default function Reflection() {
   const { state } = useStory();
@@ -36,7 +38,7 @@ export default function Reflection() {
 
   useEffect(() => {
     if (!on) return;
-    subThud(0.6);
+    subThud(0.2);
     const el = video();
     const ctx = canvas.current?.getContext("2d");
     const live = tracker.state.source === "camera" && !!el?.srcObject && !!ctx;
@@ -44,8 +46,8 @@ export default function Reflection() {
     const draw = () => {
       if (!el || !ctx) return;
       const c = ctx.canvas;
-      c.width = 480;
-      c.height = 270;
+      c.width = GHOST.w;
+      c.height = GHOST.h;
       ctx.setTransform(-1, 0, 0, 1, c.width, 0); // a mirror
       // cover: the reflection fills the glass
       const vr = el.videoWidth / el.videoHeight || 16 / 9;
@@ -55,10 +57,10 @@ export default function Reflection() {
     };
     if (live) raf = requestAnimationFrame(draw);
     const tl = gsap.timeline();
-    tl.fromTo(layer.current, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.in" });
+    tl.fromTo(layer.current, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power1.in" });
     tl.fromTo(glare.current, { xPercent: -30 }, { xPercent: 30, duration: HOLD_MS / 1000 + 0.6, ease: "none" }, 0);
     const off = setTimeout(() => {
-      gsap.to(layer.current, { opacity: 0, duration: 0.5, ease: "power2.out", onComplete: () => setOn(false) });
+      gsap.to(layer.current, { opacity: 0, duration: 0.6, ease: "power1.out", onComplete: () => setOn(false) });
     }, HOLD_MS);
     return () => {
       cancelAnimationFrame(raf);

@@ -27,9 +27,9 @@ Owner decisions after the report:
 | 13 dim windows behind | done · verified |
 | 14 S9 same building | done · verified (the Harrow St terrace redrawn in window_across.wgsl, story.riv republished; the figure layer still lines up) |
 | 15 Find My map | done · verified (dark map like Apple's: streets, terraces, park, canal; device list; this Mac at 16, the iPhone at 17, 20 m) |
-| 16 live camera moment more subtle | pending (owner, after 1-15) |
+| 16 live camera moment more subtle | done · the stage 3 reflection is now 1.4 s, the screen dims instead of going black, the webcam is reduced to 40×23 px, blurred, 9 % opacity, masked: a shape, not a face. Needs the owner's camera to judge |
 | 17 S9 figure animation redone from the owner's SVGs | pending (owner, after 1-15) |
-| 18 the player's recorded voice is not audible in S9 | pending (owner, after 1-15) |
+| 18 the player's recorded voice is not audible in S9 | done · raw microphone (no echo cancellation / noise suppression, auto gain on), the recording loudened to a clear peak, the score ducked under it. Needs the owner's mic to confirm |
 
 ## Summary
 A full browser run of the experience (premise → boot → briefing → stages 1-3 → S8 log → interlude call → Find My → S9 → S10 → last screen) on `feat/playtest-pass`, mouse path only (camera and mic are blocked in the test browser). It found two real bugs that break the game (the last screen is invisible, the backup code drops digits), a few logic slips (two hints at once, stale objective, plural), and UX gaps that make key moments easy to miss. This plan fixes them in small, isolated changes.
