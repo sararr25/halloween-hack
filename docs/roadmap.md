@@ -91,3 +91,15 @@ After the above: read the Contra challenge rules (deadline, format, what to subm
 1. Avatar mapping: which face is which character?
 2. The symbol: is it `avatar EV.png`, or a separate file still to add?
 3. Music: procedural (default) or a free CC0 track?
+
+## Round 2 (owner feedback after playing the branch, 2026-09-30)
+
+- [x] No stills of the player during the game: they gave the ending away. Blinks keep three effects (shutter, viewfinder, drain) and only a count (S8 row, one S9 line).
+- [x] Hints graded and clickable: two ladders (`LADDER` in `Desktop.tsx`) that step every 55 s / 45 s without progress and on every wrong code, leading through the voicemails, the notes and the for-later mail. Clicking a hint opens its app.
+- [x] "for later" now carries a voice memo from E.V. (`for_later.m4a`, clip `ev-forlater`) instead of an unreadable file: it says the arrival minute is the key.
+- [x] Mum re-voiced with Aura-2 Athena (the only voice Deepgram lists as mature); Mara's 02:40 voicemail rewritten: the door was open, so she went in.
+- [x] Live feed at the end: cold CCTV (grey, grain, interlace, colour fringe, vignette, rolling band, tears, dropped frames) with a face-recognition box locked on the real face (`tracker.faceBox`).
+- [x] Fewer glitches from stage 2 (visual every 7-12 s at stage 2, 4-8 s at stage 3).
+- [x] Photos listed oldest first: IMG_0418 is near the end, not top left.
+- [x] Briefing redone in the OS language: one glass window, the case file typed row by row, E.V.'s badge and last photo, a serif line, the objective.
+- [ ] S9 figure: two AI images from the owner (`assets/figure_still.png`, `assets/figure_hand.png`, prompts in `docs/image-prompts.md`), drawn in Rive and moved with the head, replacing the SDF bust.
