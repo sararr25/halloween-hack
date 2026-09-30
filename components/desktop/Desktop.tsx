@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import { usePresenceEvent } from "@/lib/presence/context";
+import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { blackout, glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
@@ -60,7 +60,11 @@ function useDirector() {
   const say = (key: string, from: "anon" | "system", text: string, delay = 0) => {
     if (said.current.has(key)) return;
     said.current.add(key);
-    setTimeout(() => dispatch({ type: "notify", from, text }), delay);
+    setTimeout(() => {
+      // the interlude has its own voices: a late message from the sender stays unsent
+      if (from === "anon" && calm.current) return;
+      dispatch({ type: "notify", from, text });
+    }, delay);
   };
 
   useEffect(() => {
@@ -83,14 +87,19 @@ function useDirector() {
 
   // Act 3: the system admits it sees you. An open palm (covering the camera) is answered on a
   // black screen; without a camera, so is coming back after leaving the page.
-  usePresenceEvent("gesture", (g) => {
-    if (stage < 3 || g !== "palm" || said.current.has("palm")) return;
+  // Covering the lens hides the face rather than showing a palm, so either one counts.
+  const covered = () => {
+    if (stage < 3 || calm.current || said.current.has("palm")) return;
     said.current.add("palm");
     glitchNow(1);
     blackout("no need to cover yourself.");
+  };
+  usePresenceEvent("gesture", (g) => {
+    if (g === "palm") covered();
   });
   const wasAway = useRef(false);
   usePresenceEvent("change", (s) => {
+    if (s.source === "camera" && s.faceLost) covered();
     const back = wasAway.current && !s.lookingAway;
     wasAway.current = s.lookingAway;
     if (stage < 3 || s.source !== "mouse" || !back || said.current.has("hide")) return;
@@ -99,9 +108,18 @@ function useDirector() {
     blackout("no need to hide.");
   });
 
-  // Stage 3: the log about the user is waiting.
+  // Stage 3: the log about the user is waiting. Then the sender offers a way out that is not
+  // one: covering the camera (or leaving the page) is answered, on a black screen.
+  const { tracker } = usePresence();
   useEffect(() => {
-    if (stage === 3 && "backup_open" in clues) say("log", "anon", "one of those files is still being written.", 7000);
+    if (stage !== 3 || !("backup_open" in clues)) return;
+    say("log", "anon", "one of those files is still being written.", 7000);
+    say(
+      "cover",
+      "anon",
+      tracker.state.source === "camera" ? "if you want it to stop, cover the camera." : "if you want it to stop, look away.",
+      19000,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, clues]);
 
