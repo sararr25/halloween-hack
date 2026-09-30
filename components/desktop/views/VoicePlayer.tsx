@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import { spokenPace, startCaption, stopCaption } from "@/lib/audio/captions";
 import { playRecording, type Playback, type RecordingId } from "@/lib/audio/voices";
 import styles from "./voice.module.css";
 
@@ -28,22 +29,28 @@ export default function VoicePlayer({ id, length }: { id: RecordingId; length: s
     if (timer.current) clearTimeout(timer.current);
     wave.current?.style.setProperty("--played", "0");
     setPlaying(false);
+    stopCaption(id);
   };
 
+  // stop on unmount only (a recording never changes under its player)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => stop, []);
 
   const play = () => {
     if (playing) return stop();
     const p = playRecording(id);
+    const dur = seconds(length);
     if (!p) {
-      // audio locked or muted: say so instead of pretending to play
+      // audio locked or muted: say so instead of pretending to play; the transcript still
+      // arrives, at the pace of the voice
       setSilent(true);
+      startCaption(id, spokenPace(dur - 1.2));
       return;
     }
     setSilent(false);
     playback.current = p;
     setPlaying(true);
-    const dur = seconds(length);
+    startCaption(id, p.speech);
     const progress = { v: 0 };
     tween.current = gsap.to(progress, {
       v: 1,

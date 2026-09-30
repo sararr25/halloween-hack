@@ -3,15 +3,22 @@
 import { useRef, type PointerEvent } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { useStory, type WindowState } from "@/lib/story/store";
+import { useStory, type AppId, type WindowState } from "@/lib/story/store";
 import { APP } from "./apps";
 import styles from "./desktop.module.css";
 
 gsap.registerPlugin(useGSAP);
 
+/** Closes a window with the same short fade wherever the close comes from (dot, Esc, a link). */
+export function fadeClose(id: AppId, dispatch: ReturnType<typeof useStory>["dispatch"]) {
+  const node = document.querySelector(`[data-win="${id}"]`);
+  if (!node) return dispatch({ type: "close", id });
+  gsap.to(node, { opacity: 0, duration: 0.18, ease: "power2.in", onComplete: () => dispatch({ type: "close", id }) });
+}
+
 // Frosted-glass OS window: drag by the title bar, focus on press, open from its icon, close with a fade.
 export default function Window({ win }: { win: WindowState }) {
-  const { dispatch } = useStory();
+  const { state, dispatch } = useStory();
   const el = useRef<HTMLDivElement>(null);
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const app = APP[win.id];
@@ -28,9 +35,7 @@ export default function Window({ win }: { win: WindowState }) {
     gsap.from(node, { ...from, opacity: 0, duration: 0.28, ease: "power3.out", clearProps: "transform" });
   }, []);
 
-  const close = () => {
-    gsap.to(el.current, { opacity: 0, duration: 0.18, ease: "power2.in", onComplete: () => dispatch({ type: "close", id: win.id }) });
-  };
+  const close = () => fadeClose(win.id, dispatch);
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("button")) return;
@@ -53,6 +58,8 @@ export default function Window({ win }: { win: WindowState }) {
       role="dialog"
       aria-label={app.title}
       data-win={win.id}
+      // the windows behind dim, so the one in front reads at once
+      data-behind={win.z < Math.max(...state.windows.map((w) => w.z)) || undefined}
       className={`${styles.window} ${styles.glass}`}
       style={{ left: win.x, top: win.y, width: app.size.w, height: app.size.h, zIndex: win.z }}
       onPointerDown={() => dispatch({ type: "focus", id: win.id })}

@@ -28,7 +28,7 @@ export type Mail = {
   scheduled?: boolean;
   attachment?: string;
   /** a voice memo attached to the mail: played by lib/audio/voices.ts */
-  memo?: { name: string; length: string };
+  memo?: { name: string; length: string; transcript: string };
   key?: boolean;
 };
 
@@ -151,7 +151,13 @@ export const MAILS: Mail[] = [
     kind: "self",
     scheduled: true,
     body: [],
-    memo: { name: "for_later.m4a", length: "0:18" },
+    memo: {
+      name: "for_later.m4a",
+      length: "0:18",
+      // what the file says (scripts/make-voices.mjs, clip ev-forlater)
+      transcript:
+        "If you're hearing this, it arrived. I set it to arrive the minute someone opens my laptop. Not me. Someone. Look at when it came in. That minute is the only thing they couldn't choose for you. It opens the backup. And please, whoever you are... don't open the backup.",
+    },
     key: true,
   },
   {

@@ -4,9 +4,11 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { recordVoice, ring } from "@/lib/audio/call";
-import { playCallLine } from "@/lib/audio/voices";
+import { spokenPace, startCaption } from "@/lib/audio/captions";
+import { playCallLine, type CallLine } from "@/lib/audio/voices";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
+import Transcript from "./views/Transcript";
 import styles from "./call.module.css";
 
 // The interlude, live: E.V.'s phone has just come back on, and Mara calls it. The player
@@ -21,12 +23,22 @@ const LISTEN_MS = 4500;
 
 type Step = "ringing" | "talking" | "listening" | "reply" | "ended";
 
+// What Mara says, word for word (scripts/make-voices.mjs). Written while she speaks; the
+// last word stays cut, like the line.
+const CAPTIONS: Record<CallLine, string> = {
+  "mara-call-1":
+    "Ev? Ev, is that you? Oh my god. Your phone just came on. It says you're across the road, in 4A. In the empty flat. Ev, say something. Please. Just say something, so I know it's you.",
+  "mara-call-2": "That's not your voice. That's not Ev. Who is this? Why have you got her phone? Who's there with h",
+  "mara-call-silent": "Ev? I can't hear you. I can hear someone breathing. Ev, who's there? Who's there with y",
+};
+
 export default function IncomingCall() {
   const { state, dispatch } = useStory();
   const [step, setStep] = useState<Step | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [level, setLevel] = useState(0);
   const panel = useRef<HTMLDivElement>(null);
+  const [saying, setSaying] = useState<CallLine | null>(null);
   const stopRing = useRef<(() => void) | null>(null);
   const alive = useRef(true);
   const mic = state.session.mic === "granted";
@@ -87,13 +99,18 @@ export default function IncomingCall() {
     stopRing.current = null;
     setStep("talking");
     const first = playCallLine("mara-call-1");
+    setSaying("mara-call-1");
+    startCaption("mara-call-1", first?.speech ?? spokenPace(10));
     await (first?.done ?? wait(11000));
     if (!alive.current) return;
     setStep("listening");
     const heard = mic ? await recordVoice(LISTEN_MS, setLevel) : (await wait(LISTEN_MS), null);
     if (!alive.current) return;
     setStep("reply");
-    const second = playCallLine(heard ? "mara-call-2" : "mara-call-silent", { cut: true });
+    const reply: CallLine = heard ? "mara-call-2" : "mara-call-silent";
+    const second = playCallLine(reply, { cut: true });
+    setSaying(reply);
+    startCaption(reply, second?.speech ?? spokenPace(6));
     await (second?.done ?? wait(7000));
     if (!alive.current) return;
     glitchNow(0.9);
@@ -146,6 +163,10 @@ export default function IncomingCall() {
           </span>
           <small>{mic ? "● microphone · live" : "microphone off"}</small>
         </span>
+      )}
+
+      {saying && (step === "talking" || step === "reply") && (
+        <Transcript key={saying} id={saying} className={styles.caption} text={CAPTIONS[saying]} />
       )}
     </div>
   );

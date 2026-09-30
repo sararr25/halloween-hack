@@ -33,8 +33,9 @@
 .link:hover { text-decoration-color: var(--accent); color: var(--accent); }
 
 /* photos */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
-.thumb { aspect-ratio: 1; border-radius: 4px; position: relative; overflow: hidden; transition: filter 120ms; }
+/* five landscape tiles a row: the roll fills the window instead of its top half */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.thumb { aspect-ratio: 4 / 3; border-radius: 4px; position: relative; overflow: hidden; transition: filter 120ms; }
 .thumb:hover { filter: brightness(1.25); }
 .thumb { background: #0b0e14; }
 .thumb span {

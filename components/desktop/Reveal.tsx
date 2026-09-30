@@ -27,6 +27,9 @@ import styles from "./reveal.module.css";
 const LINE_MIN_MS = 1200;
 const LINE_MAX_MS = 4200;
 const HAND_WAIT_MS = 10_000;
+// without a camera, the hand on the mouse raises it: the cursor near the top, or a long press
+const LIFT_TOP = 0.15;
+const LIFT_HOLD_MS = 600;
 const ROOM_MS = 3000;
 const FEED_MS = 8000;
 // The Across artboard and its lit window, in scene units (keep in sync with window_across.wgsl).
@@ -38,13 +41,14 @@ export default function Reveal() {
   const { state, dispatch } = useStory();
   const { tracker } = usePresence();
   const host = useRef<HTMLDivElement>(null);
-  const [line, setLine] = useState<{ text: string; order?: boolean; next?: boolean } | null>(null);
+  const [line, setLine] = useState<{ text: string; order?: boolean; next?: boolean; hint?: string } | null>(null);
   const [black, setBlack] = useState(false);
   const [feed, setFeed] = useState<"off" | "on" | "cut">("off");
   const following = useRef(false);
   // resolves the beat that is waiting for a click/key, or for a raised hand
   const advance = useRef<(() => void) | null>(null);
   const palm = useRef<(() => void) | null>(null);
+  const lift = useRef<(() => void) | null>(null);
 
   useMountedRive(host, acrossRive);
 
@@ -60,6 +64,25 @@ export default function Reveal() {
   usePresenceEvent("gesture", (g) => {
     if (g === "palm") palm.current?.();
   });
+  useEffect(() => {
+    let hold: ReturnType<typeof setTimeout> | undefined;
+    const up = (e: PointerEvent) => {
+      if (e.clientY < window.innerHeight * LIFT_TOP) lift.current?.();
+    };
+    const press = () => {
+      hold = setTimeout(() => lift.current?.(), LIFT_HOLD_MS);
+    };
+    const release = () => clearTimeout(hold);
+    window.addEventListener("pointermove", up);
+    window.addEventListener("pointerdown", press);
+    window.addEventListener("pointerup", release);
+    return () => {
+      clearTimeout(hold);
+      window.removeEventListener("pointermove", up);
+      window.removeEventListener("pointerdown", press);
+      window.removeEventListener("pointerup", release);
+    };
+  }, []);
   useEffect(() => {
     const go = () => advance.current?.();
     window.addEventListener("pointerdown", go);
@@ -152,7 +175,7 @@ export default function Reveal() {
           resolve(true);
         };
       });
-    const say = (text: string | null, opts: { order?: boolean; next?: boolean } = {}) => {
+    const say = (text: string | null, opts: { order?: boolean; next?: boolean; hint?: string } = {}) => {
       if (!alive) return;
       if (text) key();
       setLine(text ? { text, ...opts } : null);
@@ -193,9 +216,9 @@ export default function Reveal() {
       await sleep(1200);
 
       // 3 · the hand
-      say("raise your hand.", { order: true });
       const camera = tracker.state.source === "camera";
-      const raised = camera ? await until(palm, HAND_WAIT_MS) : (await sleep(3500), false);
+      say("raise your hand.", { order: true, hint: camera ? undefined : "move the mouse up." });
+      const raised = await until(camera ? palm : lift, HAND_WAIT_MS);
       if (!alive) return;
       if (raised) {
         to({ hand: 1 }, 0.3, "power3.out"); // with the player, not after
@@ -294,7 +317,7 @@ export default function Reveal() {
       <p className={styles.line} aria-live="polite" data-order={!!line?.order} key={line?.text ?? "none"}>
         {line?.text}
       </p>
-      {line?.next && <span className={styles.next}>click to go on</span>}
+      {(line?.hint || line?.next) && <span className={styles.next}>{line.hint ?? "click to go on"}</span>}
     </div>
   );
 }

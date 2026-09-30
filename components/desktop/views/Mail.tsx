@@ -5,6 +5,7 @@ import { BOOKS, MAILS, SIGNIN, TRACKING, USAGE, type Mail as MailItem } from "@/
 import { useLookingAway } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { Avatar, when, useFill } from "./shared";
+import Transcript from "./Transcript";
 import VoicePlayer from "./VoicePlayer";
 import styles from "./mail.module.css";
 
@@ -12,8 +13,9 @@ import styles from "./mail.module.css";
 // block (a sign-in near home, the night usage, the parcel route, the contact sheet).
 export default function Mail() {
   const { dispatch } = useStory();
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [read, setRead] = useState<Set<string>>(() => new Set());
+  // opens on the newest mail, like a real inbox (never on a clue: the player finds those)
+  const [openId, setOpenId] = useState<string | null>(() => MAILS.find((m) => !m.key)?.id ?? null);
+  const [read, setRead] = useState<Set<string>>(() => new Set(openId ? [openId] : []));
   const mail = MAILS.find((m) => m.id === openId);
 
   const open = (m: MailItem) => {
@@ -111,6 +113,7 @@ function Reader({ mail }: { mail: MailItem }) {
             {mail.memo.name} · voice memo · {mail.memo.length}
           </span>
           <VoicePlayer id="ev-forlater" length={mail.memo.length} />
+          <Transcript id="ev-forlater" className={styles.memoText} text={mail.memo.transcript} />
         </div>
       )}
 

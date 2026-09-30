@@ -9,6 +9,7 @@ import { acrossRive, scanRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
+import { fadeClose } from "../Window";
 import styles from "./session.module.css";
 
 gsap.registerPlugin(useGSAP);
@@ -73,7 +74,7 @@ export default function Session() {
       ),
       ...("photo_figure" in clues ? [row("IMG_0418", `figure located after ${duration(clues.photo_figure)}`)] : []),
       ...("backup_open" in clues
-        ? [row("backup_you", `opened after ${duration(clues.backup_open)}${wrongCodes ? ` · ${wrongCodes} wrong codes` : ""}`)]
+        ? [row("backup_you", `opened after ${duration(clues.backup_open)}${wrongCodes ? ` · ${wrongCodes} wrong code${wrongCodes === 1 ? "" : "s"}` : ""}`)]
         : []),
     ];
   });
@@ -142,7 +143,14 @@ export default function Session() {
       <ol className={styles.log} aria-live="polite">
         {lines.slice(0, shown).map((l, i) => (
           <li key={i} className={i >= facts.length && i < facts.length + liveRows.length ? styles.liveRow : undefined}>
-            {l}
+            {i === lines.length - 1 ? (
+              // the way out of the log is the log's own last line
+              <button className={styles.closeLog} onClick={() => fadeClose("session", dispatch)}>
+                {l}
+              </button>
+            ) : (
+              l
+            )}
           </li>
         ))}
       </ol>

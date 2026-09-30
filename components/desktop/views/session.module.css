@@ -33,3 +33,10 @@
 }
 .log li:first-child { color: var(--text); margin-bottom: 6px; }
 .liveRow { color: var(--neon); }
+
+/* the last line closes the log */
+.closeLog {
+  font: inherit; white-space: pre; color: var(--text); text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-color: rgba(255, 255, 255, 0.3); cursor: pointer;
+}
+.closeLog:hover { color: var(--neon); text-decoration-color: var(--neon); }

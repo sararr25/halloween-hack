@@ -9,6 +9,7 @@ import { usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
 import { Avatar, when } from "./shared";
+import Transcript from "./Transcript";
 import VoicePlayer from "./VoicePlayer";
 import styles from "./messages.module.css";
 
@@ -155,7 +156,7 @@ function Bubble({ line: l, tail, onPhoto }: { line: ChatLine; tail: boolean; onP
       {l.voice && (
         <span className={styles.voice}>
           <VoicePlayer id="ev-voicenote" length={l.voice.length} />
-          <span className={styles.transcript}>“{l.voice.transcript}”</span>
+          <Transcript id="ev-voicenote" className={styles.transcript} text={`“${l.voice.transcript}”`} />
         </span>
       )}
       {l.text && <span>{l.text}</span>}

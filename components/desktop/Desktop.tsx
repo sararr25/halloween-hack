@@ -14,7 +14,7 @@ import { Blackout, CalendarWidget, Crack, Polaroid, TheSign, Wallpaper } from ".
 import Notices from "./Notices";
 import FullscreenToggle from "./FullscreenToggle";
 import SoundToggle from "./SoundToggle";
-import Window from "./Window";
+import Window, { fadeClose } from "./Window";
 import { prewarmLens } from "./views/PhotoLens";
 import styles from "./desktop.module.css";
 
@@ -152,13 +152,14 @@ function useDirector() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrongCodes]);
 
-  // No progress for a while: the next hint. Any new clue restarts the wait.
+  // No progress for a while: the next hint. Any new clue, or a hint from a wrong code,
+  // restarts the wait, so two hints never land together.
   useEffect(() => {
     if (stage === 3) return;
     const t = setInterval(() => hint(stage), HINT_EVERY[stage]);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, Object.keys(clues).length]);
+  }, [stage, Object.keys(clues).length, wrongCodes]);
 
   // Stage 3: one nudge, never more.
   useEffect(() => {
@@ -293,8 +294,11 @@ function RecoveryMenu() {
  * key clues, so nobody is left wondering what the game wants.
  */
 function objectiveOf(state: ReturnType<typeof useStory>["state"]) {
-  const { stage, clues, calm } = state;
+  const { stage, clues, calm, windows } = state;
+  const isOpen = (id: string) => windows.some((w) => w.id === id);
+  if (isOpen("locate")) return "view live";
   if (calm) return "find where her phone is";
+  if (stage === 3 && isOpen("session")) return "read it. close it when you're ready";
   if (stage === 3) return "open the file still being written";
   if (stage === 2) return "open backup_you · four digits";
   if ("mail_for_later" in clues || "chat_window" in clues) return "look closely at her photos";
@@ -343,6 +347,21 @@ export default function Desktop() {
   useReveal();
   useEffect(prewarmLens, []);
 
+  // Esc closes the window in front, like any desktop; not once the reveal has begun
+  const front = useRef<AppId | null>(null);
+  const revealing = "look_live" in state.clues;
+  useEffect(() => {
+    front.current = windows.length ? windows.reduce((a, b) => (b.z > a.z ? b : a)).id : null;
+  });
+  useEffect(() => {
+    if (revealing) return;
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && front.current) fadeClose(front.current, dispatch);
+    };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [revealing, dispatch]);
+
   // Entering stage 2: the camera opens by itself, once. Closing it keeps it closed.
   const prevStage = useRef(stage);
   useEffect(() => {
@@ -365,7 +384,7 @@ export default function Desktop() {
         <span className={styles.menuRight}>
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
           <span className={stage === 3 && !state.calm ? styles.viewersNeon : undefined}>viewers {state.calm ? 1 : stage}</span>
-          {stage >= 2 && <span className={styles.rec}>● REC</span>}
+          {stage >= 2 && !state.calm && <span className={styles.rec}>● REC</span>}
           <FullscreenToggle className={styles.soundMenu} />
           <SoundToggle className={styles.soundMenu} />
           <span>71%</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent } from "react";
 import gsap from "gsap";
 import { BACKUP_README } from "@/lib/story/content";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
@@ -25,23 +25,47 @@ export default function Backup() {
     if (g === "victory" && !open && tracker.state.source === "camera") unlock();
   });
 
+  // the boxes as they are right now: two keys can land before React renders again
+  const current = useRef(["", "", "", ""]);
+  const show = (next: string[]) => {
+    current.current = next;
+    setDigits(next);
+  };
+
   const submit = (code: string) => {
     if (code === entryCode(state.openedAt)) return unlock();
     dispatch({ type: "wrongCode" });
     gsap.to(lock.current, { keyframes: { x: [-6, 6, -4, 4, -2, 0] }, duration: 0.32, ease: "none" });
-    setDigits(["", "", "", ""]);
+    show(["", "", "", ""]);
     inputs.current[0]?.focus();
   };
 
+  /** Writes `typed` from box `from` on (one key, or a whole pasted code). */
+  const fill = (from: number, typed: string) => {
+    const next = [...current.current];
+    let i = from;
+    for (const d of typed) {
+      if (i > 3) break;
+      next[i++] = d;
+    }
+    show(next);
+    if (next.every(Boolean)) return submit(next.join(""));
+    inputs.current[Math.min(i, 3)]?.focus();
+  };
+
   const change = (i: number) => (e: ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value.replace(/\D/g, "").slice(-1);
-    const next = digits.map((d, j) => (j === i ? v : d));
-    setDigits(next);
-    if (v && i < 3) inputs.current[i + 1]?.focus();
-    if (next.every(Boolean)) submit(next.join(""));
+    const typed = e.target.value.replace(/\D/g, "");
+    if (!typed) return show(current.current.map((d, j) => (j === i ? "" : d)));
+    // a box that already held a digit: the new key is the last one
+    fill(i, typed.length > 1 && current.current[i] ? typed.slice(-1) : typed);
+  };
+  const paste = (e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const typed = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (typed) fill(0, typed);
   };
   const back = (i: number) => (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) inputs.current[i - 1]?.focus();
+    if (e.key === "Backspace" && !current.current[i] && i > 0) inputs.current[i - 1]?.focus();
   };
 
   if (open) {
@@ -68,7 +92,10 @@ export default function Backup() {
               session_0418.log
             </button>
             <span>
-              in progress · opened {clock(state.openedAt, true)} · {duration(found)} to get here
+              {/* the interlude pretends the review is over */}
+              {state.calm
+                ? "closed · nothing found"
+                : `in progress · opened ${clock(state.openedAt, true)} · ${duration(found)} to get here`}
             </span>
           </li>
         </ul>
@@ -93,6 +120,7 @@ export default function Backup() {
             autoFocus={i === 0}
             onChange={change(i)}
             onKeyDown={back(i)}
+            onPaste={paste}
           />
         ))}
       </div>

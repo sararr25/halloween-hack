@@ -17,6 +17,9 @@ import styles from "./login.module.css";
 // user's name on the open case, then the screen switches off like an old tube.
 // docs/desktop.md supersedes docs/scenes.md S10.
 const STILL_MS = 5000;
+// the case list types in over ~1.8 s; it then holds long enough to read the open case
+const CASES_HOLD_MS = 7000;
+const CASES_BLACK_MS = 8600;
 export const CASE_KEY = "recovery.case0418";
 
 type Step = "login" | "cases" | "off" | "credits";
@@ -74,11 +77,11 @@ export default function Login() {
       crtOff(1.4);
       gsap.to(screen.current, { scaleY: 0.004, duration: 0.6, ease: "power2.in" });
       gsap.to(screen.current, { scaleX: 0, duration: 0.5, delay: 0.6, ease: "power2.in" });
-    }, 4200);
+    }, CASES_HOLD_MS);
     const black = setTimeout(() => {
       setStep("off");
       crtOff(0);
-    }, 5800);
+    }, CASES_BLACK_MS);
     return () => [off, black].forEach(clearTimeout);
   }, [step]);
 
@@ -112,10 +115,11 @@ export default function Login() {
     }
   };
 
-  if (step === "off") return <div className={styles.black} />;
+  // each screen gets its own element: the switch-off leaves a squash on the one before
+  if (step === "off") return <div key="off" className={styles.black} />;
   if (step === "credits")
     return (
-      <div className={styles.black}>
+      <div key="credits" className={styles.black}>
         <div className={styles.end}>
           <SignGlyph size={56} />
           <p className={styles.credits}>No frames or audio left your device.</p>
@@ -128,7 +132,7 @@ export default function Login() {
     );
 
   return (
-    <div className={styles.screen} ref={screen} data-waiting={step === "login" && waiting}>
+    <div key="screen" className={styles.screen} ref={screen} data-waiting={step === "login" && waiting}>
       {step === "login" ? (
         <form className={styles.form} onSubmit={submit} onClick={() => input.current?.focus()}>
           <p className={styles.brand}>RECOVERY/4</p>

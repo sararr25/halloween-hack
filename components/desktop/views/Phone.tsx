@@ -5,6 +5,7 @@ import { CALLS } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
 import type { RecordingId } from "@/lib/audio/voices";
 import { Empty, Row, Split, useFill, when } from "./shared";
+import Transcript from "./Transcript";
 import VoicePlayer from "./VoicePlayer";
 import styles from "./views.module.css";
 
@@ -70,7 +71,7 @@ export default function Phone() {
               </div>
               <div className={styles.panel}>
                 <span className={styles.panelLabel}>transcript · automatic · confidence low</span>
-                <span>{f(call.voicemail.transcript)}</span>
+                <Transcript key={call.id} id={recordingOf(call.id)} text={f(call.voicemail.transcript)} />
               </div>
             </>
           ) : (

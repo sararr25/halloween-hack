@@ -55,8 +55,11 @@
 /* the lines of the first beat can be skipped with a click or a key */
 .next {
   position: absolute; left: 50%; bottom: calc(11vh - 28px); transform: translateX(-50%);
-  font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--muted); opacity: 0.5;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--muted);
+  /* arrives after the line has been read, so it never competes with it */
+  animation: nextIn 0.8s ease-out 1.5s both;
 }
+@keyframes nextIn { from { opacity: 0; } to { opacity: 0.8; } }
 
 @media (prefers-reduced-motion: reduce) {
   .scene { animation-duration: 0.01s; }

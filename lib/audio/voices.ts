@@ -4,6 +4,7 @@
 // the street. What you hear and what the automatic transcript writes do not always agree:
 // that is the point (docs/desktop.md).
 
+import type { Span } from "./captions";
 import { audioEngine, isMuted, noiseBurst, type Engine } from "./sfx";
 
 export type RecordingId =
@@ -17,6 +18,8 @@ export type RecordingId =
   | "ev-voicenote";
 
 export type Playback = { stop: () => void };
+/** Where the voice sits in time, for the transcript (lib/audio/captions.ts). */
+export type Spoken = Playback & { speech: Promise<Span[]> };
 
 type Clip =
   | "ev-voicemail"
@@ -153,23 +156,36 @@ function voice(e: Readonly<Engine>, name: Clip, start: number, v: Voice, nodes: 
     src.start(start + v.at);
     if (v.cut) src.stop(start + v.at + v.cut);
     nodes.push(src);
+    const from = start + v.at;
+    return [from, from + (v.cut ?? buf.duration / (v.rate ?? 1))] as const;
   });
+}
+
+/** Context times → performance.now() spans. */
+function toSpans(e: Readonly<Engine>, parts: (readonly [number, number])[]): Span[] {
+  const offset = performance.now() - e.ctx.currentTime * 1000;
+  return parts.sort((a, b) => a[0] - b[0]).map(([a, b]) => ({ from: offset + a * 1000, to: offset + b * 1000 }));
 }
 
 /**
  * Plays one recording. Returns null when there is nothing to play (audio still locked, or
  * muted). The voice files load on the first play; a missing one throws.
  */
-export function playRecording(id: RecordingId): Playback | null {
+export function playRecording(id: RecordingId): Spoken | null {
   const e = audioEngine();
   if (!e || isMuted()) return null;
   const now = e.ctx.currentTime + 0.15; // room for the first decode
   const nodes: AudioScheduledSourceNode[] = [];
   let stopped = false;
-  const add = (p: Promise<void>) =>
-    p.then(() => {
-      if (stopped) nodes.forEach((n) => n.stop());
-    });
+  // every voice placed on the timeline; `extra` is speech the transcript hears through noise
+  const parts: Promise<readonly [number, number]>[] = [];
+  const add = (p: Promise<readonly [number, number]>) =>
+    parts.push(
+      p.then((span) => {
+        if (stopped) nodes.forEach((n) => n.stop());
+        return span;
+      }),
+    );
   const line = (dur: number) => {
     // the phone line: a thin hiss and a click at each end
     nodes.push(bed(e, now, now + dur, "highpass", 3000, 0.018));
@@ -235,6 +251,7 @@ export function playRecording(id: RecordingId): Playback | null {
       nodes.push(bed(e, now, now + 11, "bandpass", 1800, 0.06));
       add(voice(e, "unknown-1", now, { at: 1.4, gain: 0.75, phone: true, rate: 0.93 }, nodes));
       nodes.push(bed(e, now + 4.6, now + 6.6, "bandpass", 2400, 0.22)); // the time, gone
+      parts.push(Promise.resolve([now + 4.6, now + 6.6] as const)); // the transcript writes it anyway
       add(voice(e, "unknown-2", now, { at: 6.8, gain: 0.7, phone: true, rate: 0.9 }, nodes));
       break;
     }
@@ -246,7 +263,7 @@ export function playRecording(id: RecordingId): Playback | null {
     }
   }
 
-  return stopper(nodes, () => (stopped = true));
+  return { ...stopper(nodes, () => (stopped = true)), speech: Promise.all(parts).then((p) => toSpans(e, p)) };
 }
 
 function stopper(nodes: AudioScheduledSourceNode[], mark: () => void): Playback {
@@ -269,11 +286,13 @@ function stopper(nodes: AudioScheduledSourceNode[], mark: () => void): Playback 
  * `done` resolves when she stops talking. `cut`: the line goes dead a moment before the
  * end of the clip, mid-word, with a click. Null when audio is locked or muted.
  */
-export function playCallLine(name: CallLine, { cut = false } = {}): (Playback & { done: Promise<void> }) | null {
+export function playCallLine(name: CallLine, { cut = false } = {}): (Spoken & { done: Promise<void> }) | null {
   const e = audioEngine();
   if (!e || isMuted()) return null;
   const nodes: AudioScheduledSourceNode[] = [];
   let stopped = false;
+  let spoke: (s: Span[]) => void = () => {};
+  const speech = new Promise<Span[]>((r) => (spoke = r));
   const done = clip(e, name).then((buf) => {
     if (stopped) return;
     const now = e.ctx.currentTime + 0.05;
@@ -282,15 +301,15 @@ export function playCallLine(name: CallLine, { cut = false } = {}): (Playback & 
     nodes.push(bed(e, now, now + len, "lowpass", 520, 0.06)); // the street, outside 4A
     nodes.push(breath(e, now + 0.05, 0.5, true));
     const v = voice(e, name, now, { at: 0.2, gain: 1, phone: true, cut: cut ? buf.duration - 0.38 : undefined }, nodes);
-    return v.then(
-      () =>
-        new Promise<void>((resolve) =>
+    return v.then((span) => {
+      spoke(toSpans(e, [span]));
+      return new Promise<void>((resolve) =>
           setTimeout(() => {
             if (cut) noiseBurst(e as Engine, e.ctx.currentTime, 0.03, 1500, 1.5, 0.12); // the line dies
             resolve();
           }, (len + 0.2) * 1000),
-        ),
-    );
+      );
+    });
   });
-  return { ...stopper(nodes, () => (stopped = true)), done };
+  return { ...stopper(nodes, () => (stopped = true)), done, speech };
 }

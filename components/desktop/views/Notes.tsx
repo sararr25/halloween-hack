@@ -17,7 +17,8 @@ gsap.registerPlugin(useGSAP);
 export default function Notes() {
   const { dispatch } = useStory();
   const f = useFill();
-  const [openId, setOpenId] = useState<string | null>(null);
+  // opens on the newest note, like the real app
+  const [openId, setOpenId] = useState<string | null>(NOTES[0].id);
   const note = NOTES.find((n) => n.id === openId);
   const body = useRef<HTMLDivElement>(null);
 

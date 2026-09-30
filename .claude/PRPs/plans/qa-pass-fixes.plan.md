@@ -1,5 +1,36 @@
 # Plan: QA pass fixes (browser run 2026-09-30)
 
+## Status (owner approved everything, 2026-09-30)
+
+Owner decisions after the report:
+- All 12 tasks approved, including the mouse raise-hand.
+- Captions: **every voice clip** (Mara's call, the voicemails in Phone, E.V.'s voice note in Messages, the "for later" memo). The text is hidden until the clip plays, then appears word by word in time with the voice, **no typing sound** (the voice is already there). It stays after the first listen. Task 8 grows into this.
+- Stage 3 window pile: **dim the windows behind** the front one (Task 13).
+- S9: **the same building** as the photos, the Harrow St terrace (Task 14).
+- Find My: a **realistic map like Apple's Find My** (Task 15).
+- Later message (after 1-15): the moment the live camera shows the player gives the ending away, it must be much subtler (16); the figure behind the window is badly animated, redo it from the SVGs in `assets/` (17, owner pointed at the Remotion skill); the recording of the player's voice cannot be heard (18).
+
+| Task | Status |
+|---|---|
+| 1 last screen visible | done · verified in browser (button 211×34, PDF reachable) |
+| 2 code input | done · verified ("2302" typed in one burst keeps 4 digits; pasting "17:46" opens) |
+| 3 one hint at a time | done · verified (one hint after a wrong code) |
+| 4 plural | done · verified ("1 wrong code") |
+| 5 closing windows | done · verified (Esc closes the front window; the log's last line closes it; 25 px target) |
+| 6 objective | done · verified ("read it. close it when you're ready", "view live") |
+| 7 readable desktop | done · verified (labels readable, Mail/Notes open on an item). Photos: 5 landscape tiles a row; the window keeps its height because the single photo with the lens needs it |
+| 8 captions on every voice | done · verified without sound (call, voicemail). Sync with real audio: owner check |
+| 9 mouse raise-hand | done · verified (cursor to the top raises it; hint "move the mouse up.") |
+| 10 calm interlude | done · verified (no REC, "closed · nothing found") |
+| 11 "click to go on" | done (11 px, fades in after 1.5 s) |
+| 12 S10 case list | done · verified (list readable ~5 s) |
+| 13 dim windows behind | done · verified |
+| 14 S9 same building | pending |
+| 15 Find My map | pending |
+| 16 live camera moment more subtle | pending (owner, after 1-15) |
+| 17 S9 figure animation redone from the owner's SVGs | pending (owner, after 1-15) |
+| 18 the player's recorded voice is not audible in S9 | pending (owner, after 1-15) |
+
 ## Summary
 A full browser run of the experience (premise → boot → briefing → stages 1-3 → S8 log → interlude call → Find My → S9 → S10 → last screen) on `feat/playtest-pass`, mouse path only (camera and mic are blocked in the test browser). It found two real bugs that break the game (the last screen is invisible, the backup code drops digits), a few logic slips (two hints at once, stale objective, plural), and UX gaps that make key moments easy to miss. This plan fixes them in small, isolated changes.
 
@@ -248,6 +279,18 @@ No test runner in the project. Verification is `pnpm lint`, `pnpm build`, and a 
 ### Task 12: S10 case list readable
 - **IMPLEMENT**: `Login.tsx:72-81`: named constants `CASES_HOLD_MS = 7000`, `CASES_BLACK_MS = 8600` (now 4200 / 5800: rows take 1.8 s, leaving 2.4 s to read the payoff).
 - **VALIDATE**: ~5 s of full case list before the switch-off.
+
+### Task 13: Dim the windows behind
+- **IMPLEMENT**: in `Window.tsx`, a window that is not the top one gets `data-behind`; CSS `filter: brightness(.6) saturate(.8)` with a 200 ms transition. Focus (press) brings it back.
+- **VALIDATE**: stage 3 with six windows: only the front one is bright.
+
+### Task 14: S9 is the same building as the photos
+- **IMPLEMENT**: redraw the facade in `rive/story/window_across.wgsl` as the Harrow St terrace of IMG_0413/IMG_0418 and the wallpaper: dark brick, white-framed sash windows, porches and doors at street level, parapet and chimneys on the roofline, a lamp post, wet street. Keep the lit window contract (`LIT`, `HALF`) so `Reveal.tsx` (`ART`, `LIT`, `WIN`) and the figure layer still line up. Republish with `pnpm rive:publish:story` (needs `rive login`).
+- **VALIDATE**: S9 screenshots before/after side by side with IMG_0418.
+
+### Task 15: Find My like Apple's
+- **IMPLEMENT**: `views/Locate.tsx` + `locate.module.css`: macOS Find My layout, dark map drawn in SVG (street grid around Harrow St with names, building footprints, a park, labels), E.V.'s device pin with the pulsing accuracy ring, her home marked at 16, a sidebar list (Devices: "E.V.'s iPhone · 17 Harrow St · Now", "E.V.'s MacBook · this Mac"), the Play Sound / View live actions. Keep the dot drifting with the head and the existing actions and timings.
+- **VALIDATE**: screenshot next to the current one; Play sound and View live still work.
 
 ---
 
