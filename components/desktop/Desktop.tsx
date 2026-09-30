@@ -144,8 +144,8 @@ function useDirector() {
 
 const CLOSE_GAP_MS = 420;
 // The interlude: after the session log closes, how long until "View live" happens anyway.
-const LOCATE_NUDGE_MS = 30_000;
-const LOCATE_TIMEOUT_MS = 55_000;
+const LOCATE_NUDGE_MS = 40_000;
+const LOCATE_TIMEOUT_MS = 90_000;
 
 /**
  * The interlude after S8. When session_0418.log closes (by the user or by itself) the case

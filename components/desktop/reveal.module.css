@@ -18,13 +18,15 @@
   letter-spacing: 0.04em;
   color: var(--text);
   white-space: nowrap;
-  animation: lineIn 2.2s ease-out both;
+  animation: lineIn 0.4s ease-out both;
 }
-@keyframes lineIn {
-  0% { opacity: 0; }
-  12% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes lineIn { from { opacity: 0; } to { opacity: 1; } }
+/* an order, not a remark: brighter, a little larger */
+.line[data-order="true"] { font-size: 15px; letter-spacing: 0.08em; color: var(--accent); }
+/* the lines of the first beat can be skipped with a click or a key */
+.next {
+  position: absolute; left: 50%; bottom: calc(11vh - 28px); transform: translateX(-50%);
+  font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--muted); opacity: 0.5;
 }
 
 @media (prefers-reduced-motion: reduce) {

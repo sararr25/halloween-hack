@@ -14,7 +14,7 @@ struct Uniforms {
     corruption: f32,  // 0..1 block displacement + vertical smear
     figure: f32,      // 0..1 the figure's presence
     neon: f32,        // 0..1 cyan in the light
-    pad0: f32,
+    hand: f32,        // 0..1 the figure's hand, from out of sight to raised beside the head
     pad1: f32,
 };
 
@@ -61,6 +61,12 @@ fn smin(a: f32, b: f32, k: f32) -> f32 {
     let h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
     return mix(b, a, h) - k * h * (1.0 - h);
 }
+fn sdSegment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>, r: f32) -> f32 {
+    let pa = p - a;
+    let ba = b - a;
+    let h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h) - r;
+}
 fn cover(sd: f32, aa: f32) -> f32 {
     return 1.0 - smoothstep(-aa, aa, sd);
 }
@@ -89,7 +95,18 @@ fn litRoom(p: vec2<f32>, aa: f32) -> vec3<f32> {
     let shoulders = sdEllipse(p, vec2<f32>(bx, LIT.y + 58.0), vec2<f32>(50.0, 30.0));
     // trapezius: the slope from the neck down to each shoulder
     let traps = sdEllipse(p, vec2<f32>(mix(bx, hx, 0.3), LIT.y + 36.0), vec2<f32>(22.0, 12.0));
-    let fig = smin(smin(smin(head, neck, 4.0), traps, 6.0), shoulders, 8.0);
+    var fig = smin(smin(smin(head, neck, 4.0), traps, 6.0), shoulders, 8.0);
+    // the raised hand (E.V.'s voice note: "it raised its hand too"): an arm from the right
+    // shoulder, as in a mirror, up beside the head, palm out. Out of sight below at 0.
+    if (u.hand > 0.001) {
+        let shoulder = vec2<f32>(bx + 30.0, LIT.y + 44.0);
+        let palm = mix(vec2<f32>(bx + 36.0, LIT.y + 96.0), vec2<f32>(bx + 38.0, hy - 14.0), u.hand);
+        let elbow = mix(shoulder, palm, 0.5) + vec2<f32>(9.0 * u.hand, 4.0);
+        let arm = min(sdSegment(p, shoulder, elbow, 6.0), sdSegment(p, elbow, palm, 5.0));
+        let palmShape = smin(sdEllipse(p, palm - vec2<f32>(0.0, 3.0), vec2<f32>(6.5, 9.0)),
+                        sdSegment(p, palm + vec2<f32>(-5.0, 2.0), palm + vec2<f32>(-10.0, -3.0), 2.0), 2.0);
+        fig = smin(fig, smin(arm, palmShape, 3.0), 3.0);
+    }
     let soft = aa * 1.5 + 1.8;                  // diffused by the curtain and the glass
     let shape = cover(fig, soft) * u.figure;
     let rim = (cover(fig - 1.6, soft) - cover(fig, soft)) * u.figure * 0.1 * u.light;

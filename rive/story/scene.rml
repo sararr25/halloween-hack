@@ -17,6 +17,7 @@
           corruption    0..1 blocks and smears at the end
           figure        0..1 the figure's presence
           neon          0..1 cyan in the light
+          hand          0..1 the figure's hand, raised beside the head
     -->
 
     <!-- ============================== Scan ============================== -->
@@ -89,6 +90,7 @@
         <ViewModelPropertyNumber name="corruption" id="1:56"/>
         <ViewModelPropertyNumber name="figure" id="1:57"/>
         <ViewModelPropertyNumber name="neon" id="1:58"/>
+        <ViewModelPropertyNumber name="hand" id="1:59"/>
         <ViewModelInstance exports="true" name="Default" id="1:51">
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:52"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:53"/>
@@ -97,6 +99,7 @@
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:56"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:57"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:58"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:59"/>
         </ViewModelInstance>
     </ViewModel>
 

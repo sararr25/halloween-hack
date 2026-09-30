@@ -23,6 +23,11 @@
   color: var(--text);
   white-space: pre;
 }
+.presence { margin: 0; font-size: 11px; letter-spacing: 0.06em; color: var(--muted); transition: color 200ms; }
+.presence[data-waiting="true"] { color: var(--neon); }
+/* nobody there: the screen sinks, like a tube left on in an empty room */
+.screen[data-waiting="true"] .field { opacity: 0.45; animation: sag 2.4s steps(1) infinite; }
+@keyframes sag { 0%, 100% { opacity: 0.45; } 7% { opacity: 0.2; } 9% { opacity: 0.45; } 61% { opacity: 0.3; } 62% { opacity: 0.45; } }
 .hidden { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 
 /* the caret blinks while someone is there; when nobody is, it stops, lit, and waits */

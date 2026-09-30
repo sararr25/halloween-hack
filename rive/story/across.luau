@@ -1,5 +1,5 @@
 -- Runs window_across.wgsl over the artboard (S9). The host writes across/headX, headY
--- (the user's head, no lag), zoom, light, corruption, figure, neon.
+-- (the user's head, no lag), zoom, light, corruption, figure, neon, hand.
 type Across = {
     across: Input<Data.Across>?,
     canvas: GPUCanvas?,
@@ -67,6 +67,7 @@ function draw(self: Across, renderer: Renderer)
         buffer.writef32(d, 28, a.corruption.value)
         buffer.writef32(d, 32, a.figure.value)
         buffer.writef32(d, 36, a.neon.value)
+        buffer.writef32(d, 40, a.hand.value)
     end
     ubo:write(d)
 

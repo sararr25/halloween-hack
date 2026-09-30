@@ -352,12 +352,18 @@ export function playRoom(buffer: AudioBuffer) {
   const lp = e.ctx.createBiquadFilter();
   lp.type = "lowpass";
   lp.frequency.value = 3200;
+  // rooms are quiet: squash the dynamics so a breath or a chair is heard, then bring it up
+  const comp = e.ctx.createDynamicsCompressor();
+  comp.threshold.value = -42;
+  comp.ratio.value = 12;
+  comp.attack.value = 0.005;
+  comp.release.value = 0.2;
   const g = e.ctx.createGain();
   g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(1.6, now + 0.05); // rooms are quiet: bring it up
-  g.gain.setValueAtTime(1.6, now + buffer.duration - 0.15);
+  g.gain.linearRampToValueAtTime(3, now + 0.05);
+  g.gain.setValueAtTime(3, now + buffer.duration - 0.15);
   g.gain.linearRampToValueAtTime(0, now + buffer.duration);
-  src.connect(lp).connect(g).connect(e.master);
+  src.connect(lp).connect(comp).connect(g).connect(e.master);
   src.start(now);
 }
 

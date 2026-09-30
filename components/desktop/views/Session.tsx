@@ -16,10 +16,11 @@ gsap.registerPlugin(useGSAP);
 // S8 · session_0418.log: the first time the data is about the user, not E.V.
 // Left: the operator scan from S1, now live (the real face mesh every frame, or the guessed
 // head turning with the mouse). Right: a log that writes itself from real session data.
-// Looking away while it is open is written down at once. It closes itself after 20 s,
-// and closing it (either way) starts the interlude, then the reveal (useInterlude and
-// useReveal in Desktop.tsx).
-const CLOSE_AFTER_MS = 20_000;
+// Looking away while it is open is written down at once. The player closes it when they
+// have read it (the last line says so); only if they never do, it closes itself after a
+// minute. Closing it starts the interlude, then the reveal (useInterlude and useReveal in
+// Desktop.tsx).
+const CLOSE_AFTER_MS = 60_000;
 const LINE_EVERY_MS = 650;
 
 const row = (label: string, value: string) => `${label.padEnd(14, " ")}${value}`;
@@ -83,7 +84,7 @@ export default function Session() {
     row("last time", last ? `${duration(now - last)} ago` : "not yet"),
     row("active", duration(now - openedAt)),
   ];
-  const lines = [...facts, ...liveRows, ...asides];
+  const lines = [...facts, ...liveRows, ...asides, row("", "the operator may close this log.")];
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000);

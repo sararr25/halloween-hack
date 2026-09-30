@@ -9,7 +9,8 @@ import styles from "./login.module.css";
 
 // S10 · Login. An empty field and a caret. With the camera, the caret stops while the
 // user's face is gone and starts again when it comes back; without it, it stops when the
-// mouse has been still for 5 s. Nothing explains it. Enter → the case list, with the
+// mouse has been still for 5 s. One quiet line under the field says what it wants
+// ("stay in frame.") and, when nobody is there, that it noticed. Enter → the case list, with the
 // user's name on the open case, then the screen switches off like an old tube.
 // docs/desktop.md supersedes docs/scenes.md S10.
 const STILL_MS = 5000;
@@ -24,6 +25,7 @@ export default function Login() {
   const [waiting, setWaiting] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const screen = useRef<HTMLDivElement>(null);
+  const camera = tracker.state.source === "camera";
 
   // the caret waits for the face (camera) or for the hand (mouse)
   usePresenceEvent("change", (s) => {
@@ -86,7 +88,7 @@ export default function Login() {
     );
 
   return (
-    <div className={styles.screen} ref={screen}>
+    <div className={styles.screen} ref={screen} data-waiting={step === "login" && waiting}>
       {step === "login" ? (
         <form className={styles.form} onSubmit={submit} onClick={() => input.current?.focus()}>
           <p className={styles.brand}>RECOVERY/4</p>
@@ -111,6 +113,10 @@ export default function Login() {
               }}
             />
           </label>
+          {/* the one thing the screen asks: be seen. Away, it notices, and waits. */}
+          <p className={styles.presence} data-waiting={waiting}>
+            {waiting ? "operator absent · the case is waiting" : camera ? "stay in frame." : "stay with the screen."}
+          </p>
         </form>
       ) : (
         <ol className={styles.cases}>
