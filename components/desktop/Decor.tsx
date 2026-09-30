@@ -17,17 +17,10 @@ gsap.registerPlugin(useGSAP);
 // Desktop decor: things that make the "perfect life" feel observed. References in
 // lib/story/content.ts (Black Mirror, The Game, Memento). Everything here is invented.
 
-/** The Sign: an invented pictogram — an eye that is also a standing figure. */
+/** The Sign: a surveillance reticle; the cyan dot beside the centre is the one being watched
+ * (public/sign.png, source in assets/symbol.png). */
 export function SignGlyph({ size = 40, className }: { size?: number; className?: string }) {
-  return (
-    <svg viewBox="0 0 40 56" width={size} height={size * 1.4} className={className} aria-hidden="true">
-      <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-        <circle cx="20" cy="12" r="9" />
-        <circle cx="20" cy="12" r="2.4" fill="currentColor" stroke="none" />
-        <path d="M20 21 V52 M9 34 H31 M13 52 L20 44 L27 52" />
-      </g>
-    </svg>
-  );
+  return <Image src="/sign.png" alt="" width={size} height={size} className={className} aria-hidden="true" />;
 }
 
 // Places on the wallpaper, in % of the screen, away from the icon column.
@@ -71,7 +64,7 @@ export function TheSign() {
   const [x, y] = SIGN_SPOTS[spot];
   return (
     <div ref={el} className={styles.sign} style={{ left: `${x}%`, top: `${y}%`, opacity: near ? 0 : undefined }}>
-      <SignGlyph size={34} />
+      <SignGlyph size={46} />
     </div>
   );
 }

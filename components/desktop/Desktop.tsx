@@ -301,8 +301,8 @@ export default function Desktop() {
         <span className={styles.menuLeft}>
           <span className={styles.owner}>E.V.</span>
           <RecoveryMenu />
+          <Objective />
         </span>
-        <Objective />
         <span className={styles.menuRight}>
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
           <span className={stage === 3 && !state.calm ? styles.viewersNeon : undefined}>viewers {state.calm ? 1 : stage}</span>

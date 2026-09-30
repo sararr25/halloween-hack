@@ -28,6 +28,7 @@ const FACES: Record<string, string> = {
   Mara: "mara",
   "Ines Arden": "ines",
   Theo: "theo",
+  "R. Hale": "hale",
 };
 
 /** A contact's round avatar: their photo, or their initials. `className` sets the size. */

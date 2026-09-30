@@ -13,7 +13,7 @@ import styles from "./views.module.css";
 export function Invitation() {
   return (
     <article className={styles.letter}>
-      <SignGlyph size={30} className={styles.letterMark} />
+      <SignGlyph size={40} className={styles.letterMark} />
       <p className={styles.letterHead}>
         {INVITATION.company}
         <small>{INVITATION.tagline}</small>
