@@ -4,7 +4,7 @@
 // you."). Nothing is stored or sent, and nothing is transcribed: speech recognition in
 // the browser would send the audio to a server.
 
-import { audioEngine, isMuted } from "./sfx";
+import { audioEngine, isMuted, RAW_MIC } from "./sfx";
 
 let voice: AudioBuffer | null = null;
 
@@ -63,7 +63,7 @@ export async function recordVoice(ms: number, onLevel: (level: number) => void):
   if (!e || typeof MediaRecorder === "undefined") return null;
   let stream: MediaStream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_MIC });
   } catch {
     return null;
   }

@@ -320,12 +320,18 @@ export function lightSwitch() {
  * stays in memory, is played back once and dropped: nothing is stored or sent.
  * Resolves null without a microphone (never granted, or refused now).
  */
+/**
+ * The microphone as it is: echo cancellation and noise suppression treat a voice under the
+ * music as noise and pull it down; automatic gain lifts a quiet laptop microphone.
+ */
+export const RAW_MIC: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: true };
+
 export async function recordRoom(ms = 1200): Promise<AudioBuffer | null> {
   const e = engine;
   if (!e || typeof MediaRecorder === "undefined") return null;
   let stream: MediaStream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_MIC });
   } catch {
     return null;
   }
@@ -342,29 +348,66 @@ export async function recordRoom(ms = 1200): Promise<AudioBuffer | null> {
   return e.ctx.decodeAudioData(bytes);
 }
 
-/** Plays the room back, close and a little dull, as if from the other side of a wall. */
+/**
+ * A copy of a microphone recording brought up to a clear level: laptop microphones record
+ * quietly, and the player must hear themselves. The gain is capped, so a silent room
+ * becomes a hiss, not a roar.
+ */
+function loudened(ctx: BaseAudioContext, buffer: AudioBuffer, peak = 0.9, maxGain = 18): AudioBuffer {
+  let top = 0;
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const d = buffer.getChannelData(c);
+    for (let i = 0; i < d.length; i++) top = Math.max(top, Math.abs(d[i]));
+  }
+  const k = top > 0 ? Math.min(maxGain, peak / top) : 1;
+  const out = ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const src = buffer.getChannelData(c);
+    const dst = out.getChannelData(c);
+    for (let i = 0; i < src.length; i++) dst[i] = src[i] * k;
+  }
+  return out;
+}
+
+/**
+ * Plays a recording of the player back (their voice from the call, or the room), close and
+ * a little dull, as if from the other side of a wall, but clearly: the score is ducked
+ * underneath it (onDuck, lib/audio/music.ts) and it bypasses nothing but the master.
+ */
 export function playRoom(buffer: AudioBuffer) {
   const e = engine;
   if (!e || muted) return;
   const now = e.ctx.currentTime;
+  const clip = loudened(e.ctx, buffer);
+  duckListeners.forEach((fn) => fn(clip.duration + 0.6));
   const src = e.ctx.createBufferSource();
-  src.buffer = buffer;
+  src.buffer = clip;
+  const hp = e.ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 120;
   const lp = e.ctx.createBiquadFilter();
   lp.type = "lowpass";
-  lp.frequency.value = 3200;
-  // rooms are quiet: squash the dynamics so a breath or a chair is heard, then bring it up
+  lp.frequency.value = 4200;
+  // a gentle squash so a breath and a word sit at the same level
   const comp = e.ctx.createDynamicsCompressor();
-  comp.threshold.value = -42;
-  comp.ratio.value = 12;
+  comp.threshold.value = -26;
+  comp.ratio.value = 4;
   comp.attack.value = 0.005;
   comp.release.value = 0.2;
   const g = e.ctx.createGain();
   g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(3, now + 0.05);
-  g.gain.setValueAtTime(3, now + buffer.duration - 0.15);
-  g.gain.linearRampToValueAtTime(0, now + buffer.duration);
-  src.connect(lp).connect(comp).connect(g).connect(e.master);
+  g.gain.linearRampToValueAtTime(1.6, now + 0.05);
+  g.gain.setValueAtTime(1.6, now + clip.duration - 0.15);
+  g.gain.linearRampToValueAtTime(0, now + clip.duration);
+  src.connect(hp).connect(lp).connect(comp).connect(g).connect(e.master);
   src.start(now);
+}
+
+const duckListeners = new Set<(seconds: number) => void>();
+/** The score listens here, to step back while the player hears themselves. */
+export function onDuck(fn: (seconds: number) => void) {
+  duckListeners.add(fn);
+  return () => void duckListeners.delete(fn);
 }
 
 /** An old screen switching off: a falling whine, a static crackle, a low thump. */

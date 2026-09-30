@@ -6,7 +6,7 @@
 // The interlude and the login are silent. Changes glide; the code acceptance gets a riser.
 // Notes are scheduled a little ahead on the audio clock by a short timer.
 
-import { audioEngine, isMuted, subThud, type Engine } from "./sfx";
+import { audioEngine, isMuted, onDuck, subThud, type Engine } from "./sfx";
 
 export type MusicMode = "off" | "calm" | "suspense" | "reveal";
 
@@ -217,6 +217,20 @@ function start(e: Readonly<Engine>): Score {
   }, 120);
   return s;
 }
+
+// While the player hears their own voice (or their room) played back, the score steps
+// back to a whisper and returns after it.
+const DUCK_TO = 0.12;
+onDuck((seconds) => {
+  const e = audioEngine();
+  if (!e || !score) return;
+  const [calm, tense] = LEVEL[mode];
+  const now = e.ctx.currentTime;
+  score.calm.gain.setTargetAtTime(calm * DUCK_TO, now, 0.08);
+  score.tense.gain.setTargetAtTime(tense * DUCK_TO, now, 0.08);
+  score.calm.gain.setTargetAtTime(calm, now + seconds, 0.8);
+  score.tense.gain.setTargetAtTime(tense, now + seconds, 0.8);
+});
 
 /** Sets the layer; glides over a few seconds. Does nothing before audio is unlocked. */
 export function music(next: MusicMode) {
