@@ -57,6 +57,27 @@ const CLIPS = [
     text: "If you're hearing this, it arrived. I set it to arrive the minute someone opens my laptop. Not me. Someone. Look at when it came in. That minute is the only thing they couldn't choose for you. It opens the backup. And please, whoever you are... don't open the backup.",
   },
   {
+    // the live call in the interlude, part one: Mara, breathless, hopeful and scared
+    id: "mara-call-1",
+    voice: "aura-2-theia-en",
+    speed: 1.12,
+    text: "Ev? Ev, is that you? Oh my god. Your phone just came on. It says you're across the road, in 4A. In the empty flat. Ev, say something. Please. Just say something, so I know it's you.",
+  },
+  {
+    // part two, after the player spoke: that was not E.V.'s voice. The line dies mid-word
+    id: "mara-call-2",
+    voice: "aura-2-theia-en",
+    speed: 1.1,
+    text: "That's not your voice. That's not Ev. Who is this? Why have you got her phone? Who's there with h",
+  },
+  {
+    // part two, when nothing could be heard (no microphone): only breathing on the line
+    id: "mara-call-silent",
+    voice: "aura-2-theia-en",
+    speed: 1.08,
+    text: "Ev? I can't hear you. I can hear someone breathing. Ev, who's there? Who's there with y",
+  },
+  {
     // the unknown caller, part one: calm, low. The time is lost in the static (added live)
     id: "unknown-1",
     voice: "aura-2-draco-en",

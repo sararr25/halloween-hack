@@ -1,6 +1,8 @@
 # Handover
 
-> **2026-09-30 · improvement pass on `feat/playtest-pass`** (not on production yet). From the owner's first real playtests: 20 s case briefing, objective line, avatars (+ a chat and a voicemail from Mum), the new Sign, blink captures with four effects and stills kept in backup_you, searchlight flares every ~5 s from stage 2, "cover the camera" invitation, S9 in waiting beats ("don't move.", "raise your hand." with the figure's new raised hand, "that was your room."), explicit S10 presence line, procedural score (calm → suspense with a riser at the code), faster and more urgent voices + two new voicemails, fixed final screen. Details and status: `docs/roadmap.md`. Dev keys added: `Alt+I` briefing, `Alt+K` fake blink.
+> **2026-09-30 · improvement pass, merged to production.** Rounds 2 and 3 (hints, voice memo, CCTV feed, OS-style briefing, live call with the player's voice, reflection, tab title, PDF case file, the owner's silhouette in S9) are listed in `docs/roadmap.md`.
+>
+> First pass: From the owner's first real playtests: 20 s case briefing, objective line, avatars (+ a chat and a voicemail from Mum), the new Sign, blink captures with four effects and stills kept in backup_you, searchlight flares every ~5 s from stage 2, "cover the camera" invitation, S9 in waiting beats ("don't move.", "raise your hand." with the figure's new raised hand, "that was your room."), explicit S10 presence line, procedural score (calm → suspense with a riser at the code), faster and more urgent voices + two new voicemails, fixed final screen. Details and status: `docs/roadmap.md`. Dev keys added: `Alt+I` briefing, `Alt+K` fake blink.
 
 Status as of 2026-09-29 (night, 3) · live at **https://halloween-hack.vercel.app** · work on `claude/youthful-pascal-m6eofy`, fast-forwarded into the default branch `claude/epic-hopper-x8tj3e` (Vercel production).
 

@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import gsap from "gsap";
 import { key, tubeOff } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
+import { downloadCaseFile } from "@/lib/story/casefile";
 import { crtOff } from "@/lib/story/glitch";
+import { useStory } from "@/lib/story/store";
 import { SignGlyph } from "./Decor";
 import styles from "./login.module.css";
 
@@ -20,6 +22,7 @@ export const CASE_KEY = "recovery.case0418";
 type Step = "login" | "cases" | "off" | "credits";
 
 export default function Login() {
+  const { state } = useStory();
   const { tracker } = usePresence();
   const [name, setName] = useState("");
   const [step, setStep] = useState<Step>("login");
@@ -86,6 +89,29 @@ export default function Login() {
     return () => clearTimeout(credits);
   }, [step]);
 
+  const [saving, setSaving] = useState(false);
+  const download = async () => {
+    const { openedAt, session, clues, wrongCodes, interruptions, blinks } = state;
+    setSaving(true);
+    try {
+      await downloadCaseFile({
+        name: name.trim(),
+        openedAt,
+        closedAt: Date.now(),
+        camera: session.camera,
+        verifiedAt: session.verifiedAt,
+        figureMs: clues.photo_figure ?? null,
+        backupMs: clues.backup_open ?? null,
+        wrongCodes,
+        lookedAway: interruptions.length,
+        blinks,
+        call: "call_answered" in clues ? "answered" : "call_declined" in clues ? "declined" : "call_missed" in clues ? "missed" : null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (step === "off") return <div className={styles.black} />;
   if (step === "credits")
     return (
@@ -93,6 +119,10 @@ export default function Login() {
         <div className={styles.end}>
           <SignGlyph size={56} />
           <p className={styles.credits}>No frames or audio left your device.</p>
+          {/* the keepsake: the session as a case file, made here (lib/story/casefile.ts) */}
+          <button className={styles.download} onClick={download} disabled={saving}>
+            {saving ? "writing case file…" : "download case file 0418"}
+          </button>
         </div>
       </div>
     );

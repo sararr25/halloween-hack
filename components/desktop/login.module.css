@@ -50,6 +50,14 @@
 
 .black { position: fixed; inset: 0; background: #000; display: grid; place-items: center; }
 .end { display: grid; justify-items: center; gap: 22px; animation: fadeIn 2.4s ease-out both; }
+.download {
+  margin-top: 6px; padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.35);
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--neon); transition: border-color 150ms, background 150ms;
+  animation: fadeIn 2.4s ease-out 2s both;
+}
+.download:hover { border-color: var(--neon); background: rgba(0, 240, 255, 0.06); }
+.download:disabled { opacity: 0.5; cursor: progress; }
 .credits {
   margin: 0;
   font-family: var(--font-mono), monospace;

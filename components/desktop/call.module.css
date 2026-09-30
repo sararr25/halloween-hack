@@ -1,0 +1,48 @@
+/* The live call in the interlude: a glass banner at the top, like a phone call on a laptop. */
+
+.call {
+  position: absolute; top: 44px; left: 50%; transform: translateX(-50%); z-index: 2500;
+  width: min(420px, calc(100vw - 32px));
+  display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center;
+  padding: 12px 14px; border-radius: 14px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), transparent 40%), rgba(11, 14, 21, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 30px 70px -20px rgba(0, 0, 0, 0.9);
+}
+.face { width: 44px; height: 44px; display: block; border-radius: 50%; }
+.face img { width: 100%; height: 100%; }
+.ringing .face { animation: ringPulse 1.5s ease-out infinite; }
+@keyframes ringPulse {
+  0% { box-shadow: 0 0 0 0 rgba(238, 240, 244, 0.35); }
+  100% { box-shadow: 0 0 0 14px rgba(238, 240, 244, 0); }
+}
+
+.who { display: grid; gap: 2px; }
+.who b { font-weight: 500; font-size: 14px; color: var(--text); }
+.who small { font-family: var(--font-mono), monospace; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.actions { display: flex; gap: 8px; }
+.actions button {
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); color: var(--text);
+  transition: border-color 120ms, background 120ms;
+}
+.decline { color: var(--muted); }
+.decline:hover { border-color: rgba(255, 255, 255, 0.3); }
+.accept { background: rgba(238, 240, 244, 0.1); }
+.accept:hover { background: rgba(238, 240, 244, 0.18); border-color: var(--accent); }
+
+/* the laptop listening: the one neon thing, because it knows about you */
+.listen { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.listen small { font-family: var(--font-mono), monospace; font-size: 11px; color: var(--neon); }
+.meter { display: flex; align-items: center; gap: 3px; height: 26px; }
+.meter i {
+  width: 3px; border-radius: 2px; background: var(--neon);
+  height: calc(3px + var(--level) * 22px * (1 - var(--i) * 0.04));
+  opacity: calc(0.35 + var(--level));
+  transition: height 60ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringing .face { animation: none; }
+}

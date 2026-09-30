@@ -16,6 +16,7 @@ import Login, { CASE_KEY } from "./Login";
 import Reveal from "./Reveal";
 import FullscreenToggle from "./FullscreenToggle";
 import SoundToggle from "./SoundToggle";
+import TabWatch from "./TabWatch";
 import styles from "./desktop.module.css";
 
 // Overlay intensity per stage (HANDOVER stage table: low / medium / high).
@@ -310,6 +311,7 @@ export default function Experience() {
       <PresenceProvider>
         <Phases />
         <Interruptions />
+        <TabWatch />
         <Overlay />
         <FloatingSound />
       </PresenceProvider>

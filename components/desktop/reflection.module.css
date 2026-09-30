@@ -1,0 +1,22 @@
+/* The black mirror: a dark screen, the player faint in the glass, a sheen of glare. */
+
+.mirror {
+  position: fixed; inset: 0; z-index: 3500; pointer-events: none; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 45%, #0b0e14 0%, #030406 70%);
+}
+.you {
+  position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover;
+  filter: grayscale(1) blur(5px) contrast(1.4) brightness(0.9);
+  opacity: 0.2; mix-blend-mode: screen;
+}
+/* the glass: a soft diagonal sheen that drifts, and a faint line of reflected light */
+.glare {
+  position: absolute; inset: -20%;
+  background:
+    linear-gradient(115deg, transparent 38%, rgba(216, 220, 229, 0.07) 46%, rgba(216, 220, 229, 0.02) 52%, transparent 60%),
+    linear-gradient(115deg, transparent 63%, rgba(216, 220, 229, 0.035) 64%, transparent 66%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .you { filter: grayscale(1) blur(8px); }
+}

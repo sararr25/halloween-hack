@@ -18,7 +18,20 @@ export type RecordingId =
 
 export type Playback = { stop: () => void };
 
-type Clip = "ev-voicemail" | "ev-forlater" | "mara-1" | "mara-2" | "mara-3" | "mum" | "unknown-1" | "unknown-2" | "ev-voicenote";
+type Clip =
+  | "ev-voicemail"
+  | "ev-forlater"
+  | "mara-1"
+  | "mara-2"
+  | "mara-3"
+  | "mum"
+  | "unknown-1"
+  | "unknown-2"
+  | "ev-voicenote"
+  | CallLine;
+
+/** Mara on the live call in the interlude (IncomingCall.tsx). */
+export type CallLine = "mara-call-1" | "mara-call-2" | "mara-call-silent";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -233,9 +246,13 @@ export function playRecording(id: RecordingId): Playback | null {
     }
   }
 
+  return stopper(nodes, () => (stopped = true));
+}
+
+function stopper(nodes: AudioScheduledSourceNode[], mark: () => void): Playback {
   return {
     stop: () => {
-      stopped = true;
+      mark();
       nodes.forEach((n) => {
         try {
           n.stop();
@@ -245,4 +262,35 @@ export function playRecording(id: RecordingId): Playback | null {
       });
     },
   };
+}
+
+/**
+ * One line of Mara on the live call, through the phone, with the street around her.
+ * `done` resolves when she stops talking. `cut`: the line goes dead a moment before the
+ * end of the clip, mid-word, with a click. Null when audio is locked or muted.
+ */
+export function playCallLine(name: CallLine, { cut = false } = {}): (Playback & { done: Promise<void> }) | null {
+  const e = audioEngine();
+  if (!e || isMuted()) return null;
+  const nodes: AudioScheduledSourceNode[] = [];
+  let stopped = false;
+  const done = clip(e, name).then((buf) => {
+    if (stopped) return;
+    const now = e.ctx.currentTime + 0.05;
+    const len = cut ? buf.duration - 0.18 : buf.duration + 0.4;
+    nodes.push(bed(e, now, now + len, "highpass", 3000, 0.018));
+    nodes.push(bed(e, now, now + len, "lowpass", 520, 0.06)); // the street, outside 4A
+    nodes.push(breath(e, now + 0.05, 0.5, true));
+    const v = voice(e, name, now, { at: 0.2, gain: 1, phone: true, cut: cut ? buf.duration - 0.38 : undefined }, nodes);
+    return v.then(
+      () =>
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            if (cut) noiseBurst(e as Engine, e.ctx.currentTime, 0.03, 1500, 1.5, 0.12); // the line dies
+            resolve();
+          }, (len + 0.2) * 1000),
+        ),
+    );
+  });
+  return { ...stopper(nodes, () => (stopped = true)), done };
 }

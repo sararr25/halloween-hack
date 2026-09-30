@@ -102,4 +102,11 @@ After the above: read the Contra challenge rules (deadline, format, what to subm
 - [x] Fewer glitches from stage 2 (visual every 7-12 s at stage 2, 4-8 s at stage 3).
 - [x] Photos listed oldest first: IMG_0418 is near the end, not top left.
 - [x] Briefing redone in the OS language: one glass window, the case file typed row by row, E.V.'s badge and last photo, a serif line, the objective.
-- [ ] S9 figure: two AI images from the owner (`assets/figure_still.png`, `assets/figure_hand.png`, prompts in `docs/image-prompts.md`), drawn in Rive and moved with the head, replacing the SDF bust.
+- [x] S9 figure: the owner's vector silhouettes (`assets/hand down.svg`, `assets/hand up.svg`) rasterised without their white background; the raised arm is cut out of `hand up` (`public/figure/body.webp`, `arm.webp`). A DOM layer over the lit window (same camera maths as `window_across.wgsl`) moves them with the head; the arm rises from behind the shoulder instead of cross-fading. The shader's SDF bust is left at `figure = 0`.
+
+## Round 3 (2026-09-30)
+
+- [x] Live call from Mara in the interlude (`IncomingCall.tsx`, `lib/audio/call.ts`): ringtone, Accept/Decline, Mara asks the player to speak, 4.5 s of the microphone are recorded (memory only, meter shown), she hears a voice that is not Ev's and the line dies. The recording comes back in S9: "she heard you." Find My opens after the call.
+- [x] The reflection (`Reflection.tsx`): 16 s into stage 3 the screen goes dark like a monitor and the player is faintly reflected in it (webcam, mirrored, blurred, grey), 3 s, once.
+- [x] The tab watches (`TabWatch.tsx`): away, the title is "● REC · operator away" and the icon the Sign; back on the desktop, "you left at HH:MM. we didn't." (twice at most).
+- [x] Case file keepsake (`lib/story/casefile.ts`): "download case file 0418" on the last screen makes a one-page A4 PDF in the browser, in the project's look (V logo, serif title, session facts, E.V.'s badge, Sign watermark, cyan corners, grain). No library, no server.

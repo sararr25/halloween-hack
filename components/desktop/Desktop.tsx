@@ -8,6 +8,8 @@ import { useStory, type AppId } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
 import BlinkCapture from "./BlinkCapture";
+import IncomingCall, { CALL_EVENT } from "./IncomingCall";
+import Reflection from "./Reflection";
 import { Blackout, CalendarWidget, Crack, Polaroid, TheSign, Wallpaper } from "./Decor";
 import Notices from "./Notices";
 import FullscreenToggle from "./FullscreenToggle";
@@ -199,16 +201,27 @@ function useInterlude() {
       }),
       at(3200, () => dispatch({ type: "notify", from: "system", text: "case reopened · E.V. · new signal" })),
       at(6500, () => dispatch({ type: "notify", from: "mara", text: "ev?? your phone just came on" })),
-      at(11000, () => dispatch({ type: "notify", from: "mara", text: "it says you're in 4A. across the road. the empty one" })),
-      at(15500, () => {
-        dispatch({ type: "notify", from: "system", text: "Find My · E.V.'s iPhone is online" });
-        dispatch({ type: "open", id: "locate" });
-      }),
-      at(15500 + LOCATE_NUDGE_MS, () => dispatch({ type: "notify", from: "anon", text: "…go on. look." })),
-      at(15500 + LOCATE_TIMEOUT_MS, () => dispatch({ type: "clue", id: "look_live" })),
+      // she calls it, live (IncomingCall.tsx); Find My waits for the call to end
+      at(9500, () => window.dispatchEvent(new Event(CALL_EVENT))),
     ];
     return () => timers.forEach(clearTimeout);
   }, [sessionOpen, dispatch]);
+
+  const called = "call_done" in state.clues;
+  useEffect(() => {
+    if (!called) return;
+    const at = (ms: number, run: () => void) => setTimeout(run, ms);
+    const timers = [
+      at(1500, () => dispatch({ type: "notify", from: "mara", text: "it says you're in 4A. across the road. the empty one" })),
+      at(5000, () => {
+        dispatch({ type: "notify", from: "system", text: "Find My · E.V.'s iPhone is online" });
+        dispatch({ type: "open", id: "locate" });
+      }),
+      at(5000 + LOCATE_NUDGE_MS, () => dispatch({ type: "notify", from: "anon", text: "…go on. look." })),
+      at(5000 + LOCATE_TIMEOUT_MS, () => dispatch({ type: "clue", id: "look_live" })),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [called, dispatch]);
 }
 
 /**
@@ -381,7 +394,9 @@ export default function Desktop() {
       ))}
 
       <Notices />
+      <IncomingCall />
       <BlinkCapture />
+      <Reflection />
       <Blackout />
       <Crack />
     </div>

@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { glitchSound, key, lightSwitch, playRoom, recordRoom, staticSwell, subThud, tapeWarble } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { acrossRive, useMountedRive } from "@/lib/rive/persistent";
+import { callVoice } from "@/lib/audio/call";
 import LiveFeed from "./LiveFeed";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
@@ -28,6 +29,10 @@ const LINE_MAX_MS = 4200;
 const HAND_WAIT_MS = 10_000;
 const ROOM_MS = 3000;
 const FEED_MS = 8000;
+// The Across artboard and its lit window, in scene units (keep in sync with window_across.wgsl).
+const ART = { w: 1280, h: 800 };
+const LIT = { x: 640, y: 380 };
+const WIN = { w: 96, h: 124 };
 
 export default function Reveal() {
   const { state, dispatch } = useStory();
@@ -44,11 +49,14 @@ export default function Reveal() {
   useMountedRive(host, acrossRive);
 
   // Once the figure is there it is the user: no smoothing, no delay.
+  const head = useRef({ x: 0, y: 0 });
   usePresenceEvent("change", (s) => {
     if (!following.current) return;
-    acrossRive().set("headX", s.headX);
-    acrossRive().set("headY", s.headY);
+    head.current = { x: s.headX, y: s.headY };
   });
+  const win = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const arm = useRef<HTMLImageElement>(null);
   usePresenceEvent("gesture", (g) => {
     if (g === "palm") palm.current?.();
   });
@@ -81,12 +89,48 @@ export default function Reveal() {
     const a = acrossRive();
     const v = { zoom: 0, light: 0, figure: 0, corruption: 0, hand: 0 };
     // a fixed list: GSAP adds its own bookkeeping key to the tweened object
-    const KEYS = ["zoom", "light", "figure", "corruption", "hand"] as const;
+    const KEYS = ["zoom", "light", "corruption"] as const;
     const write = () => KEYS.forEach((k) => a.set(k, v[k]));
     write();
     a.set("neon", 0.6);
-    a.set("headX", 0);
-    a.set("headY", 0);
+    // the shader's own bust stays off: the figure is the photographic layer below (Figure)
+    a.set("figure", 0);
+    a.set("hand", 0);
+
+    // Keep the figure layer glued to the lit window as the camera pushes in. Same maths as
+    // window_across.wgsl: the artboard (1280 x 800) covers the screen, the zoom scales the
+    // scene around the lit window.
+    let raf = 0;
+    const place = () => {
+      raf = requestAnimationFrame(place);
+      const el = win.current;
+      if (!el) return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const sc = Math.max(vw / ART.w, vh / ART.h);
+      const ox = (vw - ART.w * sc) / 2;
+      const oy = (vh - ART.h * sc) / 2;
+      const z = 1 + 4.2 * v.zoom * v.zoom;
+      const x0 = LIT.x + (LIT.x - WIN.w / 2 - LIT.x) * z;
+      const y0 = LIT.y + (LIT.y - WIN.h / 2 - LIT.y) * z;
+      el.style.transform = `translate(${ox + x0 * sc}px, ${oy + y0 * sc}px) scale(${z * sc})`;
+      el.style.opacity = String(Math.min(v.light, 1 - v.corruption));
+      const b = body.current;
+      if (b) {
+        const { x, y } = head.current;
+        // the head sits where the player's is; the body leans a little into the turn
+        b.style.transform = `translate(${x * 20}px, ${y * 9}px) rotate(${x * 3}deg)`;
+        b.style.opacity = String(v.figure);
+      }
+      const h = arm.current;
+      if (h) {
+        // the hand comes up from behind the shoulder, as in the owner's reference
+        const d = 1 - v.hand;
+        h.style.transform = `translateY(${d * 55}%) rotate(${d * 16}deg)`;
+        h.style.opacity = String(Math.min(1, v.hand * 3));
+      }
+    };
+    raf = requestAnimationFrame(place);
     const tweens: gsap.core.Tween[] = [];
     const to = (vars: Partial<typeof v>, dur: number, ease = "power1.inOut") =>
       tweens.push(gsap.to(v, { ...vars, duration: dur, ease, onUpdate: write }));
@@ -138,8 +182,7 @@ export default function Reveal() {
       // 2 · someone steps into the light, and from now on moves as the user moves
       if (!alive) return;
       following.current = true;
-      a.set("headX", tracker.state.headX);
-      a.set("headY", tracker.state.headY);
+      head.current = { x: tracker.state.headX, y: tracker.state.headY };
       to({ figure: 1 }, 1.4, "power2.out");
       to({ zoom: 0.9 }, 10);
       subThud(0.5);
@@ -168,11 +211,24 @@ export default function Reveal() {
       say(null);
       await sleep(1400);
 
-      // 4 · the room, recorded in silence, then played back
-      // only with the microphone granted in S1: asking again here would break the scene
-      const room = state.session.mic === "granted" ? await recordRoom(ROOM_MS) : (await sleep(ROOM_MS), null);
+      // 4 · what was heard. If the player spoke to Mara on the phone (IncomingCall), their own
+      // voice comes back. Otherwise the room, recorded in silence, then played back; only
+      // with the microphone granted in S1: asking again here would break the scene.
+      const spoken = callVoice();
+      if (spoken) {
+        say("she heard you.", { order: true });
+        playRoom(spoken);
+        await sleep(spoken.duration * 1000 + 1400);
+      }
+      const room = spoken
+        ? null
+        : state.session.mic === "granted"
+          ? await recordRoom(ROOM_MS)
+          : (await sleep(ROOM_MS), null);
       if (!alive) return;
-      if (room) {
+      if (spoken) {
+        // already heard: the player's own voice, on the phone to her
+      } else if (room) {
         say("that was your room.", { order: true });
         playRoom(room);
         await sleep(room.duration * 1000 + 1200);
@@ -207,6 +263,7 @@ export default function Reveal() {
       palm.current = null;
       timers.forEach(clearTimeout);
       tweens.forEach((t) => t.kill());
+      cancelAnimationFrame(raf);
       following.current = false;
     };
     // runs once for the whole scene
@@ -216,6 +273,19 @@ export default function Reveal() {
   return (
     <div className={styles.reveal}>
       <div ref={host} className={styles.scene} data-black={black || feed !== "off"} />
+      {/* the figure behind the lit window: a photographic silhouette (public/figure, from
+          the owner's drawings) with the curtain and the window bars in front of it.
+          Everything inside is in scene units; `place` scales it with the camera. */}
+      <div ref={win} className={styles.window} data-black={black || feed !== "off"} aria-hidden="true">
+        <div ref={body} className={styles.figure}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- scaled every frame by transform, no optimisation wanted */}
+          <img ref={arm} className={styles.arm} src="/figure/arm.webp" alt="" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className={styles.body} src="/figure/body.webp" alt="" />
+        </div>
+        <i className={styles.curtain} />
+        <i className={styles.bars} />
+      </div>
       {feed !== "off" && !black && (
         <div className={styles.feedWrap} data-cut={feed === "cut"}>
           <LiveFeed />
