@@ -65,3 +65,6 @@
   color: var(--muted); opacity: 0.6; transition: opacity 120ms, color 120ms;
 }
 .skip:hover { opacity: 1; color: var(--text); }
+
+/* the Sign, for the length of the flicker, over the black */
+.sign { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0.9; }

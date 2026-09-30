@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { key, tubeOff } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { crtOff } from "@/lib/story/glitch";
+import { SignGlyph } from "./Decor";
 import styles from "./login.module.css";
 
 // S10 · Login. An empty field and a caret. With the camera, the caret stops while the
@@ -75,15 +76,24 @@ export default function Login() {
       setStep("off");
       crtOff(0);
     }, 5800);
-    const credits = setTimeout(() => setStep("credits"), 8000);
-    return () => [off, black, credits].forEach(clearTimeout);
+    return () => [off, black].forEach(clearTimeout);
+  }, [step]);
+
+  // its own effect: the one above is cleaned up the moment the step becomes "off"
+  useEffect(() => {
+    if (step !== "off") return;
+    const credits = setTimeout(() => setStep("credits"), 2200);
+    return () => clearTimeout(credits);
   }, [step]);
 
   if (step === "off") return <div className={styles.black} />;
   if (step === "credits")
     return (
       <div className={styles.black}>
-        <p className={styles.credits}>No frames or audio left your device.</p>
+        <div className={styles.end}>
+          <SignGlyph size={56} />
+          <p className={styles.credits}>No frames or audio left your device.</p>
+        </div>
       </div>
     );
 

@@ -49,6 +49,7 @@
 .open { color: var(--neon); text-shadow: 0 0 10px rgba(0, 240, 255, 0.45); }
 
 .black { position: fixed; inset: 0; background: #000; display: grid; place-items: center; }
+.end { display: grid; justify-items: center; gap: 22px; animation: fadeIn 2.4s ease-out both; }
 .credits {
   margin: 0;
   font-family: var(--font-mono), monospace;

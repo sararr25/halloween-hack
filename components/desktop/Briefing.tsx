@@ -8,13 +8,15 @@ import { key, staticSwell, subThud } from "@/lib/audio/sfx";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
+import { SignGlyph } from "./Decor";
 import styles from "./briefing.module.css";
 
 gsap.registerPlugin(useGSAP);
 
 // The case briefing, between the scan (S1) and the desktop: who E.V. is, who the player is
 // meant to be, what to do. Under 20 s, skippable. The last frame plants the twist without
-// saying it: for an instant the recording light is on the operator, not on her.
+// saying it: for an instant the Sign fills the black and the recording light is on the
+// operator, not on her.
 // Card timings are seconds from the start; the phase change runs on a timer, not on the
 // timeline, so a throttled tab still reaches the desktop.
 const CARDS = [0, 4.4, 8.8, 13.2];
@@ -155,9 +157,12 @@ export default function Briefing() {
       )}
 
       {flicker && (
-        <p className={styles.rec} aria-hidden="true">
-          ● REC · operator · {clock(state.openedAt, true)}
-        </p>
+        <>
+          <SignGlyph size={140} className={styles.sign} />
+          <p className={styles.rec} aria-hidden="true">
+            ● REC · operator · {clock(state.openedAt, true)}
+          </p>
+        </>
       )}
 
       <button className={styles.skip} onClick={done}>
