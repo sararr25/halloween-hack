@@ -6,11 +6,18 @@
 
 import { audioEngine, isMuted, noiseBurst, type Engine } from "./sfx";
 
-export type RecordingId = "ev-voicemail" | "mara-voicemail" | "mara-voicemail-2" | "unknown-voicemail" | "ev-voicenote";
+export type RecordingId =
+  | "ev-voicemail"
+  | "mara-voicemail"
+  | "mara-voicemail-2"
+  | "mara-voicemail-3"
+  | "mum-voicemail"
+  | "unknown-voicemail"
+  | "ev-voicenote";
 
 export type Playback = { stop: () => void };
 
-type Clip = "ev-voicemail" | "mara-1" | "mara-2" | "unknown-1" | "unknown-2" | "ev-voicenote";
+type Clip = "ev-voicemail" | "mara-1" | "mara-2" | "mara-3" | "mum" | "unknown-1" | "unknown-2" | "ev-voicenote";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -111,7 +118,8 @@ function clip(e: Readonly<Engine>, name: Clip): Promise<AudioBuffer> {
   return p;
 }
 
-type Voice = { at: number; gain: number; phone: boolean; rate?: number };
+/** `cut`: seconds into the clip where the line goes dead, mid-word. */
+type Voice = { at: number; gain: number; phone: boolean; rate?: number; cut?: number };
 
 /** A voice file placed on the timeline, through a phone line (band-limited) or close to the mic. */
 function voice(e: Readonly<Engine>, name: Clip, start: number, v: Voice, nodes: AudioScheduledSourceNode[]) {
@@ -129,6 +137,7 @@ function voice(e: Readonly<Engine>, name: Clip, start: number, v: Voice, nodes: 
     g.gain.value = v.gain;
     src.connect(hp).connect(lp).connect(g).connect(e.master);
     src.start(start + v.at);
+    if (v.cut) src.stop(start + v.at + v.cut);
     nodes.push(src);
   });
 }
@@ -169,19 +178,34 @@ export function playRecording(id: RecordingId): Playback | null {
       break;
     }
     case "mara-voicemail": {
-      // 0:12 · Mara, five days ago, near midnight
+      // 0:12 · Mara, five days ago, near midnight, worried sick
       line(12);
       nodes.push(bed(e, now, now + 12, "lowpass", 300, 0.03));
       add(voice(e, "mara-1", now, { at: 1.1, gain: 1, phone: true }, nodes));
       break;
     }
     case "mara-voicemail-2": {
-      // 0:17 · Mara outside E.V.'s flat at 02:40: wind and the street around her
-      line(17);
-      nodes.push(bed(e, now, now + 17, "lowpass", 520, 0.08));
+      // 0:18 · Mara outside E.V.'s flat at 02:40: wind and the street around her
+      line(18);
+      nodes.push(bed(e, now, now + 18, "lowpass", 520, 0.08));
       nodes.push(breath(e, now + 0.2, 0.7, true));
       nodes.push(carPass(e, now + 5.5, 5));
       add(voice(e, "mara-2", now, { at: 0.9, gain: 1, phone: true }, nodes));
+      break;
+    }
+    case "mara-voicemail-3": {
+      // 0:12 · Mara inside E.V.'s flat, yesterday, breathing hard; the line dies mid-word
+      line(12.2);
+      nodes.push(bed(e, now, now + 12.2, "lowpass", 300, 0.05));
+      nodes.push(breath(e, now + 0.1, 0.5, true));
+      add(voice(e, "mara-3", now, { at: 0.5, gain: 1, phone: true, cut: 11.5 }, nodes));
+      break;
+    }
+    case "mum-voicemail": {
+      // 0:19 · Mum, four days ago, at home late at night: a quiet kitchen
+      line(19.2);
+      nodes.push(bed(e, now, now + 19.2, "lowpass", 180, 0.04));
+      add(voice(e, "mum", now, { at: 1.0, gain: 1, phone: true }, nodes));
       break;
     }
     case "unknown-voicemail": {
