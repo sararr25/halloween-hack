@@ -1,0 +1,41 @@
+/* Blink captures: one effect at a time, above the desktop, never clickable. */
+
+.layer { position: fixed; inset: 0; z-index: 3000; pointer-events: none; }
+
+/* the screen blinks with you */
+.shutter { position: absolute; inset: 0; background: #000; }
+
+/* your face, filed away */
+.still {
+  position: absolute; right: 28px; bottom: 28px;
+  display: grid; gap: 6px; padding: 8px 8px 7px;
+  background: rgba(6, 8, 13, 0.92); border: 1px solid rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.18);
+}
+.still img { display: block; width: 192px; height: 144px; image-rendering: pixelated; }
+.still span, .viewfinder span, .drainLabel {
+  font-family: var(--font-mono), monospace; font-size: 10.5px; letter-spacing: 0.06em; color: var(--neon);
+  white-space: nowrap;
+}
+
+/* corner marks lock onto the whole screen, the Sign in the middle */
+.viewfinder { position: absolute; inset: 22px; animation: lock 900ms steps(1) both; }
+.viewfinder i { position: absolute; width: 38px; height: 38px; border: 0 solid var(--neon); }
+.viewfinder i:nth-child(1) { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.viewfinder i:nth-child(2) { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.viewfinder i:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.viewfinder i:nth-child(4) { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+.viewfinder span { position: absolute; top: 12px; left: 52px; }
+.reticle { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0.85; }
+@keyframes lock {
+  0% { inset: 70px; opacity: 0; }
+  12% { inset: 22px; opacity: 1; }
+  24% { opacity: 0.3; }
+  34% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* the colour drains out of the world for an instant */
+:global(body[data-blink="drain"]) [data-glitch] { filter: grayscale(1) contrast(1.6) brightness(0.75); }
+.drainLabel { position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); }

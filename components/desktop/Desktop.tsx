@@ -7,6 +7,7 @@ import { blackout, glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
+import BlinkCapture from "./BlinkCapture";
 import { Blackout, CalendarWidget, Crack, Polaroid, TheSign, Wallpaper } from "./Decor";
 import Notices from "./Notices";
 import FullscreenToggle from "./FullscreenToggle";
@@ -307,6 +308,9 @@ export default function Desktop() {
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
           <span className={stage === 3 && !state.calm ? styles.viewersNeon : undefined}>viewers {state.calm ? 1 : stage}</span>
           {stage >= 2 && <span className={styles.rec}>● REC</span>}
+          {state.frames.length > 0 && !state.calm && (
+            <span className={stage === 3 ? styles.viewersNeon : undefined}>frames {state.frames.length}</span>
+          )}
           <FullscreenToggle className={styles.soundMenu} />
           <SoundToggle className={styles.soundMenu} />
           <span>71%</span>
@@ -335,6 +339,7 @@ export default function Desktop() {
       ))}
 
       <Notices />
+      <BlinkCapture />
       <Blackout />
       <Crack />
     </div>

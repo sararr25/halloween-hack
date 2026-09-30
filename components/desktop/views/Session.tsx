@@ -27,7 +27,7 @@ const row = (label: string, value: string) => `${label.padEnd(14, " ")}${value}`
 export default function Session() {
   const { state, dispatch } = useStory();
   const { tracker } = usePresence();
-  const { openedAt, session, clues, wrongCodes, interruptions } = state;
+  const { openedAt, session, clues, wrongCodes, interruptions, frames } = state;
   const root = useRef<HTMLDivElement>(null);
   const scanHost = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -79,6 +79,7 @@ export default function Session() {
   const last = interruptions.at(-1);
   const liveRows = [
     row("looked away", `${interruptions.length} ${interruptions.length === 1 ? "time" : "times"}`),
+    ...(frames.length ? [row("blinks kept", `${frames.length} · backup_you/you`)] : []),
     row("last time", last ? `${duration(now - last)} ago` : "not yet"),
     row("active", duration(now - openedAt)),
   ];

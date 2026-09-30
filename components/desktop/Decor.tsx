@@ -20,7 +20,8 @@ gsap.registerPlugin(useGSAP);
 /** The Sign: a surveillance reticle; the cyan dot beside the centre is the one being watched
  * (public/sign.png, source in assets/symbol.png). */
 export function SignGlyph({ size = 40, className }: { size?: number; className?: string }) {
-  return <Image src="/sign.png" alt="" width={size} height={size} className={className} aria-hidden="true" />;
+  // unoptimised: one small file, the same URL everywhere, already cached when a blink needs it
+  return <Image src="/sign.png" alt="" width={size} height={size} className={className} aria-hidden="true" unoptimized />;
 }
 
 // Places on the wallpaper, in % of the screen, away from the icon column.

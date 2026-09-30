@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { BACKUP_README } from "@/lib/story/content";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
@@ -72,6 +73,22 @@ export default function Backup() {
             </span>
           </li>
         </ul>
+        {state.frames.length > 0 && (
+          // every blink since stage 2, filed here (BlinkCapture)
+          <section className={styles.frames}>
+            <p className={styles.byline}>
+              you/ · {state.frames.length} {state.frames.length === 1 ? "frame" : "frames"} · eyes closed
+            </p>
+            <div className={styles.frameGrid}>
+              {state.frames.map((f) => (
+                <figure key={f.at}>
+                  <Image src={f.src} alt="" width={128} height={96} unoptimized />
+                  <figcaption>{clock(f.at, true)}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     );
   }

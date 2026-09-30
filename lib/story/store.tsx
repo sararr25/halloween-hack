@@ -32,7 +32,13 @@ export type StoryState = {
   /** The interlude after the session log: the case seems to go back to E.V. and the
    * desktop goes quiet (no glitches, no searchlight) until the reveal. */
   calm: boolean;
+  /** Stills of the user taken when they blinked (stage 2+, camera only), oldest first. */
+  frames: Frame[];
 };
+
+/** One blink, kept: `src` is a small dithered data URL (lib/presence/still.ts). */
+export type Frame = { at: number; src: string };
+const MAX_FRAMES = 24;
 
 /** "anon" = the anonymous sender (help that is really guidance); "system" = the OS;
  * "mara" = a message from Mara arriving on E.V.'s laptop. */
@@ -60,7 +66,8 @@ type Action =
   | { type: "dismiss"; id: number }
   | { type: "wrongCode" }
   | { type: "interrupt"; at: number }
-  | { type: "calm"; calm: boolean };
+  | { type: "calm"; calm: boolean }
+  | { type: "frame"; frame: Frame };
 
 function reducer(s: StoryState, a: Action): StoryState {
   switch (a.type) {
@@ -99,6 +106,8 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, interruptions: [...s.interruptions, a.at] };
     case "calm":
       return { ...s, calm: a.calm };
+    case "frame":
+      return { ...s, frames: [...s.frames, a.frame].slice(-MAX_FRAMES) };
   }
 }
 
@@ -127,6 +136,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     wrongCodes: 0,
     interruptions: [],
     calm: false,
+    frames: [],
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase.
