@@ -156,6 +156,35 @@ photograph taken from across the street at night looking up at a first-floor win
 square instant photo, the dark facade of a terraced house across the street at night, one lit window on the second floor with cold white light, harsh flash falloff in the foreground, faded instant-film colours, slight colour shift toward blue, dust
 ```
 
+## The figure in the window across (S9)
+
+Two images of the **same person, same framing**, used as the figure behind the lit window in the reveal. They are cross-faded, so the head must sit in exactly the same place in both. Do **not** use the 35 mm style block for these.
+
+| File | Size | Folder |
+|---|---|---|
+| `figure_still.png` | 1024 × 1280 (4:5), PNG with **transparent background** | `assets/` |
+| `figure_hand.png` | 1024 × 1280 (4:5), PNG with **transparent background** | `assets/` |
+
+If the tool cannot make a transparent background, generate it on **pure flat white** and tell me: I cut it out.
+
+### figure_still.png
+
+```
+Backlit silhouette of an adult person seen from the chest up, facing the viewer, standing still behind a window at night, strong light from behind so the body and face are almost completely black, only a faint thin rim of pale cold light along the hair, ears and shoulders, messy shoulder-length hair with loose strands, ordinary knit jumper, natural slightly uneven shoulders, head straight and centred in the upper third of the frame, arms down at the sides out of frame, realistic photograph, soft focus as if seen through a sheer curtain, subtle film grain, isolated on a transparent background
+```
+
+### figure_hand.png
+
+```
+The same backlit silhouette of the same adult person, same framing, same head position and size, chest up, facing the viewer, now raising their right hand beside their head with the palm open towards the viewer, fingers slightly apart, the raised hand on the right side of the image, body and face almost completely black against the light, faint thin rim of pale cold light along the hair, hand and shoulders, realistic photograph, soft focus as if seen through a sheer curtain, subtle film grain, isolated on a transparent background
+```
+
+### Negative prompt (both)
+
+```
+visible face, eyes, facial features, colour, orange, red, warm light, mannequin, plastic, 3d render, CGI, cartoon, illustration, text, watermark, logo, frame, border, window frame, curtain rod, room, furniture, background
+```
+
 ## Not needed from the generator
 
 - **IMG_0418**: IMG_0413 with its figure lifted out as a cut-out (`scripts/make-photo-plates.py`), composed in Rive (`rive/photo`).
