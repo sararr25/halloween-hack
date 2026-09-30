@@ -229,6 +229,38 @@ function RecoveryMenu() {
   );
 }
 
+/**
+ * What to do now, in the menubar: the operator's task list, one line. It moves on with the
+ * key clues, so nobody is left wondering what the game wants.
+ */
+function objectiveOf(state: ReturnType<typeof useStory>["state"]) {
+  const { stage, clues, calm } = state;
+  if (calm) return "find where her phone is";
+  if (stage === 3) return "open the file still being written";
+  if (stage === 2) return "open backup_you · four digits";
+  if ("mail_for_later" in clues || "chat_window" in clues) return "look closely at her photos";
+  return "read her mail and messages";
+}
+
+function Objective() {
+  const { state } = useStory();
+  const text = objectiveOf(state);
+  const el = useRef<HTMLSpanElement>(null);
+  const shown = useRef(text);
+  useEffect(() => {
+    // a new task types itself in; the first one is simply there
+    if (!el.current || shown.current === text) return;
+    shown.current = text;
+    const t = gsap.fromTo(el.current, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "steps(24)" });
+    return () => void t.kill();
+  }, [text]);
+  return (
+    <span className={styles.objective}>
+      objective · <span ref={el}>{text}</span>
+    </span>
+  );
+}
+
 /** One click opens (people expect a web page to answer a single click). */
 function Icon({ app }: { app: AppDef }) {
   const { dispatch } = useStory();
@@ -270,6 +302,7 @@ export default function Desktop() {
           <span className={styles.owner}>E.V.</span>
           <RecoveryMenu />
         </span>
+        <Objective />
         <span className={styles.menuRight}>
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
           <span className={stage === 3 && !state.calm ? styles.viewersNeon : undefined}>viewers {state.calm ? 1 : stage}</span>

@@ -95,10 +95,10 @@ export default function Boot() {
 
   useEffect(() => {
     if (step !== "done") return;
-    // Fade to the desktop once (600 ms). The phase change runs on a timer, not on the tween,
+    // Fade to the briefing once (600 ms). The phase change runs on a timer, not on the tween,
     // so a throttled tab (no animation frames) still reaches the desktop.
     const t = gsap.to(root.current, { opacity: 0, duration: 0.6, delay: 1.4, ease: "power2.in" });
-    const next = setTimeout(() => dispatch({ type: "phase", phase: "desktop" }), 2000);
+    const next = setTimeout(() => dispatch({ type: "phase", phase: "briefing" }), 2000);
     return () => {
       t.kill();
       clearTimeout(next);

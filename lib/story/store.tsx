@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useReducer, type ReactNode } from
 
 // Story state machine — see docs/desktop.md. Client-side only: nothing leaves the browser.
 
-export type Phase = "premise" | "boot" | "desktop" | "reveal" | "login";
+export type Phase = "premise" | "boot" | "briefing" | "desktop" | "reveal" | "login";
 export type Stage = 1 | 2 | 3;
 export type AppId =
   | "mail" | "photos" | "messages" | "notes" | "history" | "phone" | "trash" | "camera" | "backup"
@@ -108,6 +108,7 @@ const DEV_STAGES: Record<string, Stage> = { Digit1: 1, Digit2: 2, Digit3: 3 };
 const DEV_PHASES: Record<string, Phase> = {
   KeyP: "premise",
   KeyB: "boot",
+  KeyI: "briefing",
   KeyD: "desktop",
   KeyR: "reveal",
   KeyL: "login",
@@ -128,7 +129,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     calm: false,
   }));
 
-  // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/D/R/L jumps phase.
+  // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase.
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     const key = (e: KeyboardEvent) => {

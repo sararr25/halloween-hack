@@ -9,6 +9,7 @@ import { enterFullscreen } from "@/lib/fullscreen";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
 import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
+import Briefing from "./Briefing";
 import Desktop from "./Desktop";
 import Login, { CASE_KEY } from "./Login";
 import Reveal from "./Reveal";
@@ -53,7 +54,7 @@ function Overlay() {
   const [pulse, setPulse] = useState(0);
   const live = phase !== "premise";
   // the reveal and the login set their own pace: glitches only when they ask for one
-  const scheduled = live && phase !== "reveal" && phase !== "login" && !state.calm;
+  const scheduled = live && phase !== "briefing" && phase !== "reveal" && phase !== "login" && !state.calm;
 
   // One glitch = shader tear + DOM RGB split + sound, at the same moment.
   useEffect(() => {
@@ -238,7 +239,7 @@ function Returning() {
   return <p className={styles.hint}>case 0418 is still open, {name}.</p>;
 }
 
-// Top-level phase switch: premise → boot (S1) → desktop → reveal (S9) → login (S10). See docs/desktop.md.
+// Top-level phase switch: premise → boot (S1) → briefing → desktop → reveal (S9) → login (S10). See docs/desktop.md.
 function Phases() {
   const { state, dispatch } = useStory();
 
@@ -263,6 +264,8 @@ function Phases() {
       );
     case "boot":
       return <Boot />;
+    case "briefing":
+      return <Briefing />;
     case "desktop":
       return <Desktop />;
     case "reveal":
