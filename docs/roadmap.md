@@ -23,7 +23,7 @@ And: the story is not clear at the start. The player does not know who E.V. is, 
 
 - [x] `/video-rec/` ignored by git and Vercel (screen recordings live there). `assets/` stays tracked.
 - [x] Avatars: 192 px WebP in `public/avatars/` (sources in `assets/`), in Mail and Messages. E.V. = the EV badge, avatar1 = Mum (new chat + voicemail), avatar2 = Mara, avatar3 = Ines Arden, avatar4 = Theo, avatar5 = R. Hale.
-- [x] The Sign: `assets/symbol.png` (the reticle) recoloured to bone + cyan as `public/sign.png`; used on the wallpaper, the Parallax letter, the briefing flicker, the blink viewfinder and the last screen. `assets/symbol_2.png` (the glitched V) is unused for now.
+- [x] The Sign: `assets/symbol.png` (the reticle) recoloured to bone + cyan as `public/sign.png`; used on the wallpaper, the Parallax letter, the briefing flicker, the blink viewfinder and the last screen. `assets/symbol_2.png` (the glitched V) is the PARALLAX logo on invitation.pdf (`public/parallax.webp`).
 
 ## Phase 1 · Story you can follow
 
@@ -39,7 +39,7 @@ And: the story is not clear at the start. The player does not know who E.V. is, 
 
 ## Phase 2 · Camera mechanics you notice
 
-- [x] **Searchlight:** flare every 4-6.5 s from stage 2 (stage 1 keeps 18-24 s, so tracking is not shown early), instead of 18-24 s (owner feedback), shorter and softer so it does not tire. On the first flare of stage 2 the beam snaps to the head with a sound, once, so the link "it follows me" is made. Tune in `overlay_fx.wgsl` / `FLASH_STROKES`.
+- [x] **Searchlight:** flare every 4-6.5 s from the start (owner chose it over keeping stage 1 rare), instead of 18-24 s (owner feedback), shorter and softer so it does not tire. On the first flare of stage 2 the beam snaps to the head with a sound, once, so the link "it follows me" is made. Tune in `overlay_fx.wgsl` / `FLASH_STROKES`.
 - [x] **Blink captures** (`BlinkCapture.tsx`, stage 2+, camera only, at most one every 5 s / 3 s at stage 3): four effects in turn, shutter (screen goes black for a frame), still (your dithered face slides in and flies into backup_you), viewfinder (corner marks + the Sign, "captured"), drain (colour drains out). Stills kept in `backup_you/you`, a `frames N` counter in the menubar, a row in the S8 log, a line in S9. Dev: `Alt+K` fakes a blink.
 - [x] **Open palm:** invite it. At stage 3 the anonymous sender writes "if you want it to stop, cover the camera." Palm → blackout + "no need to cover yourself." Mouse users get the same invitation with "look away" (leave the tab), which already works.
 - [x] **S9 figure: raise your hand.** (`hand` input added to `window_across.wgsl`, `story.riv` republished.) Also "don't move." first, so the copying is noticed. Echo E.V.'s voice note ("I raised my hand… it raised its hand too"). In the reveal a single line: "raise your hand." The figure in 4A raises its hand *with* the player. Uses the existing palm gesture. This is the scene people will remember and record. Mouse fallback: the figure copies the cursor.

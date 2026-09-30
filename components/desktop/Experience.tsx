@@ -39,10 +39,10 @@ const BEAM_RHYTHM: Record<1 | 2, [[number, number], [number, number]]> = {
   1: [[5, 8], [35, 60]],
   2: [[12, 20], [8, 15]],
 };
-// It flares for an instant, colder, like lightning: two strokes and a tail. Stage 1 keeps
-// it rare (the tracking is not shown yet); from stage 2 it flares every few seconds, short
-// and soft, so the player sees that the light is on them and moves with them.
-const FLASH_EVERY: Record<Stage, [number, number]> = { 1: [18, 24], 2: [4.5, 6.5], 3: [4, 6] };
+// It flares for an instant, colder, like lightning: two strokes and a tail, every few
+// seconds from the start, short and soft, so the player sees that the light is on them and
+// moves with them (owner's call, 2026-09-30).
+const FLASH_EVERY: Record<Stage, [number, number]> = { 1: [4.5, 6.5], 2: [4.5, 6.5], 3: [4, 6] };
 const FLASH_STROKES = [0, 0.75, 0.1, 0.6, 0.2, 0];
 const FLASH_S = 0.4;
 // Entering stage 2 the beam snaps onto the head once, hard, with the click of a lamp.

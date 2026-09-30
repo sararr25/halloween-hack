@@ -1,9 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { INVITATION, MANUAL } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
 import { APP } from "../apps";
-import { SignGlyph } from "../Decor";
 import { when } from "./shared";
 import styles from "./views.module.css";
 
@@ -13,7 +13,7 @@ import styles from "./views.module.css";
 export function Invitation() {
   return (
     <article className={styles.letter}>
-      <SignGlyph size={40} className={styles.letterMark} />
+      <Image src="/parallax.webp" alt="" width={72} height={72} className={styles.letterMark} />
       <p className={styles.letterHead}>
         {INVITATION.company}
         <small>{INVITATION.tagline}</small>
