@@ -101,10 +101,3 @@
 .shotScreen { position: relative; width: 100%; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; background: radial-gradient(ellipse at 70% 30%, #1a2030, transparent 60%), #06080d; overflow: hidden; }
 .shotBar { position: absolute; inset: 0 0 auto; height: 3%; background: rgba(255, 255, 255, 0.06); }
 .shotWin { position: absolute; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(13, 16, 24, 0.9); border-radius: 3px; }
-
-/* backup_you/you: the player's blinks, kept */
-.frames { margin-top: 22px; display: grid; gap: 10px; }
-.frameGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
-.frameGrid figure { margin: 0; display: grid; gap: 4px; }
-.frameGrid img { width: 100%; height: auto; display: block; image-rendering: pixelated; border: 1px solid rgba(0, 240, 255, 0.25); }
-.frameGrid figcaption { font-family: var(--font-mono), monospace; font-size: 10px; color: var(--muted); }

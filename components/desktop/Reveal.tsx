@@ -64,7 +64,7 @@ export default function Reveal() {
 
   // Second person, built from what the session recorded. Never "it's you".
   const [lines] = useState(() => {
-    const { openedAt, clues, interruptions, session, frames } = state;
+    const { openedAt, clues, interruptions, session, blinks } = state;
     const out = [`You came in at ${clock(openedAt)}.`];
     if ("photo_figure" in clues) out.push(`You found the one in the street in ${duration(clues.photo_figure)}.`);
     out.push(
@@ -73,7 +73,7 @@ export default function Reveal() {
         : `You said no at ${clock(session.verifiedAt ?? openedAt)}. It made no difference.`,
     );
     if (interruptions.length) out.push(`You looked away ${interruptions.length} ${interruptions.length === 1 ? "time" : "times"}.`);
-    if (frames.length) out.push(`You closed your eyes ${frames.length} ${frames.length === 1 ? "time" : "times"}. We kept them.`);
+    if (blinks) out.push(`You closed your eyes ${blinks} ${blinks === 1 ? "time" : "times"}. Each time, we noticed.`);
     return out;
   });
 

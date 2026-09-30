@@ -26,9 +26,10 @@ const STAGE_FX: Record<Stage, Omit<FxLevels, "pulse">> = {
 };
 
 // Seconds between visual glitches [min, max], per stage.
-const CADENCE: Record<Stage, [number, number]> = { 1: [6, 11], 2: [2.5, 5], 3: [0.8, 2] };
+// Owner playtest: from the backup window on they were too frequent and got in the way.
+const CADENCE: Record<Stage, [number, number]> = { 1: [6, 11], 2: [7, 12], 3: [4, 8] };
 // Glitch sounds are much rarer than the visual ones: the user has to be able to read.
-const SOUND_CADENCE: Record<Stage, [number, number]> = { 1: [30, 50], 2: [18, 30], 3: [10, 16] };
+const SOUND_CADENCE: Record<Stage, [number, number]> = { 1: [30, 50], 2: [24, 36], 3: [16, 26] };
 const between = ([a, b]: [number, number]) => (a + Math.random() * (b - a)) * 1000;
 const DRONE: Record<Stage, number> = { 1: 0.5, 2: 0.8, 3: 1 };
 const DOM_GLITCH_MS = 140;

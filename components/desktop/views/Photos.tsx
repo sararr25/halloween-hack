@@ -57,9 +57,11 @@ export default function Photos() {
     );
   }
 
+  // Oldest first, like a camera roll: the newest (IMG_0418, the one that matters) is near
+  // the end, so people look through her life before they reach it.
   return (
     <div className={styles.grid}>
-      {photos.map((p) => (
+      {[...photos].reverse().map((p) => (
         <button
           key={p.id}
           className={styles.thumb}

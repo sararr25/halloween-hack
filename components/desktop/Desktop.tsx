@@ -326,9 +326,6 @@ export default function Desktop() {
           {/* the audience: 1 = E.V.'s own session, 2 = someone else, 3 = you are counted */}
           <span className={stage === 3 && !state.calm ? styles.viewersNeon : undefined}>viewers {state.calm ? 1 : stage}</span>
           {stage >= 2 && <span className={styles.rec}>● REC</span>}
-          {state.frames.length > 0 && !state.calm && (
-            <span className={stage === 3 ? styles.viewersNeon : undefined}>frames {state.frames.length}</span>
-          )}
           <FullscreenToggle className={styles.soundMenu} />
           <SoundToggle className={styles.soundMenu} />
           <span>71%</span>
