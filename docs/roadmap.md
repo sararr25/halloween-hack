@@ -110,3 +110,20 @@ After the above: read the Contra challenge rules (deadline, format, what to subm
 - [x] The reflection (`Reflection.tsx`): 16 s into stage 3 the screen goes dark like a monitor and the player is faintly reflected in it (webcam, mirrored, blurred, grey), 3 s, once.
 - [x] The tab watches (`TabWatch.tsx`): away, the title is "● REC · operator away" and the icon the Sign; back on the desktop, "you left at HH:MM. we didn't." (twice at most).
 - [x] Case file keepsake (`lib/story/casefile.ts`): "download case file 0418" on the last screen makes a one-page A4 PDF in the browser, in the project's look (V logo, serif title, session facts, E.V.'s badge, Sign watermark, cyan corners, grain). No library, no server.
+
+## QA pass (2026-09-30)
+
+Full browser run, report and plan in `.claude/PRPs/plans/qa-pass-fixes.plan.md`. Done:
+
+- [x] Last screen visible again (React reused the squashed div), download reachable; case list holds ~5 s.
+- [x] backup_you code: fast typing keeps every digit, pasting works ("17:04" too).
+- [x] One hint at a time; "1 wrong code"; objective follows S8 and Find My.
+- [x] Windows: 25 px close target, Esc closes the front one, the log's last line closes it, windows behind dim.
+- [x] Readable icon labels; Mail and Notes open on an item; landscape photo tiles.
+- [x] Every voice clip writes its transcript while it plays (`lib/audio/captions.ts`, `views/Transcript.tsx`), no typing sound; Mara's call has captions; the "for later" memo got its transcript.
+- [x] Mouse raise-hand in S9 ("move the mouse up."); "click to go on" readable; calm interlude hides REC.
+- [x] Find My drawn like the real app; this Mac at 16, her phone at 17.
+- [x] S9 facade is the Harrow St terrace (`window_across.wgsl`, `story.riv` republished).
+- [x] The player's recorded voice: raw microphone, loudened, score ducked. Needs a Mac check.
+- [x] Stage 3 reflection reduced to a shape in dimmed glass. Needs a camera check.
+- [x] S9 figure animated from the owner's raise-hand video (57 frames, `public/figure/raise`). `public/figure/body.webp` and `arm.webp` are no longer used.

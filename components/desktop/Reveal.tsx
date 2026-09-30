@@ -36,6 +36,14 @@ const FEED_MS = 8000;
 const ART = { w: 1280, h: 800 };
 const LIT = { x: 640, y: 380 };
 const WIN = { w: 96, h: 124 };
+// The figure is the owner's raise-hand animation (assets/raising-hand-animation.mp4), cut
+// into transparent frames on the canvas of the old silhouette (public/figure/raise):
+// RAISE frames scrubbed by `hand` (up with the player, down again the same way), then HOLD
+// frames of the hand held up, swaying, played back and forth while it stays up.
+const RAISE = 33;
+const HOLD = 24;
+const HOLD_FPS = 12;
+const FRAME = { w: 458, h: 573 };
 
 export default function Reveal() {
   const { state, dispatch } = useStory();
@@ -60,7 +68,15 @@ export default function Reveal() {
   });
   const win = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
-  const arm = useRef<HTMLImageElement>(null);
+  const sprite = useRef<HTMLCanvasElement>(null);
+  const frames = useRef<HTMLImageElement[]>([]);
+  useEffect(() => {
+    frames.current = Array.from({ length: RAISE + HOLD }, (_, i) => {
+      const img = new Image();
+      img.src = `/figure/raise/${String(i).padStart(2, "0")}.webp`;
+      return img;
+    });
+  }, []);
   usePresenceEvent("gesture", (g) => {
     if (g === "palm") palm.current?.();
   });
@@ -124,6 +140,8 @@ export default function Reveal() {
     // window_across.wgsl: the artboard (1280 x 800) covers the screen, the zoom scales the
     // scene around the lit window.
     let raf = 0;
+    let holdFrom = -1;
+    let drawn = -1;
     const place = () => {
       raf = requestAnimationFrame(place);
       const el = win.current;
@@ -139,18 +157,34 @@ export default function Reveal() {
       el.style.transform = `translate(${ox + x0 * sc}px, ${oy + y0 * sc}px) scale(${z * sc})`;
       el.style.opacity = String(Math.min(v.light, 1 - v.corruption));
       const b = body.current;
+      const now = performance.now() / 1000;
       if (b) {
         const { x, y } = head.current;
-        // the head sits where the player's is; the body leans a little into the turn
-        b.style.transform = `translate(${x * 20}px, ${y * 9}px) rotate(${x * 3}deg)`;
+        // the head sits where the player's is; the body leans a little into the turn, and
+        // breathes, barely
+        const breath = 1 + 0.007 * Math.sin(now * 1.6);
+        b.style.transform = `translate(${x * 20}px, ${y * 9}px) rotate(${x * 3}deg) scale(1, ${breath})`;
         b.style.opacity = String(v.figure);
       }
-      const h = arm.current;
-      if (h) {
-        // the hand comes up from behind the shoulder, as in the owner's reference
-        const d = 1 - v.hand;
-        h.style.transform = `translateY(${d * 55}%) rotate(${d * 16}deg)`;
-        h.style.opacity = String(Math.min(1, v.hand * 3));
+      const cv = sprite.current;
+      const ctx = cv?.getContext("2d");
+      if (ctx) {
+        let i: number;
+        if (v.hand < 0.999) {
+          holdFrom = -1;
+          i = Math.round(v.hand * (RAISE - 1));
+        } else {
+          if (holdFrom < 0) holdFrom = now;
+          // back and forth through the held frames, starting from the top of the raise
+          const k = Math.floor((now - holdFrom) * HOLD_FPS) % (2 * HOLD - 2);
+          i = RAISE + (k < HOLD ? k : 2 * HOLD - 2 - k);
+        }
+        const img = frames.current[i];
+        if (i !== drawn && img?.complete && img.naturalWidth) {
+          drawn = i;
+          ctx.clearRect(0, 0, FRAME.w, FRAME.h);
+          ctx.drawImage(img, 0, 0, FRAME.w, FRAME.h);
+        }
       }
     };
     raf = requestAnimationFrame(place);
@@ -301,10 +335,7 @@ export default function Reveal() {
           Everything inside is in scene units; `place` scales it with the camera. */}
       <div ref={win} className={styles.window} data-black={black || feed !== "off"} aria-hidden="true">
         <div ref={body} className={styles.figure}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- scaled every frame by transform, no optimisation wanted */}
-          <img ref={arm} className={styles.arm} src="/figure/arm.webp" alt="" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className={styles.body} src="/figure/body.webp" alt="" />
+          <canvas ref={sprite} className={styles.sprite} width={FRAME.w} height={FRAME.h} />
         </div>
         <i className={styles.curtain} />
         <i className={styles.bars} />

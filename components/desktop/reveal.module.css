@@ -17,11 +17,10 @@
 /* the head centre sits at the window's (48, 55), where the shader put the old bust */
 .figure {
   position: absolute; left: 2px; top: 20.5px; width: 92px; height: 115px;
-  transform-origin: 50% 30%; opacity: 0;
+  transform-origin: 50% 85%; opacity: 0; /* breathes from the chest */
   filter: blur(0.35px) contrast(1.05); /* seen through the glass and the sheer curtain */
 }
-.figure img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.arm { transform-origin: 88% 92%; opacity: 0; }
+.sprite { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* the sheer curtain over the left half, catching the light, and the window bars */
 .curtain {
   position: absolute; left: 0; top: 0; width: 44px; height: 100%; opacity: 0.3;

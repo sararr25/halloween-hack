@@ -28,7 +28,7 @@ Owner decisions after the report:
 | 14 S9 same building | done · verified (the Harrow St terrace redrawn in window_across.wgsl, story.riv republished; the figure layer still lines up) |
 | 15 Find My map | done · verified (dark map like Apple's: streets, terraces, park, canal; device list; this Mac at 16, the iPhone at 17, 20 m) |
 | 16 live camera moment more subtle | done · the stage 3 reflection is now 1.4 s, the screen dims instead of going black, the webcam is reduced to 40×23 px, blurred, 9 % opacity, masked: a shape, not a face. Needs the owner's camera to judge |
-| 17 S9 figure animation redone from the owner's SVGs | pending (owner, after 1-15) |
+| 17 S9 figure animation redone | done · verified with the mouse. The owner's own animation (assets/raising-hand-animation.mp4, the source of the SVGs) cut into 57 transparent frames aligned on the old silhouette (public/figure/raise, ~1 MB): the raise is scrubbed by `hand`, the held hand sways in a loop, the body breathes. Remotion not used: it renders fixed videos, and the figure has to follow the player's head live |
 | 18 the player's recorded voice is not audible in S9 | done · raw microphone (no echo cancellation / noise suppression, auto gain on), the recording loudened to a clear peak, the score ducked under it. Needs the owner's mic to confirm |
 
 ## Summary
