@@ -325,6 +325,23 @@ export const CHATS: Chat[] = [
     ],
   },
   {
+    // Mum: no clue in here, only the cost of it. Her last message echoes 23:02.
+    id: "mum",
+    name: "Mum",
+    status: "last seen 2 hours ago",
+    lines: [
+      { me: false, text: "Sunday. Lamb. Theo says you're bringing wine, I say you're bringing yourself x", days: 10, time: "12:05" },
+      { me: true, text: "both. promise", days: 10, time: "12:30", read: "12:31" },
+      { me: true, text: "mum, odd question. did I ever sleepwalk as a kid", days: 8, time: "23:48", read: "07:02" },
+      { me: false, text: "Once or twice. You used to stand at the window. Why darling?", days: 7, time: "07:04" },
+      { me: false, text: "Ev?", days: 7, time: "12:40" },
+      { me: false, text: "You didn't come Sunday. Theo made excuses for you. He's a bad liar, like his father.", days: 6, time: "19:30" },
+      { me: false, text: "Mara rang me. Please call me, I don't care what time it is.", days: 5, time: "08:10" },
+      { me: false, text: "The police came to the house. They asked if you'd been unhappy. I didn't know what to say.", days: 3, time: "22:14" },
+      { me: false, text: "I've left the landing light on for you. Like when you were small.", days: 1, time: "23:02" },
+    ],
+  },
+  {
     id: "hale",
     name: "R. Hale",
     status: "last seen yesterday",

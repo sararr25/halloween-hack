@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BOOKS, MAILS, SIGNIN, TRACKING, USAGE, type Mail as MailItem } from "@/lib/story/content";
 import { useLookingAway } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
-import { when, useFill } from "./shared";
+import { Avatar, when, useFill } from "./shared";
 import styles from "./mail.module.css";
 
 // S2 · Mail. Every mail is its own kind of email; the service ones carry a small drawn
@@ -27,7 +27,7 @@ export default function Mail() {
         {MAILS.map((m) => (
           <li key={m.id}>
             <button className={`${styles.row} ${m.id === openId ? styles.active : ""}`} onClick={() => open(m)}>
-              <Initials name={m.from} />
+              <Avatar name={m.from} className={styles.avatar} />
               <span className={styles.rowText}>
                 <span className={styles.rowHead}>
                   <span className={`${styles.from} ${!read.has(m.id) && m.days <= 7 ? styles.unread : ""}`}>{m.from}</span>
@@ -44,21 +44,6 @@ export default function Mail() {
   );
 }
 
-function Initials({ name }: { name: string }) {
-  const letters = name
-    .replace(/[^A-Za-z. ]/g, "")
-    .split(/[ .]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("");
-  return (
-    <span className={styles.avatar} aria-hidden="true">
-      {letters}
-    </span>
-  );
-}
-
 function Reader({ mail }: { mail: MailItem }) {
   const f = useFill();
   const { dispatch } = useStory();
@@ -69,7 +54,7 @@ function Reader({ mail }: { mail: MailItem }) {
     <article className={`${styles.reader} ${styles[mail.kind]}`}>
       <h2 className={styles.subject}>{mail.subject}</h2>
       <div className={styles.header}>
-        <Initials name={mail.from} />
+        <Avatar name={mail.from} className={styles.avatar} />
         <span>
           <span className={styles.sender}>{mail.from}</span> <span className={styles.address}>&lt;{mail.address}&gt;</span>
           <span className={styles.to}>to {mail.kind === "self" ? "herself" : "E.V."}</span>

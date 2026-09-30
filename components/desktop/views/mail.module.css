@@ -24,6 +24,7 @@
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+img.avatar { object-fit: cover; background: none; border: none; transform: scale(1.18); }
 
 /* the email */
 .reader { max-width: 620px; }

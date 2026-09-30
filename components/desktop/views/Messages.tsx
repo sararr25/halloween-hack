@@ -8,7 +8,7 @@ import { CHATS, photoSrc, type ChatLine } from "@/lib/story/content";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
-import { when } from "./shared";
+import { Avatar, when } from "./shared";
 import VoicePlayer from "./VoicePlayer";
 import styles from "./messages.module.css";
 
@@ -78,9 +78,7 @@ export default function Messages() {
           return (
             <li key={c.id}>
               <button className={`${styles.row} ${c.id === openId ? styles.active : ""}`} onClick={() => open(c.id)}>
-                <span className={styles.avatar} aria-hidden="true">
-                  {c.name.replace(/[^A-Z]/g, "").slice(0, 2)}
-                </span>
+                <Avatar name={c.name} className={styles.avatar} />
                 <span className={styles.rowText}>
                   <span className={styles.rowHead}>
                     <span className={`${styles.name} ${extra[c.id] && c.id !== openId ? styles.unread : ""}`}>{c.name}</span>
@@ -102,9 +100,7 @@ export default function Messages() {
         ) : (
           <>
             <header className={styles.head}>
-              <span className={styles.avatar} aria-hidden="true">
-                {chat.name.replace(/[^A-Z]/g, "").slice(0, 2)}
-              </span>
+              <Avatar name={chat.name} className={styles.avatar} />
               <span>
                 <span className={styles.name}>{chat.name}</span>
                 <span className={styles.status}>{typing ? "typing…" : chat.status}</span>

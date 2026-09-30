@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
 import { fill } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
 import { clock, daysAgo, today } from "@/lib/story/time";
@@ -16,6 +17,36 @@ export function useFill() {
   }, []);
   const ctx = { entry: clock(state.openedAt), now: clock(now), today: today(now) };
   return (text: string) => fill(text, ctx);
+}
+
+// Faces of the people in E.V.'s life (public/avatars, sources in assets/). Anyone without a
+// photo gets initials, like a real contact list.
+const FACES: Record<string, string> = {
+  "E.V.": "ev",
+  "E.V. (mobile)": "ev",
+  Mum: "mum",
+  Mara: "mara",
+  "Ines Arden": "ines",
+  Theo: "theo",
+};
+
+/** A contact's round avatar: their photo, or their initials. `className` sets the size. */
+export function Avatar({ name, className }: { name: string; className: string }) {
+  const face = FACES[name];
+  if (face)
+    return <Image className={className} src={`/avatars/${face}.webp`} alt="" width={96} height={96} aria-hidden="true" />;
+  const letters = name
+    .replace(/[^A-Za-z. ]/g, "")
+    .split(/[ .]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("");
+  return (
+    <span className={className} aria-hidden="true">
+      {letters}
+    </span>
+  );
 }
 
 /** "today 23:02", "yesterday", "23 Sep" — like a file listing. */

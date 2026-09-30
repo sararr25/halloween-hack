@@ -20,6 +20,7 @@
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+img.avatar { object-fit: cover; background: none; border: none; transform: scale(1.18); }
 
 .head { display: flex; gap: 10px; align-items: center; padding: 12px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
 .head > span:last-child { display: grid; gap: 1px; }
