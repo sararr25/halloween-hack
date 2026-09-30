@@ -44,3 +44,6 @@ next-env.d.ts
 /public/mediapipe/
 /public/models/
 /public/rive/rive.wasm
+
+# screen recordings of playtests (large, local only)
+/video-rec/

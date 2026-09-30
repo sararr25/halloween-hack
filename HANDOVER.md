@@ -2,7 +2,7 @@
 
 Status as of 2026-09-29 (night, 3) · live at **https://halloween-hack.vercel.app** · work on `claude/youthful-pascal-m6eofy`, fast-forwarded into the default branch `claude/epic-hopper-x8tj3e` (Vercel production).
 
-Read in this order: this file → `docs/walkthrough.md` (the story step by step, how to play it) → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
+Read in this order: this file → `docs/roadmap.md` (the current improvement pass, from the first real playtests) → `docs/walkthrough.md` (the story step by step, how to play it) → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
 
 ## TL;DR
 
@@ -174,6 +174,8 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 4. **Rive plan:** every published Rive file opens with the Rive mark (checked: even a pushed project is watermarked on the free plan). It is hidden by timing now; only a paid plan (Cadet or higher) + `rive push` of each project removes it.
 
 ## Next steps (recommended order)
+
+Superseded by `docs/roadmap.md` (2026-09-30), which folds in the owner's playtest feedback. Kept below for reference.
 
 1. **Webcam + headphones playtest** (owner), whole run, and tuning from it: scan scale (`face.ts`, `face_cloud.wgsl`), S9 figure range and beat timings (`window_across.wgsl`, `Reveal.tsx`), voice levels and timing (`voices.ts`), searchlight flare strength (`overlay_fx.wgsl`, `FLASH_STROKES`).
 2. **Playtest on the deployed URL** (HTTPS, so the camera works for anyone): `prefers-reduced-motion` pass, Safari/Firefox, low-end hardware.
