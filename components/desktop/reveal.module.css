@@ -44,11 +44,27 @@
   40% { clip-path: inset(42% 0 38% 0); transform: translateX(3%); }
   100% { clip-path: inset(50% 0 50% 0); opacity: 0; }
 }
-.feedCanvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.feedCanvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(0.4px) contrast(1.05); }
 .feedScan { position: absolute; left: 50%; top: 50%; width: min(60vh, 90vw); aspect-ratio: 480 / 576; transform: translate(-50%, -50%); }
-.hud { position: absolute; inset: 4vh 4vw; pointer-events: none; font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.08em; color: var(--neon); }
+.hud { position: absolute; inset: 4vh 4vw; pointer-events: none; font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); text-shadow: 0 0 6px rgba(0, 0, 0, 0.8); }
 .hudTop { position: absolute; left: 0; top: 0; }
-.hudTop b { font-weight: 400; animation: recBlink 1s steps(2) infinite; }
+.hudTop b { font-weight: 400; color: var(--neon); animation: recBlink 1s steps(2) infinite; }
+.hudRight { position: absolute; right: 0; top: 0; font-variant-numeric: tabular-nums; }
+/* face recognition: thin corners locked on the face, the one neon thing on screen */
+.faceBox {
+  position: absolute; pointer-events: none; opacity: 0; transition: opacity 200ms;
+  background:
+    linear-gradient(var(--neon), var(--neon)) top left / 18px 1.5px, linear-gradient(var(--neon), var(--neon)) top left / 1.5px 18px,
+    linear-gradient(var(--neon), var(--neon)) top right / 18px 1.5px, linear-gradient(var(--neon), var(--neon)) top right / 1.5px 18px,
+    linear-gradient(var(--neon), var(--neon)) bottom left / 18px 1.5px, linear-gradient(var(--neon), var(--neon)) bottom left / 1.5px 18px,
+    linear-gradient(var(--neon), var(--neon)) bottom right / 18px 1.5px, linear-gradient(var(--neon), var(--neon)) bottom right / 1.5px 18px;
+  background-repeat: no-repeat;
+}
+.faceBox > span {
+  position: absolute; left: 0; top: calc(100% + 8px); white-space: nowrap;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.08em; color: var(--neon);
+  font-variant-numeric: tabular-nums;
+}
 .hudBottom { position: absolute; left: 0; bottom: 0; }
 @keyframes recBlink { 50% { opacity: 0.2; } }
 .bracket {

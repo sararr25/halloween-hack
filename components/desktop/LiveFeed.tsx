@@ -7,15 +7,14 @@ import { clock } from "@/lib/story/time";
 import styles from "./reveal.module.css";
 
 // The end of S9: "View live" on the camera in flat 4A, and it is the user. The webcam frame
-// (already running for the tracking, never stored or sent) is mirrored and turned into a
-// 1-bit cyan surveillance image: ordered dither, scanlines, rows that tear. Without a
-// camera, the guessed head from S1 is shown instead, following the mouse.
+// (already running for the tracking, never stored or sent) becomes a CCTV feed in the
+// Black Mirror register: mirrored, grey and cold, crushed contrast, grain, interlaced lines,
+// a colour fringe at the edges, a vignette, a band that rolls down and rows that tear, and a
+// face-recognition box that locks onto the real face. Without a camera, the guessed head
+// from S1 is shown instead, following the mouse.
 
-const W = 200; // processed resolution: coarse on purpose, scaled up with hard pixels
-const H = 150;
-// 4x4 Bayer matrix, thresholds 0..1
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
-const CYAN = [0, 240, 255];
+const W = 320; // processed resolution: coarse enough to feel like a cheap camera
+const H = 240;
 
 export default function LiveFeed() {
   const { tracker, video } = usePresence();
@@ -28,6 +27,14 @@ export default function LiveFeed() {
     return () => clearInterval(t);
   }, []);
 
+  // the face box follows the real face: the tracker keeps its bounds while points are asked for
+  const box = useRef<HTMLDivElement>(null);
+  const match = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!live) return;
+    return tracker.onPoints(() => {});
+  }, [live, tracker]);
+
   useEffect(() => {
     if (!live) return;
     const el = video();
@@ -38,38 +45,87 @@ export default function LiveFeed() {
     src.canvas.width = W;
     src.canvas.height = H;
     const frame = out.createImageData(W, H);
+    // vignette, once
+    const vig = new Float32Array(W * H);
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const dx = x / W - 0.5;
+        const dy = y / H - 0.5;
+        vig[y * W + x] = Math.max(0, 1 - 1.5 * (dx * dx + dy * dy));
+      }
     let raf = 0;
     let t = 0;
+    let held = 0; // frames the image stays frozen (a dropped signal)
     const draw = () => {
+      raf = requestAnimationFrame(draw);
       t++;
+      placeBox();
+      if (held > 0) {
+        held--;
+        return;
+      }
+      if (Math.random() < 0.004) held = 6;
       // mirrored, like a selfie: the user sees their own movements the right way round
       src.setTransform(-1, 0, 0, 1, W, 0);
       src.drawImage(el, 0, 0, W, H);
       const px = src.getImageData(0, 0, W, H).data;
       const o = frame.data;
-      // a few rows slip sideways now and then
-      const tearRow = t % 23 < 3 ? Math.floor(Math.random() * H) : -1;
+      const tearRow = t % 47 < 3 ? Math.floor(Math.random() * H) : -99;
+      const roll = (t * 1.3) % (H * 3); // a brighter band crawling down, now and then on screen
       for (let y = 0; y < H; y++) {
-        const shift = Math.abs(y - tearRow) < 6 ? 14 : 0;
-        const scan = y % 2 ? 0.72 : 1;
+        const shift = Math.abs(y - tearRow) < 5 ? 10 + Math.floor(Math.random() * 6) : 0;
+        const line = y % 2 ? 0.74 : 1;
+        const band = Math.abs(y - roll) < 7 ? 1.18 : 1;
         for (let x = 0; x < W; x++) {
           const sx = Math.min(W - 1, x + shift);
-          const i = (y * W + sx) * 4;
-          const lum = (0.3 * px[i] + 0.59 * px[i + 1] + 0.11 * px[i + 2]) / 255;
-          const lit = Math.min(1, (lum - 0.12) * 1.6) > BAYER[(y % 4) * 4 + (x % 4)];
+          const lum = (i: number) => (0.3 * px[i] + 0.59 * px[i + 1] + 0.11 * px[i + 2]) / 255;
+          const c = lum((y * W + sx) * 4);
+          // colour fringe: red a little right, blue a little left, stronger at the edges
+          const edge = Math.abs(x / W - 0.5) > 0.3 ? 2 : 1;
+          const r = lum((y * W + Math.min(W - 1, sx + edge)) * 4);
+          const b = lum((y * W + Math.max(0, sx - edge)) * 4);
+          const k = vig[y * W + x] * line * band;
+          const g = (Math.random() - 0.5) * 0.16;
+          // crushed blacks, cold greys
+          const curve = (v: number) => Math.min(1, Math.max(0, (v - 0.08) * 1.45 + g)) * k;
           const j = (y * W + x) * 4;
-          o[j] = lit ? CYAN[0] : 0;
-          o[j + 1] = lit ? CYAN[1] * scan : 6;
-          o[j + 2] = lit ? CYAN[2] * scan : 12;
+          o[j] = curve(r) * 205;
+          o[j + 1] = curve(c) * 222;
+          o[j + 2] = curve(b) * 236;
           o[j + 3] = 255;
         }
       }
       out.putImageData(frame, 0, 0);
-      raf = requestAnimationFrame(draw);
+    };
+    // the canvas is drawn "cover": the same mapping places the box over the face
+    const placeBox = () => {
+      const f = tracker.faceBox;
+      const b = box.current;
+      if (!b) return;
+      if (!f) {
+        b.style.opacity = "0";
+        return;
+      }
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const sc = Math.max(vw / W, vh / H);
+      const ox = (vw - W * sc) / 2;
+      const oy = (vh - H * sc) / 2;
+      const pad = 0.18;
+      const x = 1 - (f.x + f.w) - f.w * pad; // mirrored
+      const y = f.y - f.h * pad;
+      Object.assign(b.style, {
+        opacity: "1",
+        left: `${ox + x * W * sc}px`,
+        top: `${oy + y * H * sc}px`,
+        width: `${f.w * (1 + 2 * pad) * W * sc}px`,
+        height: `${f.h * (1 + 2 * pad) * H * sc}px`,
+      });
+      if (match.current && t % 9 === 0) match.current.textContent = (97.4 + Math.random() * 2.2).toFixed(1);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [live, video]);
+  }, [live, video, tracker]);
 
   // no camera: the guessed head, turning with the mouse
   const scanHost = useRef<HTMLDivElement>(null);
@@ -95,14 +151,22 @@ export default function LiveFeed() {
       ) : (
         <div ref={scanHost} className={styles.feedScan} />
       )}
+      {live && (
+        <div ref={box} className={styles.faceBox} aria-hidden="true">
+          <span>
+            ID 0418 · OPERATOR · MATCH <span ref={match}>98.1</span>%
+          </span>
+        </div>
+      )}
       <div className={styles.hud} aria-hidden="true">
         <span className={styles.hudTop}>
-          <b>● LIVE</b> · 17 HARROW ST · FLAT 4A · CAM 2
+          <b>●</b> LIVE · CAM 2 · 17 HARROW ST · FLAT 4A
         </span>
+        <span className={styles.hudRight}>{new Date(now).toLocaleDateString("en-GB").replaceAll("/", ".")} {clock(now, true)}</span>
         <span className={styles.hudBottom}>
-          {live ? "subject: operator" : "subject: operator · signal reconstructed"} · {clock(now, true)}
+          {live ? "subject 0418 · operator · recording" : "subject 0418 · operator · signal reconstructed"}
         </span>
-        <i className={styles.bracket} />
+        {!live && <i className={styles.bracket} />}
       </div>
     </div>
   );

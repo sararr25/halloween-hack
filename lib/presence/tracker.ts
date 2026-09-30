@@ -91,6 +91,9 @@ export class PresenceTracker {
   private gestureSince = 0;
   private stopMouse?: () => void;
   private pointListeners = new Set<PointsListener>();
+  /** The face's box in the last analysed frame, normalized image coords (not mirrored);
+   * only kept while someone listens for points. Null when no face was found. */
+  faceBox: { x: number; y: number; w: number; h: number } | null = null;
 
   constructor(private events: PresenceEvents = {}) {}
 
@@ -248,9 +251,18 @@ export class PresenceTracker {
   private apply(r: WorkerResult) {
     const now = performance.now();
     if (r.points) {
+      const p = r.points;
+      let x0 = 1, x1 = 0, y0 = 1, y1 = 0;
+      for (let i = 0; i < p.length; i += 3) {
+        x0 = Math.min(x0, p[i]);
+        x1 = Math.max(x1, p[i]);
+        y0 = Math.min(y0, p[i + 1]);
+        y1 = Math.max(y1, p[i + 1]);
+      }
+      this.faceBox = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
       const encoded = encodeFace(r.points, r.aspect);
       this.pointListeners.forEach((l) => l(encoded));
-    }
+    } else if (this.pointListeners.size) this.faceBox = null;
     if (r.m) {
       const [m8, m9, m10] = r.m;
       this.lastFaceAt = now;

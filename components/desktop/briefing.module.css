@@ -1,70 +1,66 @@
-/* Case briefing: black, one card at a time, centred. */
+/* Case briefing: one window of the OS on the empty blue-black desk, the case file inside. */
 
 .briefing {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  background: #000;
+  background: var(--bg);
   overflow: hidden;
 }
 
-.head {
-  position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
-  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--muted); white-space: nowrap;
+.window {
+  width: min(720px, calc(100vw - 32px));
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 40%), rgba(11, 14, 21, 0.96);
+  transform-origin: 50% 50%;
 }
-
-.card {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 16px;
-  padding: 0 16px;
-  text-align: center;
+.titlebar {
+  height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px; color: var(--muted);
 }
+.titlebar i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
+.body { padding: 22px 24px 24px; display: grid; gap: 20px; }
 
-.big {
-  margin: 0;
-  font-weight: 500;
-  font-size: clamp(28px, 4.4vw, 56px);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  color: var(--text);
-}
-
-.sub {
-  margin: 0;
-  font-family: var(--font-mono), monospace;
-  font-size: clamp(12px, 1.1vw, 14px);
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
-.objective { color: var(--accent); }
-
-.face { display: block; width: clamp(96px, 12vw, 150px); aspect-ratio: 1; margin-bottom: 10px; }
+.file { display: grid; grid-template-columns: 64px 1fr 190px; gap: 20px; align-items: start; min-height: 170px; }
+.face { display: block; width: 64px; height: 64px; }
 .face img { width: 100%; height: 100%; }
 
-/* the street behind the words, dark enough to read over */
-.photo {
-  position: fixed; inset: 0; z-index: -1; display: block;
-  filter: grayscale(1) brightness(0.32) contrast(1.1);
-}
-.photo img { object-fit: cover; }
+.rows { margin: 0; display: grid; gap: 7px; font-family: var(--font-mono), monospace; font-size: 12px; }
+.rows div { display: grid; grid-template-columns: 92px 1fr; gap: 12px; }
+.rows dt { color: var(--muted); letter-spacing: 0.04em; }
+.rows dd { margin: 0; color: var(--text); }
+.status dd { color: var(--accent); }
 
+.photo { margin: 0; display: grid; gap: 6px; }
+.photo img { width: 100%; height: auto; display: block; border-radius: 4px; filter: grayscale(0.4) brightness(0.8); }
+.photo figcaption { font-family: var(--font-mono), monospace; font-size: 10px; color: var(--muted); }
+
+/* her world: the serif of the mails */
+.line {
+  margin: 0; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-family: var(--font-serif), serif; font-size: 19px; line-height: 1.4; color: var(--text);
+}
+.goal { margin: 0; font-family: var(--font-mono), monospace; font-size: 12.5px; color: var(--muted); }
+.goal b { font-weight: 400; color: var(--accent); display: inline-block; }
+
+/* the Sign, for the length of the flicker, over the empty desk */
+.sign { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0.9; }
 .rec {
-  position: absolute; right: 28px; top: 26px;
-  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.08em;
-  color: var(--neon);
+  position: absolute; right: 28px; top: 26px; margin: 0;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.08em; color: var(--neon);
 }
 
 .skip {
-  position: absolute; right: 28px; bottom: 26px;
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
   font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--muted); opacity: 0.6; transition: opacity 120ms, color 120ms;
 }
 .skip:hover { opacity: 1; color: var(--text); }
 
-/* the Sign, for the length of the flicker, over the black */
-.sign { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); opacity: 0.9; }
+@media (max-width: 720px) {
+  .file { grid-template-columns: 48px 1fr; }
+  .photo { grid-column: 1 / -1; max-width: 220px; }
+}
