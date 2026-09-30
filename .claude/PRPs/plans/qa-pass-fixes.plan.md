@@ -26,7 +26,7 @@ Owner decisions after the report:
 | 12 S10 case list | done · verified (list readable ~5 s) |
 | 13 dim windows behind | done · verified |
 | 14 S9 same building | pending |
-| 15 Find My map | pending |
+| 15 Find My map | done · verified (dark map like Apple's: streets, terraces, park, canal; device list; this Mac at 16, the iPhone at 17, 20 m) |
 | 16 live camera moment more subtle | pending (owner, after 1-15) |
 | 17 S9 figure animation redone from the owner's SVGs | pending (owner, after 1-15) |
 | 18 the player's recorded voice is not audible in S9 | pending (owner, after 1-15) |
