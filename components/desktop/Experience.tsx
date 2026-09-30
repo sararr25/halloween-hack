@@ -6,6 +6,7 @@ import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay"
 import { drone, glitchSound, lightSwitch, unlockAudio } from "@/lib/audio/sfx";
 import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
 import { enterFullscreen } from "@/lib/fullscreen";
+import { music, riser, type MusicMode } from "@/lib/audio/music";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
 import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
@@ -98,6 +99,17 @@ function Overlay() {
     if (!live) return;
     drone(phase === "login" ? 0 : phase === "reveal" ? 0.4 : state.calm ? 0.25 : DRONE[stage]);
   }, [live, phase, stage, state.calm]);
+
+  // The score (lib/audio/music.ts): calm while the player reads, suspense once the backup is
+  // open, silence in the interlude, harder in the reveal, nothing at the login.
+  const lastStage = useRef(stage);
+  useEffect(() => {
+    if (phase === "desktop" && stage === 3 && lastStage.current < 3) riser();
+    lastStage.current = stage;
+    const mode: MusicMode =
+      phase === "reveal" ? "reveal" : phase !== "desktop" || state.calm ? "off" : stage === 3 ? "suspense" : "calm";
+    music(mode);
+  }, [phase, stage, state.calm]);
 
   // The searchlight: the head position goes straight to the shader, a little late
   // (like something turning to look), without re-rendering React on every frame.
