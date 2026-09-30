@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay";
-import { drone, glitchSound, unlockAudio } from "@/lib/audio/sfx";
+import { drone, glitchSound, lightSwitch, unlockAudio } from "@/lib/audio/sfx";
 import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
 import { enterFullscreen } from "@/lib/fullscreen";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
@@ -38,9 +38,14 @@ const BEAM_RHYTHM: Record<1 | 2, [[number, number], [number, number]]> = {
   1: [[5, 8], [35, 60]],
   2: [[12, 20], [8, 15]],
 };
-// Every ~20 s it flares for an instant, colder, like lightning: two strokes and a tail.
-const FLASH_EVERY: [number, number] = [18, 24];
-const FLASH_STROKES = [0, 1, 0.12, 0.85, 0.3, 0];
+// It flares for an instant, colder, like lightning: two strokes and a tail. Stage 1 keeps
+// it rare (the tracking is not shown yet); from stage 2 it flares every few seconds, short
+// and soft, so the player sees that the light is on them and moves with them.
+const FLASH_EVERY: Record<Stage, [number, number]> = { 1: [18, 24], 2: [4.5, 6.5], 3: [4, 6] };
+const FLASH_STROKES = [0, 0.75, 0.1, 0.6, 0.2, 0];
+const FLASH_S = 0.4;
+// Entering stage 2 the beam snaps onto the head once, hard, with the click of a lamp.
+const SNAP_STROKES = [0, 1, 0.4, 1, 0.6, 0];
 
 /**
  * One overlay for the whole experience, mounted once. Rive instances that render GPU
@@ -153,30 +158,41 @@ function Overlay() {
   }, [beam, stage]);
 
   // The searchlight flares now and then, on the desktop only, never in the quiet interlude.
+  const snapped = useRef(false);
   useEffect(() => {
     if (phase !== "desktop" || state.calm) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const f = { v: 0 };
+    const flare = (strokes: number[], seconds: number) =>
+      gsap.to(f, {
+        keyframes: { v: strokes },
+        duration: seconds,
+        ease: "none",
+        overwrite: true,
+        onUpdate: () => set.current?.("flash", f.v),
+      });
     let timer: ReturnType<typeof setTimeout>;
     const next = () => {
       timer = setTimeout(() => {
-        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          gsap.to(f, {
-            keyframes: { v: FLASH_STROKES },
-            duration: 0.55,
-            ease: "none",
-            onUpdate: () => set.current?.("flash", f.v),
-          });
-        }
+        if (!reduced) flare(FLASH_STROKES, FLASH_S);
         next();
-      }, between(FLASH_EVERY));
+      }, between(FLASH_EVERY[stage]));
     };
-    next();
+    if (stage >= 2 && !snapped.current) {
+      snapped.current = true;
+      // on the head, once the beam has faded in
+      timer = setTimeout(() => {
+        lightSwitch();
+        if (!reduced) flare(SNAP_STROKES, 0.8);
+        next();
+      }, 2400);
+    } else next();
     return () => {
       clearTimeout(timer);
       gsap.killTweensOf(f);
       set.current?.("flash", 0);
     };
-  }, [phase, state.calm]);
+  }, [phase, state.calm, stage]);
 
   // S10: the screen switches off; crtOff(0) restores the overlay once the page is black.
   useEffect(() => {
