@@ -18,14 +18,14 @@ A full run takes 10 to 15 minutes. Without a camera everything works with the mo
 - **Do:** read Mail, Messages, Notes, Phone, History. Nothing is required yet. The clues for the backup code (the "for later" mail, the "backup" note, the Unknown caller, the clickable search) are not there yet: they appear with stage 2, so nobody can skip ahead.
 - **The clue:** open **Photos → IMG_0418**. Move the lens over the street. A woman stands by the lamp post, looking up at a lit window. **Hold the lens on her for about a second.**
 - She only moves while you are not looking (turn away, or move the mouse off the page).
-- Stuck for 100 s: "…look at her photos. Closely."
+- Stuck: hints follow one path (Theo's chat → IMG_0418 → the lens on her), always the first step not done yet, first after 75 s, then every 60 s. Each opens the exact chat or photo; the latest stays under the menubar.
 - The searchlight is not always there: in stage 1 it comes and goes (a few seconds every half minute or so), in stage 2 it is on more often than not, in stage 3 it never leaves. Every ~20 s it flares.
 
 ## 3 · Stage 2: someone else is watching
 - **Expect:** `viewers 2`, `● REC`, the Camera window opens by itself (a lens that follows you and fires when you blink), a cyan folder `backup_you`, IMG_0419 "source: unknown device", searches typing themselves in History, Mara "typing…" forever.
 - **Listen:** Phone → E.V.'s voicemail (dated after she vanished), Mara's two voicemails (the second outside E.V.'s flat), the Unknown caller (the time he names is lost in static; the transcript shows it). Messages → E.V.'s voice note.
 - **Do:** open **backup_you** and type the four digits of the time you came in (`HHMM`, from `session opened`, also in the menubar **Recovery** menu). With the camera on, two fingers up opens it too.
-- Each wrong code, the anonymous sender points at a place where the time is written: the "for later" mail (it arrived at that minute), the Unknown caller's transcript, the searches still being typed in History, then plainly "…it's the minute you came in." Her note dated today is a red herring. Stuck: "…it's a time. Four digits."
+- Hints in stage 2: the "for later" voice memo → when that mail arrived → "…it's the minute you came in." A second wrong code brings the next hint at once. Her note dated today is a red herring.
 
 ## 4 · Stage 3: corrupted
 - **Expect:** "you spent Ns getting here", `viewers 3` in cyan, the screen cracks, the searchlight turns cyan and flares, the polaroid is rewritten, the wallpaper changes the first time you look away (a window lit across the street, someone in it).
