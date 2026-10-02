@@ -15,11 +15,12 @@ gsap.registerPlugin(useGSAP);
 // S5 · Notes. E.V.'s voice is literary. The first note carries today's real date and
 // writes itself when opened, with one mistake corrected, as if by hand.
 export default function Notes() {
-  const { dispatch } = useStory();
+  const { state, dispatch } = useStory();
+  const notes = NOTES.filter((n) => !n.fromStage || state.stage >= n.fromStage);
   const f = useFill();
   // opens on the newest note, like the real app
   const [openId, setOpenId] = useState<string | null>(NOTES[0].id);
-  const note = NOTES.find((n) => n.id === openId);
+  const note = notes.find((n) => n.id === openId);
   const body = useRef<HTMLDivElement>(null);
 
   const open = (id: string) => {
@@ -93,7 +94,7 @@ export default function Notes() {
 
   return (
     <Split
-      list={NOTES.map((n) => (
+      list={notes.map((n) => (
         <Row
           key={n.id}
           active={n.id === openId}
@@ -105,7 +106,7 @@ export default function Notes() {
       ))}
     >
       {!note ? (
-        <Empty>{NOTES.length} notes</Empty>
+        <Empty>{notes.length} notes</Empty>
       ) : (
         <article key={note.id}>
           <p className={styles.byline}>{when(note.days)}</p>

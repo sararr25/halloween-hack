@@ -30,6 +30,8 @@ export type Mail = {
   /** a voice memo attached to the mail: played by lib/audio/voices.ts */
   memo?: { name: string; length: string; transcript: string };
   key?: boolean;
+  /** only in the inbox from this stage on: clues for a later step stay hidden until then */
+  fromStage?: 2 | 3;
 };
 
 export type Photo = {
@@ -57,7 +59,7 @@ export type ChatLine = {
 };
 export type Chat = { id: string; name: string; status: string; lines: ChatLine[] };
 
-export type Note = { id: string; title: string; days: number; body: string[]; typed?: boolean; key?: boolean };
+export type Note = { id: string; title: string; days: number; body: string[]; typed?: boolean; key?: boolean; fromStage?: 2 | 3 };
 
 export type Search = { q: string; days: number; time: string };
 
@@ -150,6 +152,8 @@ export const MAILS: Mail[] = [
     time: "23:58",
     kind: "self",
     scheduled: true,
+    // it explains the backup code: it lands with stage 2, when the backup exists
+    fromStage: 2,
     body: [],
     memo: {
       name: "for_later.m4a",
@@ -258,10 +262,7 @@ export const PHOTOS: Photo[] = [
   { id: "IMG_0418", caption: "window across, night (6/12)", days: 8, key: true },
   { id: "IMG_0417", caption: "window across (5/12)", days: 8 },
   { id: "IMG_0416", caption: "cat on the wall, no. 14", days: 9 },
-  { id: "IMG_0413", caption: "Harrow St (4/12)", days: 10 },
   { id: "IMG_0411", caption: "self-portrait, hallway mirror", days: 10 },
-  { id: "IMG_0407", caption: "Harrow St (3/12)", days: 11 },
-  { id: "IMG_0404", caption: "Harrow St (2/12)", days: 12 },
   { id: "IMG_0401", caption: "Harrow St, dusk (1/12)", days: 12 },
   { id: "IMG_0397", caption: "bus window, rain", days: 14 },
   { id: "IMG_0392", caption: "my desk, finally tidy", days: 16 },
@@ -391,6 +392,7 @@ export const NOTES: Note[] = [
     title: "backup",
     days: 7,
     key: true,
+    fromStage: 2,
     body: [
       "Set the backup code tonight. Four digits, like a clock.",
       "The time they come in. Not the light across. The other one, the one who opens this.",
@@ -572,6 +574,7 @@ export const CALLS: Call[] = [
     days: 7,
     time: "23:02",
     kind: "missed",
+    fromStage: 2,
     voicemail: {
       length: "0:11",
       audio: "a low, calm voice. The time it names is lost in a burst of static.",

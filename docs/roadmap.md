@@ -127,3 +127,13 @@ Full browser run, report and plan in `.claude/PRPs/plans/qa-pass-fixes.plan.md`.
 - [x] The player's recorded voice: raw microphone, loudened, score ducked. Needs a Mac check.
 - [x] Stage 3 reflection reduced to a shape in dimmed glass. Needs a camera check.
 - [x] S9 figure animated from the owner's raise-hand video (57 frames, `public/figure/raise`). `public/figure/body.webp` and `arm.webp` are no longer used.
+
+## Round 4 · friends' playtest (2026-10-02)
+
+Feedback: too many messages; clues let you skip steps; after the code there is little to do; too many street photos.
+
+- [x] Stage gating: "for later" mail, "backup" note, Unknown caller and the clickable search only exist from stage 2 (`fromStage` on Mail and Note). Stage 2 announces the new mail.
+- [x] Fewer messages: at most two notifications on screen, slower hints (75 s / 60 s), the "faster than the others" and IMG_0419 notices removed.
+- [x] Find My: "View live" asks which flat (8 cameras); only 4A opens the feed. Mara no longer names the flat.
+- [x] Photos: street series down to IMG_0401, IMG_0417 + IMG_0418 (IMG_0404 and IMG_0407 deleted; IMG_0413 kept, it is the source of the briefing photo and the lens plates).
+- [x] A double click on an icon no longer clicks inside the window it opens.

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { phonePing } from "@/lib/audio/sfx";
 import { usePresenceEvent } from "@/lib/presence/context";
+import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import styles from "./locate.module.css";
 
@@ -51,12 +52,42 @@ function Glyph({ kind }: { kind: Device["glyph"] }) {
   return <path d="M-4 -5a2 2 0 0 1 2 2v7M4 -5a2 2 0 0 0-2 2v7" />;
 }
 
+// Find My knows the building, not the flat. "View live" asks which camera to open: the
+// player has to remember the empty flat (Hale, Mara, the parcel, the police draft). Each
+// wrong flat answers with someone else's ordinary night, a glitch, and no signal.
+const FLATS = ["4A", "4B", "3A", "3B", "2A", "2B", "1A", "1B"];
+const ANSWER = "4A";
+const WRONG: Record<string, string> = {
+  "4B": "4B · occupied · a man asleep in front of the TV",
+  "3A": "3A · occupied · nobody home, a cat on the sofa",
+  "3B": "3B · camera off since 2023",
+  "2A": "2A · occupied · a kitchen, the radio on",
+  "2B": "2B · occupied · two kids, a night light",
+  "1A": "1A · the hallway. The stairs go up.",
+  "1B": "1B · occupied · a woman reading. She looks up. No.",
+};
+
 export default function Locate() {
   const { dispatch } = useStory();
   const pin = useRef<SVGGElement>(null);
   const view = useRef<SVGGElement>(null);
   const [since, setSince] = useState(0);
   const [pinged, setPinged] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [tried, setTried] = useState<string[]>([]);
+
+  const pick = (flat: string) => {
+    if (flat === ANSWER) {
+      glitchNow(1);
+      dispatch({ type: "clue", id: "look_live" });
+      return;
+    }
+    glitchNow(0.5);
+    const next = tried.includes(flat) ? tried : [...tried, flat];
+    setTried(next);
+    if (next.length === 2) dispatch({ type: "notify", from: "anon", text: "…the one that's been empty for a year." });
+    if (next.length === 4) dispatch({ type: "notify", from: "anon", text: "…she asked Hale which flat. Read it.", open: "messages" });
+  };
 
   useEffect(() => {
     const t = setInterval(() => setSince((s) => s + 1), 1000);
@@ -123,19 +154,37 @@ export default function Locate() {
 
         <div className={styles.card}>
           <b>E.V.&apos;s iPhone</b>
-          <small>17 Harrow St · flat 4A</small>
+          <small>17 Harrow St · flat unknown</small>
           <small>
             {located} · accuracy 5 m · <span className={styles.battery}>12%</span>
           </small>
           {pinged && <small>Sound played. No one picked it up.</small>}
-          <div className={styles.actions}>
-            <button className={styles.button} onClick={ping}>
-              Play Sound
-            </button>
-            <button className={`${styles.button} ${styles.primary}`} onClick={() => dispatch({ type: "clue", id: "look_live" })}>
-              View live
-            </button>
-          </div>
+          {!picking ? (
+            <div className={styles.actions}>
+              <button className={styles.button} onClick={ping}>
+                Play Sound
+              </button>
+              <button className={`${styles.button} ${styles.primary}`} onClick={() => setPicking(true)}>
+                View live
+              </button>
+            </div>
+          ) : (
+            <div className={styles.picker}>
+              <small>8 building cameras found. Which flat?</small>
+              <div className={styles.flats}>
+                {FLATS.map((f) => (
+                  <button
+                    key={f}
+                    className={`${styles.button} ${tried.includes(f) ? styles.dead : ""}`}
+                    onClick={() => pick(f)}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              {tried.length > 0 && <small className={styles.noSignal}>{WRONG[tried.at(-1)!]}</small>}
+            </div>
+          )}
         </div>
       </aside>
 

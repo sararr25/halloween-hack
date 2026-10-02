@@ -42,7 +42,8 @@ const IDLE_NUDGE_MS = 100_000;
 // hint opens that app when clicked. The ladders lead through the voicemails and the notes,
 // so nobody skips them (owner playtest).
 type Hint = [text: string, open?: AppId];
-const HINT_EVERY: Record<1 | 2, number> = { 1: 55_000, 2: 45_000 };
+// Playtest (friends): too many messages. Hints wait longer before they step in.
+const HINT_EVERY: Record<1 | 2, number> = { 1: 75_000, 2: 60_000 };
 const LADDER: Record<1 | 2, Hint[]> = {
   1: [
     ["…listen to what people left on her phone.", "phone"],
@@ -98,8 +99,8 @@ function useDirector() {
   useEffect(() => {
     if (stage === 1 && "photo_figure" in clues) {
       dispatch({ type: "stage", stage: 2 });
-      say("stage2", "system", "IMG_0419 added · source: unknown device", 1200);
-      say("faster", "anon", "You found the one in the street faster than the others did.", 5000);
+      // the clues for the code arrive with the backup, not before (no skipping ahead)
+      say("stage2", "system", "1 new mail · E.V. · for later · scheduled", 1500, "mail");
     }
     if (stage === 2 && "backup_open" in clues) {
       dispatch({ type: "stage", stage: 3 });
@@ -174,8 +175,8 @@ function useDirector() {
 
 const CLOSE_GAP_MS = 420;
 // The interlude: after the session log closes, how long until "View live" happens anyway.
-const LOCATE_NUDGE_MS = 40_000;
-const LOCATE_TIMEOUT_MS = 90_000;
+const LOCATE_NUDGE_MS = 45_000;
+const LOCATE_TIMEOUT_MS = 180_000;
 
 /**
  * The interlude after S8. When session_0418.log closes (by the user or by itself) the case
@@ -213,12 +214,13 @@ function useInterlude() {
     if (!called) return;
     const at = (ms: number, run: () => void) => setTimeout(run, ms);
     const timers = [
-      at(1500, () => dispatch({ type: "notify", from: "mara", text: "it says you're in 4A. across the road. the empty one" })),
+      // she does not say which flat: the player has to know it (Find My asks)
+      at(1500, () => dispatch({ type: "notify", from: "mara", text: "it says you're across the road. number 17. which flat??" })),
       at(5000, () => {
         dispatch({ type: "notify", from: "system", text: "Find My · E.V.'s iPhone is online" });
         dispatch({ type: "open", id: "locate" });
       }),
-      at(5000 + LOCATE_NUDGE_MS, () => dispatch({ type: "notify", from: "anon", text: "…go on. look." })),
+      at(5000 + LOCATE_NUDGE_MS, () => dispatch({ type: "notify", from: "anon", text: "…go on. look. pick the flat." })),
       at(5000 + LOCATE_TIMEOUT_MS, () => dispatch({ type: "clue", id: "look_live" })),
     ];
     return () => timers.forEach(clearTimeout);
@@ -296,12 +298,12 @@ function RecoveryMenu() {
 function objectiveOf(state: ReturnType<typeof useStory>["state"]) {
   const { stage, clues, calm, windows } = state;
   const isOpen = (id: string) => windows.some((w) => w.id === id);
-  if (isOpen("locate")) return "view live";
+  if (isOpen("locate")) return "which flat is her phone in?";
   if (calm) return "find where her phone is";
   if (stage === 3 && isOpen("session")) return "read it. close it when you're ready";
   if (stage === 3) return "open the file still being written";
   if (stage === 2) return "open backup_you · four digits";
-  if ("mail_for_later" in clues || "chat_window" in clues) return "look closely at her photos";
+  if ("chat_window" in clues) return "look closely at her photos";
   return "read her mail and messages";
 }
 

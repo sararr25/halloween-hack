@@ -58,9 +58,14 @@ export default function History() {
           </li>
         ))}
         <li className={styles.search}>
-          <button className={`${styles.searchBtn} ${styles.link}`} onClick={openLast}>
-            {last.q}
-          </button>
+          {/* it hints at the backup code: it only opens once the backup exists */}
+          {state.stage >= 2 ? (
+            <button className={`${styles.searchBtn} ${styles.link}`} onClick={openLast}>
+              {last.q}
+            </button>
+          ) : (
+            <span>{last.q}</span>
+          )}
           <span className={styles.meta}>{when(last.days, last.time)}</span>
         </li>
         {result && (

@@ -45,6 +45,12 @@
 .primary { background: #0a84ff; }
 .primary:hover, .primary:focus-visible { background: #3396ff; }
 
+/* View live: which flat */
+.picker { display: grid; gap: 6px; margin-top: 10px; }
+.flats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+.dead { opacity: 0.35; text-decoration: line-through; }
+.noSignal { color: #ff9f0a !important; }
+
 /* ── map ── */
 .mapWrap { position: relative; overflow: hidden; background: #1c1d20; }
 .map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

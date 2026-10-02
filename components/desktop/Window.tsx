@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useStory, type AppId, type WindowState } from "@/lib/story/store";
@@ -22,6 +22,12 @@ export default function Window({ win }: { win: WindowState }) {
   const el = useRef<HTMLDivElement>(null);
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const app = APP[win.id];
+  // the second click of a double click on the icon must not land inside the new window
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   // Open: grow out of the icon (280 ms — docs/scenes.md motion table).
   useGSAP(() => {
@@ -68,7 +74,9 @@ export default function Window({ win }: { win: WindowState }) {
         <button className={styles.close} aria-label={`Close ${app.title}`} onClick={close} />
         <span>{app.title}</span>
       </div>
-      <div className={styles.body}>{app.body}</div>
+      <div className={styles.body} style={ready ? undefined : { pointerEvents: "none" }}>
+        {app.body}
+      </div>
     </div>
   );
 }

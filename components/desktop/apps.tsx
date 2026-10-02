@@ -71,7 +71,7 @@ export const APPS: AppDef[] = [
     body: <Camera /> },
   { id: "session", title: "session_0418.log", iconFrom: null, size: { w: 660, h: 330 },
     glyph: doc, body: <Session /> },
-  { id: "locate", title: "Find My", iconFrom: null, size: { w: 820, h: 500 },
+  { id: "locate", title: "Find My", iconFrom: null, size: { w: 820, h: 560 },
     glyph: g(<><circle cx="12" cy="10" r="3" /><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /></>),
     body: <Locate /> },
 ];

@@ -12,11 +12,12 @@ import styles from "./mail.module.css";
 // S2 · Mail. Every mail is its own kind of email; the service ones carry a small drawn
 // block (a sign-in near home, the night usage, the parcel route, the contact sheet).
 export default function Mail() {
-  const { dispatch } = useStory();
+  const { state, dispatch } = useStory();
+  const mails = MAILS.filter((m) => !m.fromStage || state.stage >= m.fromStage);
   // opens on the newest mail, like a real inbox (never on a clue: the player finds those)
   const [openId, setOpenId] = useState<string | null>(() => MAILS.find((m) => !m.key)?.id ?? null);
   const [read, setRead] = useState<Set<string>>(() => new Set(openId ? [openId] : []));
-  const mail = MAILS.find((m) => m.id === openId);
+  const mail = mails.find((m) => m.id === openId);
 
   const open = (m: MailItem) => {
     setOpenId(m.id);
@@ -27,7 +28,7 @@ export default function Mail() {
   return (
     <div className={styles.mail}>
       <ul className={styles.list} aria-label="Inbox">
-        {MAILS.map((m) => (
+        {mails.map((m) => (
           <li key={m.id}>
             <button className={`${styles.row} ${m.id === openId ? styles.active : ""}`} onClick={() => open(m)}>
               <Avatar name={m.from} className={styles.avatar} />
@@ -42,7 +43,7 @@ export default function Mail() {
           </li>
         ))}
       </ul>
-      <div className={styles.pane}>{mail ? <Reader key={mail.id} mail={mail} /> : <p className={styles.meta}>{MAILS.length} messages · inbox</p>}</div>
+      <div className={styles.pane}>{mail ? <Reader key={mail.id} mail={mail} /> : <p className={styles.meta}>{mails.length} messages · inbox</p>}</div>
     </div>
   );
 }

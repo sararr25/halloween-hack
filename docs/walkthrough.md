@@ -15,7 +15,7 @@ A full run takes 10 to 15 minutes. Without a camera everything works with the mo
 
 ## 2 · Desktop, stage 1: the perfect life
 - An anonymous sender writes: "She kept everything. Start with the mail."
-- **Do:** read Mail (the one "for later" arrived at the exact minute you came in), Messages, Notes, Phone, History. Nothing is required yet.
+- **Do:** read Mail, Messages, Notes, Phone, History. Nothing is required yet. The clues for the backup code (the "for later" mail, the "backup" note, the Unknown caller, the clickable search) are not there yet: they appear with stage 2, so nobody can skip ahead.
 - **The clue:** open **Photos → IMG_0418**. Move the lens over the street. A woman stands by the lamp post, looking up at a lit window. **Hold the lens on her for about a second.**
 - She only moves while you are not looking (turn away, or move the mouse off the page).
 - Stuck for 100 s: "…look at her photos. Closely."
@@ -42,7 +42,7 @@ A full run takes 10 to 15 minutes. Without a camera everything works with the mo
 - Mara writes: E.V.'s phone just came back on, in 4A across the road, the empty one.
 - **Find My** opens by itself: a map of Harrow St, E.V.'s home at 16, her phone pulsing at 17, flat 4A.
 - **Try:** Play sound (it pings in your own headphones). Move: the dot moves a little with you.
-- **Do:** click **View live** (after a while the sender writes "…go on. look.", and it happens anyway).
+- **Do:** click **View live**, then pick the flat: 8 building cameras, only **4A** (the empty one, named by Hale, Mara, the parcel and the police draft) opens the feed. Wrong flats show someone else's night and a glitch; after 2 and 4 wrong picks the sender hints. After 3 minutes it happens anyway.
 
 ## 7 · Reveal (S9)
 - Every window closes by itself, in reverse order. The building across, at night. Lines in second person built from your session.

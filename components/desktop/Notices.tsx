@@ -19,7 +19,8 @@ export default function Notices() {
   const { state } = useStory();
   return (
     <div className={styles.notices} aria-live="polite">
-      {state.notices.map((n) => (
+      {/* never more than two at once: a stack of messages reads as noise (playtest) */}
+      {state.notices.slice(-2).map((n) => (
         <Item key={n.id} notice={n} />
       ))}
     </div>
