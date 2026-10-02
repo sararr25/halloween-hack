@@ -34,11 +34,16 @@ export type StoryState = {
   calm: boolean;
   /** Blinks the system answered (stage 2+, camera only): S8 and S9 count them. */
   blinks: number;
+  /** An item an app should show when it opens or is brought forward (a hint points at it);
+   * `n` changes on every request so asking twice still works. */
+  focus: Partial<Record<AppId, { item: string; n: number }>>;
+  /** The latest hint, kept readable under the objective until the stage changes. */
+  hint: { text: string; open?: AppId; item?: string } | null;
 };
 
 /** "anon" = the anonymous sender (help that is really guidance); "system" = the OS;
  * "mara" = a message from Mara arriving on E.V.'s laptop. */
-export type Notice = { id: number; from: "anon" | "system" | "mara"; text: string; open?: AppId };
+export type Notice = { id: number; from: "anon" | "system" | "mara"; text: string; open?: AppId; item?: string };
 
 /** Facts about the user, gathered in S1 and reused by the story (S8/S9). */
 export type Session = {
@@ -52,18 +57,19 @@ export type Session = {
 type Action =
   | { type: "phase"; phase: Phase }
   | { type: "stage"; stage: Stage }
-  | { type: "open"; id: AppId }
+  | { type: "open"; id: AppId; item?: string }
   | { type: "close"; id: AppId }
   | { type: "focus"; id: AppId }
   | { type: "move"; id: AppId; x: number; y: number }
   | { type: "clue"; id: string }
   | { type: "session"; session: Partial<Session> }
-  | { type: "notify"; from: Notice["from"]; text: string; open?: AppId }
+  | { type: "notify"; from: Notice["from"]; text: string; open?: AppId; item?: string }
   | { type: "dismiss"; id: number }
   | { type: "wrongCode" }
   | { type: "interrupt"; at: number }
   | { type: "calm"; calm: boolean }
   | { type: "clearNotices" }
+  | { type: "hint"; text: string; open?: AppId; item?: string }
   | { type: "blink" };
 
 function reducer(s: StoryState, a: Action): StoryState {
@@ -71,8 +77,9 @@ function reducer(s: StoryState, a: Action): StoryState {
     case "phase":
       return { ...s, phase: a.phase };
     case "stage":
-      return { ...s, stage: a.stage };
+      return { ...s, stage: a.stage, hint: null };
     case "open": {
+      if (a.item) s = { ...s, focus: { ...s.focus, [a.id]: { item: a.item, n: (s.focus[a.id]?.n ?? 0) + 1 } } };
       if (s.windows.some((w) => w.id === a.id)) return reducer(s, { type: "focus", id: a.id });
       const n = s.windows.length;
       const z = s.topZ + 1;
@@ -93,7 +100,7 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, session: { ...s.session, ...a.session } };
     case "notify": {
       const id = (s.notices.at(-1)?.id ?? 0) + 1;
-      return { ...s, notices: [...s.notices, { id, from: a.from, text: a.text, open: a.open }] };
+      return { ...s, notices: [...s.notices, { id, from: a.from, text: a.text, open: a.open, item: a.item }] };
     }
     case "dismiss":
       return { ...s, notices: s.notices.filter((n) => n.id !== a.id) };
@@ -105,6 +112,8 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, calm: a.calm };
     case "clearNotices":
       return { ...s, notices: [] };
+    case "hint":
+      return { ...s, hint: { text: a.text, open: a.open, item: a.item } };
     case "blink":
       return { ...s, blinks: s.blinks + 1 };
   }
@@ -136,6 +145,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     interruptions: [],
     calm: false,
     blinks: 0,
+    focus: {},
+    hint: null,
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase.

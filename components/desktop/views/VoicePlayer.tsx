@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { spokenPace, startCaption, stopCaption } from "@/lib/audio/captions";
 import { playRecording, type Playback, type RecordingId } from "@/lib/audio/voices";
+import { useStory } from "@/lib/story/store";
 import styles from "./voice.module.css";
 
 const WAVE = [4, 9, 14, 7, 11, 16, 6, 12, 8, 15, 5, 10, 13, 6, 9, 4, 11, 7, 12, 5, 9, 14, 6, 10];
@@ -15,6 +16,7 @@ const seconds = (length: string) => {
 
 /** Play / stop, a waveform that fills as it plays, the length. One recording at a time. */
 export default function VoicePlayer({ id, length }: { id: RecordingId; length: string }) {
+  const { dispatch } = useStory();
   const [playing, setPlaying] = useState(false);
   const [silent, setSilent] = useState(false);
   const wave = useRef<HTMLSpanElement>(null);
@@ -38,6 +40,7 @@ export default function VoicePlayer({ id, length }: { id: RecordingId; length: s
 
   const play = () => {
     if (playing) return stop();
+    dispatch({ type: "clue", id: `heard_${id}` }); // the hints know what was listened to
     const p = playRecording(id);
     const dur = seconds(length);
     if (!p) {

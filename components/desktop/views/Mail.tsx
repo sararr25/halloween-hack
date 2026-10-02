@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BOOKS, MAILS, SIGNIN, TRACKING, USAGE, type Mail as MailItem } from "@/lib/story/content";
 import { useLookingAway } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
@@ -18,11 +18,21 @@ export default function Mail() {
   const [openId, setOpenId] = useState<string | null>(() => MAILS.find((m) => !m.key)?.id ?? null);
   const [read, setRead] = useState<Set<string>>(() => new Set(openId ? [openId] : []));
   const mail = mails.find((m) => m.id === openId);
+  // a hint can point at one mail
+  const asked = state.focus.mail;
+  const [seen, setSeen] = useState<number | undefined>(undefined);
+  if (asked && asked.n !== seen && mails.some((x) => x.id === asked.item)) {
+    setSeen(asked.n);
+    setOpenId(asked.item);
+    setRead((r) => new Set(r).add(asked.item));
+  }
+  useEffect(() => {
+    if (mail?.key) dispatch({ type: "clue", id: "mail_for_later" });
+  }, [mail?.key, dispatch]);
 
   const open = (m: MailItem) => {
     setOpenId(m.id);
     setRead((r) => new Set(r).add(m.id));
-    if (m.key) dispatch({ type: "clue", id: "mail_for_later" });
   };
 
   return (

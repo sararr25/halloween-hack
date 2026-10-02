@@ -23,16 +23,25 @@ const TYPING_MS = 4200;
 export default function Messages() {
   const { state, dispatch } = useStory();
   const [openId, setOpenId] = useState<string | null>(null);
+  // a hint can point at one chat
+  const asked = state.focus.messages;
+  const [seen, setSeen] = useState<number | undefined>(undefined);
+  if (asked && asked.n !== seen) {
+    setSeen(asked.n);
+    setOpenId(asked.item);
+  }
   const [extra, setExtra] = useState<Record<string, ChatLine[]>>({});
   const [typing, setTyping] = useState(false);
   const pane = useRef<HTMLDivElement>(null);
   const chat = CHATS.find((c) => c.id === openId);
   const lines = chat ? [...chat.lines, ...(extra[chat.id] ?? [])] : [];
 
-  const open = (id: string) => {
-    setOpenId(id);
-    if (id === "mara" || id === "theo") dispatch({ type: "clue", id: "chat_window" });
-  };
+  const open = (id: string) => setOpenId(id);
+  // whichever way a chat was opened (a click, or a hint), the story hears of it
+  useEffect(() => {
+    if (openId === "mara" || openId === "theo") dispatch({ type: "clue", id: "chat_window" });
+    if (openId === "theo") dispatch({ type: "clue", id: "chat_theo" });
+  }, [openId, dispatch]);
 
   // "Mara is typing…" for a few seconds, then nothing arrives.
   useEffect(() => {

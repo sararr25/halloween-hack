@@ -68,7 +68,7 @@ function Item({ notice }: { notice: Notice }) {
   const target = notice.open;
   const follow = () => {
     if (!target) return;
-    dispatch({ type: "open", id: target });
+    dispatch({ type: "open", id: target, item: notice.item });
     dispatch({ type: "dismiss", id: notice.id });
   };
 

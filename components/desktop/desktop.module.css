@@ -206,3 +206,13 @@
   display: grid; place-items: center;
 }
 .blackout p { margin: 0; font-family: var(--font-mono), monospace; font-size: 13px; letter-spacing: 0.06em; color: var(--text); }
+
+/* the latest hint, under the menubar (Desktop.tsx HintLine) */
+.hintLine {
+  position: absolute; top: 34px; left: 50%; transform: translateX(-50%); z-index: 5;
+  max-width: min(560px, calc(100vw - 32px)); padding: 5px 12px; border-radius: 8px;
+  font-family: var(--font-mono), monospace; font-size: 11px; color: var(--muted); text-align: left;
+  transition: color 150ms;
+}
+.hintLine:enabled { cursor: pointer; }
+.hintLine:enabled:hover { color: var(--text); }

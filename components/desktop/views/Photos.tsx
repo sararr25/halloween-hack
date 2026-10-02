@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { PHOTOS, photoSrc } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
@@ -31,8 +31,18 @@ function Shot({ id, sizes, whole }: { id: string; sizes: string; whole?: boolean
 export default function Photos() {
   const { state, dispatch } = useStory();
   const photos = PHOTOS.filter((p) => !p.fromStage || state.stage >= p.fromStage);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(state.focus.photos?.item ?? null);
   const photo = photos.find((p) => p.id === openId);
+  // a hint can point at one photo
+  const asked = state.focus.photos;
+  const [seen, setSeen] = useState(asked?.n);
+  if (asked && asked.n !== seen) {
+    setSeen(asked.n);
+    setOpenId(asked.item);
+  }
+  useEffect(() => {
+    if (photo?.key) dispatch({ type: "clue", id: "photo_0418" });
+  }, [photo?.key, dispatch]);
 
   if (photo) {
     return (

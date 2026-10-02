@@ -37,28 +37,26 @@ function Clock() {
 
 const IDLE_NUDGE_MS = 100_000;
 
-// Hints that get warmer, one step at a time: every HINT_EVERY without progress (and, at
-// stage 2, every wrong code) the anonymous sender points at the next place to look. Each
-// hint opens that app when clicked. The ladders lead through the voicemails and the notes,
-// so nobody skips them (owner playtest).
-type Hint = [text: string, open?: AppId];
-// Playtest (friends): too many messages. Hints wait longer before they step in.
-const HINT_EVERY: Record<1 | 2, number> = { 1: 75_000, 2: 60_000 };
-const LADDER: Record<1 | 2, Hint[]> = {
+// Hints follow one path through the story (owner playtest: a fixed list sent people to the
+// phone before the photo, and back and forth in stage 2). Each step knows when it is done;
+// the sender only ever points at the first step not done yet, and the hint opens the exact
+// chat, photo or mail. Nothing is said while the player is making progress.
+type Step = { done: (c: Record<string, number>, wrong: number) => boolean; text: string; open?: AppId; item?: string };
+const PATH: Record<1 | 2, Step[]> = {
   1: [
-    ["…listen to what people left on her phone.", "phone"],
-    ["…Theo asked her about a photo. Read their messages.", "messages"],
-    ["…her last photo. Not the window. The street under it.", "photos"],
-    ["…in IMG_0418, hold the lens on the woman by the lamp post.", "photos"],
+    { done: (c) => "chat_theo" in c, text: "…Theo asked her about a photo. Read their messages.", open: "messages", item: "theo" },
+    { done: (c) => "photo_0418" in c, text: "…the photo she sent Theo. IMG_0418.", open: "photos", item: "IMG_0418" },
+    { done: (c) => "photo_figure" in c, text: "…not the window. The street under it. Hold the lens on her.", open: "photos", item: "IMG_0418" },
   ],
   2: [
-    ["…she set the code herself. Read her notes.", "notes"],
-    ["…someone called her about tonight. Listen, then read what the phone heard.", "phone"],
-    ["…she left a voice memo in a mail for later. Listen to it.", "mail"],
-    ["…look at when that mail arrived. Four digits, like a clock.", "mail"],
-    ["…it's the minute you came in. The Recovery menu remembers it."],
+    { done: (c) => "heard_ev-forlater" in c, text: "…she left a voice memo, in a mail for later. Listen to it.", open: "mail", item: "for-later" },
+    { done: (_, wrong) => wrong > 0, text: "…look at when that mail arrived. Four digits, like a clock.", open: "mail", item: "for-later" },
+    { done: () => false, text: "…it's the minute you came in. The Recovery menu remembers it." },
   ],
 };
+// first hint after this long without progress, then the next one after HINT_AGAIN
+const HINT_FIRST = 75_000;
+const HINT_AGAIN = 60_000;
 
 /**
  * Turns clues into story beats: the stage changes only on key clues (photo figure → 2,
@@ -73,22 +71,24 @@ function useDirector() {
   useEffect(() => {
     calm.current = state.calm;
   });
-  const say = (key: string, from: "anon" | "system", text: string, delay = 0, open?: AppId) => {
+  const say = (key: string, from: "anon" | "system", text: string, delay = 0, open?: AppId, item?: string) => {
     if (said.current.has(key)) return;
     said.current.add(key);
     setTimeout(() => {
       // the interlude has its own voices: a late message from the sender stays unsent
       if (from === "anon" && calm.current) return;
-      dispatch({ type: "notify", from, text, open });
+      dispatch({ type: "notify", from, text, open, item });
     }, delay);
   };
-  const level = useRef<Record<1 | 2, number>>({ 1: 0, 2: 0 });
+  // the latest hint stays under the objective (Objective reads it from the notices)
+  const lastHint = useRef<string | null>(null);
   const hint = (st: 1 | 2) => {
-    const i = level.current[st];
-    const step = LADDER[st][i];
-    if (!step) return;
-    level.current[st] = i + 1;
-    say(`hint${st}-${i}`, "anon", step[0], 0, step[1]);
+    if (calm.current) return;
+    const step = PATH[st].find((p) => !p.done(clues, wrongCodes));
+    if (!step || lastHint.current === step.text) return;
+    lastHint.current = step.text;
+    dispatch({ type: "notify", from: "anon", text: step.text, open: step.open, item: step.item });
+    dispatch({ type: "hint", text: step.text, open: step.open, item: step.item });
   };
 
   useEffect(() => {
@@ -100,7 +100,7 @@ function useDirector() {
     if (stage === 1 && "photo_figure" in clues) {
       dispatch({ type: "stage", stage: 2 });
       // the clues for the code arrive with the backup, not before (no skipping ahead)
-      say("stage2", "system", "1 new mail · E.V. · for later · scheduled", 1500, "mail");
+      say("stage2", "system", "1 new mail · E.V. · for later · scheduled", 1500, "mail", "for-later");
     }
     if (stage === 2 && "backup_open" in clues) {
       dispatch({ type: "stage", stage: 3 });
@@ -147,18 +147,26 @@ function useDirector() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, clues]);
 
-  // A wrong code is a step down the ladder at once.
+  // A second wrong code is a hint at once (the first one may just be a typo).
   useEffect(() => {
-    if (wrongCodes > 0 && stage === 2) hint(2);
+    if (wrongCodes >= 2 && stage === 2) hint(2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrongCodes]);
 
-  // No progress for a while: the next hint. Any new clue, or a hint from a wrong code,
-  // restarts the wait, so two hints never land together.
+  // No progress for a while: the hint for the next step. Any new clue restarts the wait.
+  const hints = useRef(0);
   useEffect(() => {
     if (stage === 3) return;
-    const t = setInterval(() => hint(stage), HINT_EVERY[stage]);
-    return () => clearInterval(t);
+    let t: ReturnType<typeof setTimeout>;
+    const next = (ms: number) => {
+      t = setTimeout(() => {
+        hint(stage);
+        hints.current += 1;
+        next(HINT_AGAIN);
+      }, ms);
+    };
+    next(hints.current ? HINT_AGAIN : HINT_FIRST);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, Object.keys(clues).length, wrongCodes]);
 
@@ -304,8 +312,9 @@ function objectiveOf(state: ReturnType<typeof useStory>["state"]) {
   if (calm) return "find where her phone is";
   if (stage === 3 && isOpen("session")) return "read it. close it when you're ready";
   if (stage === 3) return "open the file still being written";
-  if (stage === 2) return "open backup_you · four digits";
-  if ("chat_window" in clues) return "look closely at her photos";
+  if (stage === 2) return "heard_ev-forlater" in clues ? "open backup_you · four digits" : "read the mail that just arrived";
+  if ("photo_0418" in clues) return "find what she saw in IMG_0418";
+  if ("chat_window" in clues) return "find the photo she sent";
   return "read her mail and messages";
 }
 
@@ -325,6 +334,22 @@ function Objective() {
     <span className={styles.objective}>
       objective · <span ref={el}>{text}</span>
     </span>
+  );
+}
+
+/** The latest hint, kept under the menubar: a notification is gone in 16 s, this is not. */
+function HintLine() {
+  const { state, dispatch } = useStory();
+  const h = state.hint;
+  if (!h || state.calm || state.stage === 3) return null;
+  return (
+    <button
+      className={`${styles.hintLine} ${styles.glass}`}
+      onClick={() => h.open && dispatch({ type: "open", id: h.open, item: h.item })}
+      disabled={!h.open}
+    >
+      {h.text}
+    </button>
   );
 }
 
@@ -395,6 +420,8 @@ export default function Desktop() {
           <Clock />
         </span>
       </header>
+
+      <HintLine />
 
       <nav className={styles.icons} aria-label="Apps">
         {APPS.filter((a) => !a.place && a.iconFrom !== null && stage >= a.iconFrom).map((a) => (
