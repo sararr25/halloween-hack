@@ -34,7 +34,7 @@ type Clip =
   | CallLine;
 
 /** Mara on the live call in the interlude (IncomingCall.tsx). */
-export type CallLine = "mara-call-1" | "mara-call-2" | "mara-call-silent";
+export type CallLine = "mara-call-1" | "mara-call-plead" | "mara-call-2" | "mara-call-silent";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -208,16 +208,16 @@ export function playRecording(id: RecordingId): Spoken | null {
       break;
     }
     case "mara-voicemail": {
-      // 0:12 · Mara, five days ago, near midnight, worried sick
-      line(12);
-      nodes.push(bed(e, now, now + 12, "lowpass", 300, 0.03));
+      // 0:11 · Mara, five days ago, near midnight, worried sick
+      line(11);
+      nodes.push(bed(e, now, now + 11, "lowpass", 300, 0.03));
       add(voice(e, "mara-1", now, { at: 1.1, gain: 1, phone: true }, nodes));
       break;
     }
     case "mara-voicemail-2": {
       // 0:19 · Mara inside E.V.'s flat at 02:40, the door left open: a still room, the street outside
-      line(19);
-      nodes.push(bed(e, now, now + 19, "lowpass", 380, 0.06));
+      line(16);
+      nodes.push(bed(e, now, now + 16, "lowpass", 380, 0.06));
       nodes.push(breath(e, now + 0.2, 0.7, true));
       nodes.push(carPass(e, now + 5.5, 5));
       add(voice(e, "mara-2", now, { at: 0.9, gain: 1, phone: true }, nodes));
@@ -231,11 +231,11 @@ export function playRecording(id: RecordingId): Spoken | null {
       break;
     }
     case "mara-voicemail-3": {
-      // 0:12 · Mara inside E.V.'s flat, yesterday, breathing hard; the line dies mid-word
-      line(11);
-      nodes.push(bed(e, now, now + 11, "lowpass", 300, 0.05));
+      // 0:10 · Mara inside E.V.'s flat, yesterday, breathing hard; the line dies mid-word
+      line(10);
+      nodes.push(bed(e, now, now + 10, "lowpass", 300, 0.05));
       nodes.push(breath(e, now + 0.1, 0.5, true));
-      add(voice(e, "mara-3", now, { at: 0.5, gain: 1, phone: true, cut: 10.05 }, nodes));
+      add(voice(e, "mara-3", now, { at: 0.5, gain: 1, phone: true, cut: 9.0 }, nodes));
       break;
     }
     case "mum-voicemail": {

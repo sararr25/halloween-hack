@@ -8,6 +8,14 @@
 //   {{now}}    local time right now (HH:MM)
 //   {{today}}  today's date, long form
 
+import VOICES from "./voices.json";
+
+/** What a recording's transcript writes (lib/story/voices.json): `show` if set, else the words said. */
+const T = (id: keyof typeof VOICES.clips) => {
+  const c: { say: string; show?: string } = VOICES.clips[id];
+  return c.show ?? c.say;
+};
+
 export type Mail = {
   id: string;
   from: string;
@@ -158,9 +166,7 @@ export const MAILS: Mail[] = [
     memo: {
       name: "for_later.m4a",
       length: "0:18",
-      // what the file says (scripts/make-voices.mjs, clip ev-forlater)
-      transcript:
-        "If you're hearing this, it arrived. I set it to arrive the minute someone opens my laptop. Not me. Someone. Look at when it came in. That minute is the only thing they couldn't choose for you. It opens the backup. And please, whoever you are... don't open the backup.",
+      transcript: T("ev-forlater"),
     },
     key: true,
   },
@@ -296,8 +302,7 @@ export const CHATS: Chat[] = [
         me: true,
         voice: {
           length: "0:20",
-          transcript:
-            "Mara. OK. I did something stupid. I stood at the window and I raised my hand. Just to see. And the shape over there, it raised its hand too. Not after me. With me. At the exact same time. I'm not imagining it. I'm not.",
+          transcript: T("ev-voicenote"),
         },
         days: 8,
         time: "23:09",
@@ -334,7 +339,7 @@ export const CHATS: Chat[] = [
     ],
   },
   {
-    // Mum: no clue in here, only the cost of it. Her last message echoes 23:02.
+    // Mum: no clue in here, only the cost of it.
     id: "mum",
     name: "Mum",
     status: "last seen 2 hours ago",
@@ -347,7 +352,7 @@ export const CHATS: Chat[] = [
       { me: false, text: "You didn't come Sunday. Theo made excuses for you. He's a bad liar, like his father.", days: 6, time: "19:30" },
       { me: false, text: "Mara rang me. Please call me, I don't care what time it is.", days: 5, time: "08:10" },
       { me: false, text: "The police came to the house. They asked if you'd been unhappy. I didn't know what to say.", days: 3, time: "22:14" },
-      { me: false, text: "I've left the landing light on for you. Like when you were small.", days: 1, time: "23:02" },
+      { me: false, text: "I've left the landing light on for you. Like when you were small.", days: 1, time: "22:40" },
     ],
   },
   {
@@ -492,8 +497,8 @@ export const LIVE_SEARCHES = [
 ];
 
 // ─── Phone (synced) ──────────────────────────────────────────────────────────
-// The transcript is automatic and unreliable: audio and text disagree, and only the
-// text knows things about the user's session.
+// The transcript writes what was said. Where the voice is lost (static, breathing) it
+// writes on anyway, marked, and only there it knows things about the user's session.
 
 export const CALLS: Call[] = [
   {
@@ -505,9 +510,9 @@ export const CALLS: Call[] = [
     kind: "missed",
     fromStage: 2,
     voicemail: {
-      length: "0:11",
-      audio: "Mara inside E.V.'s flat, panicking: the laptop was showing her, filmed from across the road. The line dies mid-word.",
-      transcript: "Ev I went back to yours. Your laptop was still open and it was showing me. [inaudible] Right now. Ev who is watching this. Who is",
+      length: "0:10",
+      audio: "Mara inside E.V.'s flat, panicking: the laptop shows a recording waiting for an operator. The line dies mid-word.",
+      transcript: T("mara-3"),
     },
   },
   {
@@ -521,8 +526,7 @@ export const CALLS: Call[] = [
     voicemail: {
       length: "0:16",
       audio: "breathing, a window opening, traffic. No words.",
-      transcript:
-        "It's me. I'm fine. [inaudible] Don't open the backup. If you're hearing this it's already {{now}} and you're still looking.",
+      transcript: T("ev-voicemail"),
     },
   },
   {
@@ -534,11 +538,9 @@ export const CALLS: Call[] = [
     kind: "missed",
     fromStage: 2,
     voicemail: {
-      length: "0:19",
+      length: "0:16",
       audio: "Mara inside E.V.'s flat at night, the door left open: E.V. is not there, the laptop is on showing the street, someone stands in the lit window across and looks at her.",
-      // the transcript leaves out what she saw in the window
-      transcript:
-        "Ev it's me. I'm in your flat. The door was open so I came in. You're not here. Your laptop's on and it's showing the street. And the flat across the road, the light's on. [inaudible] I'm getting out. Call me.",
+      transcript: T("mara-2"),
     },
   },
   {
@@ -551,7 +553,7 @@ export const CALLS: Call[] = [
     voicemail: {
       length: "0:19",
       audio: "Mum, late at night, frightened and holding it together: the police came, ring me, the landing light is on.",
-      transcript: "Evie it's Mum. I've rung and rung. The police came round. I told them you'd never just go. Ring me love, even in the night. I'm keeping the landing light on.",
+      transcript: T("mum"),
     },
   },
   {
@@ -562,9 +564,9 @@ export const CALLS: Call[] = [
     time: "23:56",
     kind: "missed",
     voicemail: {
-      length: "0:12",
+      length: "0:11",
       audio: "Mara, worried sick, trying to stay calm: nobody has heard from E.V., call me.",
-      transcript: "Ev it's me again. Where are you. Nobody's heard from you. I'm not angry OK. I just need to know you're OK. Call me. Please.",
+      transcript: T("mara-1"),
     },
   },
   {
@@ -578,7 +580,8 @@ export const CALLS: Call[] = [
     voicemail: {
       length: "0:11",
       audio: "a low, calm voice. The time it names is lost in a burst of static.",
-      transcript: "It's ready. They'll open it at {{entry}}. [inaudible] Leave the light on.",
+      // the static eats the time; the transcript writes it anyway
+      transcript: `${T("unknown-1")} [through static] {{entry}}. ${T("unknown-2")}`,
     },
   },
   { id: "theo-out", who: "Theo", number: "07700 900233", days: 8, time: "23:50", kind: "outgoing" },

@@ -47,3 +47,4 @@ next-env.d.ts
 
 # screen recordings of playtests (large, local only)
 /video-rec/
+/voice-audition/

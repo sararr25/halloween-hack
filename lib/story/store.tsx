@@ -63,6 +63,7 @@ type Action =
   | { type: "wrongCode" }
   | { type: "interrupt"; at: number }
   | { type: "calm"; calm: boolean }
+  | { type: "clearNotices" }
   | { type: "blink" };
 
 function reducer(s: StoryState, a: Action): StoryState {
@@ -102,6 +103,8 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, interruptions: [...s.interruptions, a.at] };
     case "calm":
       return { ...s, calm: a.calm };
+    case "clearNotices":
+      return { ...s, notices: [] };
     case "blink":
       return { ...s, blinks: s.blinks + 1 };
   }

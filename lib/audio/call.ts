@@ -54,9 +54,17 @@ export function ring(): () => void {
   };
 }
 
+// A voice, not a room: the level must pass this peak for SPEECH_MS in total before the
+// take counts as the player speaking (owner: Mara must not hear a voice in silence).
+const SPEECH_PEAK = 0.06;
+const SPEECH_MS = 400;
+const TICK_MS = 60;
+
 /**
  * Records `ms` of the microphone (already granted in S1, so no prompt) and reports its
- * level 0..1 as it goes, for the meter. Keeps the result for S9. Null without a microphone.
+ * level 0..1 as it goes, for the meter. Returns the take only if someone spoke in it (kept
+ * for S9); null for silence, or without a microphone. Stops early once speech has been
+ * heard and has gone quiet again.
  */
 export async function recordVoice(ms: number, onLevel: (level: number) => void): Promise<AudioBuffer | null> {
   const e = audioEngine();
@@ -72,25 +80,36 @@ export async function recordVoice(ms: number, onLevel: (level: number) => void):
   const tap = e.ctx.createMediaStreamSource(stream);
   tap.connect(analyser); // measured only, never sent to the speakers
   const data = new Uint8Array(analyser.fftSize);
+  let spoken = 0;
+  let quiet = 0;
+  let finishEarly: () => void = () => {};
+  const early = new Promise<void>((r) => (finishEarly = r));
   const meter = setInterval(() => {
     analyser.getByteTimeDomainData(data);
     let peak = 0;
     for (const v of data) peak = Math.max(peak, Math.abs(v - 128) / 128);
     onLevel(Math.min(1, peak * 2.5));
-  }, 60);
+    if (peak > SPEECH_PEAK) {
+      spoken += TICK_MS;
+      quiet = 0;
+    } else quiet += TICK_MS;
+    // they said something and stopped: no need to wait out the whole take
+    if (spoken >= SPEECH_MS && quiet >= 900) finishEarly();
+  }, TICK_MS);
 
   const chunks: Blob[] = [];
   const rec = new MediaRecorder(stream);
   rec.ondataavailable = (ev) => chunks.push(ev.data);
   const done = new Promise<void>((resolve) => (rec.onstop = () => resolve()));
   rec.start();
-  await new Promise((r) => setTimeout(r, ms));
+  await Promise.race([new Promise((r) => setTimeout(r, ms)), early]);
   rec.stop();
   await done;
   clearInterval(meter);
   onLevel(0);
   tap.disconnect();
   stream.getTracks().forEach((t) => t.stop());
+  if (spoken < SPEECH_MS) return null;
   const bytes = await new Blob(chunks, { type: rec.mimeType }).arrayBuffer();
   voice = await e.ctx.decodeAudioData(bytes);
   return voice;

@@ -9,95 +9,20 @@
 // short broken sentences) and the speed. Phone-line filtering and room noise are added
 // at play time by lib/audio/voices.ts, not baked in.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-const CLIPS = [
-  {
-    // E.V.'s voicemail: almost a whisper, then only breathing, a window, traffic (added live)
-    id: "ev-voicemail",
-    voice: "aura-2-pandora-en",
-    speed: 0.95,
-    text: "It's me... I'm by the window.",
-  },
-  {
-    // Mara, five days ago, near midnight: worried sick, trying to stay calm and failing
-    id: "mara-1",
-    voice: "aura-2-theia-en",
-    speed: 1.08,
-    text: "Ev. Ev, it's me, again. Where are you? Nobody's heard from you, your phone just rings and rings. I'm not angry, okay? I just need to know you're okay. Call me. Please. Whenever you get this. Please.",
-  },
-  {
-    // Mara, three days ago, 02:40: the door was open, so she went in. Scared, whispering fast
-    id: "mara-2",
-    voice: "aura-2-theia-en",
-    speed: 1.15,
-    text: "Ev. Ev, it's me. I'm in your flat. The door was open, so I just came in. You're not here. Your bed's made. Your laptop's on, on the desk, and it's showing the street. And the flat across the road, the empty one, the light's on. There's someone standing in the window. They're not moving. They're looking right at me. I'm getting out. Call me. Please, call me.",
-  },
-  {
-    // Mara, yesterday: she went back in. Panicked, and cut off mid-sentence
-    id: "mara-3",
-    voice: "aura-2-theia-en",
-    speed: 1.2,
-    text: "Ev, I went back to yours. Your laptop was still open and it was, it was showing me. Me! Standing in your room, filmed from across the road. Right now. Ev, who is watching this? Who is",
-  },
-  {
-    // Mum, four days ago: warm, frightened, holding it together for her daughter.
-    // Athena is the only Aura-2 voice Deepgram lists as "mature".
-    id: "mum",
-    voice: "aura-2-athena-en",
-    speed: 0.95,
-    text: "Evie, it's Mum. I've rung and rung, darling. The police came round, they asked me all sorts. I told them you'd never just go, not without telling me. Just ring me, love. Even in the middle of the night. I'm keeping my phone on. I'm keeping the landing light on.",
-  },
-  {
-    // E.V.'s voice memo, attached to the mail she scheduled for "later": recorded the night
-    // before she vanished, set to arrive the minute someone opened her laptop
-    id: "ev-forlater",
-    voice: "aura-2-pandora-en",
-    speed: 1.0,
-    text: "If you're hearing this, it arrived. I set it to arrive the minute someone opens my laptop. Not me. Someone. Look at when it came in. That minute is the only thing they couldn't choose for you. It opens the backup. And please, whoever you are... don't open the backup.",
-  },
-  {
-    // the live call in the interlude, part one: Mara, breathless, hopeful and scared
-    id: "mara-call-1",
-    voice: "aura-2-theia-en",
-    speed: 1.12,
-    text: "Ev? Ev, is that you? Oh my god. Your phone just came on. It says you're across the road, in 4A. In the empty flat. Ev, say something. Please. Just say something, so I know it's you.",
-  },
-  {
-    // part two, after the player spoke: that was not E.V.'s voice. The line dies mid-word
-    id: "mara-call-2",
-    voice: "aura-2-theia-en",
-    speed: 1.1,
-    text: "That's not your voice. That's not Ev. Who is this? Why have you got her phone? Who's there with h",
-  },
-  {
-    // part two, when nothing could be heard (no microphone): only breathing on the line
-    id: "mara-call-silent",
-    voice: "aura-2-theia-en",
-    speed: 1.08,
-    text: "Ev? I can't hear you. I can hear someone breathing. Ev, who's there? Who's there with y",
-  },
-  {
-    // the unknown caller, part one: calm, low. The time is lost in the static (added live)
-    id: "unknown-1",
-    voice: "aura-2-draco-en",
-    speed: 0.84,
-    text: "It's ready. They'll open it at",
-  },
-  {
-    // the unknown caller, part two, after the static
-    id: "unknown-2",
-    voice: "aura-2-draco-en",
-    speed: 0.8,
-    text: "Leave the light on.",
-  },
-  {
-    // E.V.'s voice note to Mara: shaken, whispering fast, talking herself out of it and failing
-    id: "ev-voicenote",
-    voice: "aura-2-pandora-en",
-    speed: 1.05,
-    text: "Mara. Okay. Okay, I did something stupid. I stood at the window and I raised my hand. Just to see. And the shape over there, it raised its hand too. Not after me. With me! At the exact same time. I'm not imagining it. Mara, I'm not imagining it.",
-  },
+// The lines live in lib/story/voices.json, shared with the transcripts the game shows.
+const CLIPS = Object.entries(JSON.parse(readFileSync("lib/story/voices.json", "utf8")).clips).map(([id, c]) => ({
+  id,
+  ...c,
+  text: c.say,
+}));
+
+// `--audition`: the same line in a few candidate voices, into voice-audition/ (git-ignored),
+// so the owner can pick by ear before everything is regenerated.
+const AUDITION = [
+  { line: "mum", voices: ["aura-2-helena-en", "aura-2-vesta-en", "aura-2-hera-en"] },
+  { line: "ev-forlater", voices: ["aura-2-juno-en", "aura-2-selene-en", "aura-2-cora-en"] },
 ];
 
 function apiKey() {
@@ -111,9 +36,18 @@ function apiKey() {
 const only = process.argv[2];
 const key = apiKey();
 let chars = 0;
-for (const clip of CLIPS) {
-  const out = `public/audio/${clip.id}.mp3`;
-  if (only ? clip.id !== only : existsSync(out)) continue;
+const jobs =
+  only === "--audition"
+    ? AUDITION.flatMap(({ line, voices }) => {
+        const c = CLIPS.find((x) => x.id === line);
+        if (!c) throw new Error(`audition: no line ${line}`);
+        return voices.map((voice) => ({ ...c, voice, out: `voice-audition/${line}__${voice.replace(/^aura-2-|-en$/g, "")}.mp3` }));
+      })
+    : CLIPS.map((c) => ({ ...c, out: `public/audio/${c.id}.mp3` }));
+if (only === "--audition") mkdirSync("voice-audition", { recursive: true });
+for (const clip of jobs) {
+  const out = clip.out;
+  if (only === "--audition" ? existsSync(out) : only ? clip.id !== only : existsSync(out)) continue;
   const url = `https://api.deepgram.com/v1/speak?model=${clip.voice}&encoding=mp3&speed=${clip.speed}`;
   const res = await fetch(url, {
     method: "POST",

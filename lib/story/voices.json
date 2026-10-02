@@ -1,0 +1,71 @@
+{
+  "_": "One source for every recorded line. `say` is what the voice file says (scripts/make-voices.mjs reads it). `show` is what the transcript writes when it differs: the same words, plus only what the phone 'hears' through noise, marked. Tokens {{entry}} {{now}} are filled at render time.",
+  "clips": {
+    "ev-voicemail": {
+      "voice": "aura-2-pandora-en",
+      "speed": 0.95,
+      "say": "It's me. I'm fine. I'm... by the window.",
+      "show": "It's me. I'm fine. I'm... by the window. [no voice · transcribed anyway] Don't open the backup. It's {{now}} and you're still looking."
+    },
+    "mara-1": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.08,
+      "say": "Ev, it's me. Again. Where are you? Nobody's heard from you. I'm not angry, okay? I just need to know you're okay. Call me. Please."
+    },
+    "mara-2": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.12,
+      "say": "Ev, it's me. I'm in your flat. The door was open, so I came in. You're not here. Your laptop's on, and it's showing the street. The flat across the road, the empty one. The light's on. Someone's standing in the window. Looking at me. I'm getting out. Call me."
+    },
+    "mara-3": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.15,
+      "say": "Ev, I went back to yours. Your laptop was still on. There's a recording open on it, and it says: waiting for operator. Who's the operator, Ev? Who are they waiting f"
+    },
+    "mum": {
+      "voice": "aura-2-athena-en",
+      "speed": 0.95,
+      "say": "Evie, it's Mum. I've rung and rung. The police came round. I told them you'd never just go, not without telling me. Ring me, love. Even in the night. I'm leaving the landing light on."
+    },
+    "ev-forlater": {
+      "voice": "aura-2-pandora-en",
+      "speed": 1.0,
+      "say": "If you're hearing this, it arrived. I set this mail to arrive the minute someone opens my laptop. Not me. Someone. Look at the time it came in. That's the code for the backup. And please... whoever you are... don't open it."
+    },
+    "ev-voicenote": {
+      "voice": "aura-2-pandora-en",
+      "speed": 1.05,
+      "say": "Mara. Okay. I did something stupid. I stood at the window and I raised my hand. Just to see. And the shape over there, it raised its hand too. Not after me. With me. At the exact same time. I'm not imagining it, Mara. I'm not."
+    },
+    "unknown-1": {
+      "voice": "aura-2-draco-en",
+      "speed": 0.84,
+      "say": "It's ready. They'll open it at"
+    },
+    "unknown-2": {
+      "voice": "aura-2-draco-en",
+      "speed": 0.8,
+      "say": "Leave the light on."
+    },
+    "mara-call-1": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.12,
+      "say": "Ev? Ev, is that you? Oh my god. Your phone just came on. It says you're across the road. Number seventeen. Ev, say something. Please. Just say something, so I know it's you."
+    },
+    "mara-call-plead": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.1,
+      "say": "Ev? I can't hear you. Please. Say something. Anything."
+    },
+    "mara-call-2": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.1,
+      "say": "That's not her voice. That's not Ev. Who is this? Why have you got her phone? Where is sh"
+    },
+    "mara-call-silent": {
+      "voice": "aura-2-theia-en",
+      "speed": 1.08,
+      "say": "Ev? Someone's there. I can hear you breathing. Who is this? Who's there with h"
+    }
+  }
+}

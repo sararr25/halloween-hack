@@ -198,6 +198,8 @@ function useInterlude() {
     const timers = [
       at(400, () => {
         glitchNow(0.6);
+        // the interlude starts clean: no stage 3 message lands over Mara's call
+        dispatch({ type: "clearNotices" });
         dispatch({ type: "calm", calm: true });
         dispatch({ type: "notify", from: "system", text: "operator review 0418 · closed · nothing found" });
       }),

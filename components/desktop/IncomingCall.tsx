@@ -7,6 +7,7 @@ import { recordVoice, ring } from "@/lib/audio/call";
 import { spokenPace, startCaption } from "@/lib/audio/captions";
 import { playCallLine, type CallLine } from "@/lib/audio/voices";
 import { glitchNow } from "@/lib/story/glitch";
+import VOICES from "@/lib/story/voices.json";
 import { useStory } from "@/lib/story/store";
 import Transcript from "./views/Transcript";
 import styles from "./call.module.css";
@@ -19,18 +20,15 @@ import styles from "./call.module.css";
 // When the call is over, `call_done` lets the interlude go on to Find My (Desktop.tsx).
 export const CALL_EVENT = "recovery:call";
 const RING_MS = 22_000;
-const LISTEN_MS = 4500;
+// each time she asks, the laptop listens this long; she asks up to TRIES times
+const LISTEN_MS = 6000;
+const TRIES = 3;
 
 type Step = "ringing" | "talking" | "listening" | "reply" | "ended";
 
-// What Mara says, word for word (scripts/make-voices.mjs). Written while she speaks; the
+// What Mara says, word for word (lib/story/voices.json). Written while she speaks; the
 // last word stays cut, like the line.
-const CAPTIONS: Record<CallLine, string> = {
-  "mara-call-1":
-    "Ev? Ev, is that you? Oh my god. Your phone just came on. It says you're across the road, in 4A. In the empty flat. Ev, say something. Please. Just say something, so I know it's you.",
-  "mara-call-2": "That's not your voice. That's not Ev. Who is this? Why have you got her phone? Who's there with h",
-  "mara-call-silent": "Ev? I can't hear you. I can hear someone breathing. Ev, who's there? Who's there with y",
-};
+const said = (line: CallLine) => VOICES.clips[line].say;
 
 export default function IncomingCall() {
   const { state, dispatch } = useStory();
@@ -38,7 +36,8 @@ export default function IncomingCall() {
   const [seconds, setSeconds] = useState(0);
   const [level, setLevel] = useState(0);
   const panel = useRef<HTMLDivElement>(null);
-  const [saying, setSaying] = useState<CallLine | null>(null);
+  // the line playing, and a caption id unique per take (she may plead more than once)
+  const [saying, setSaying] = useState<{ line: CallLine; id: string } | null>(null);
   const stopRing = useRef<(() => void) | null>(null);
   const alive = useRef(true);
   const mic = state.session.mic === "granted";
@@ -98,20 +97,30 @@ export default function IncomingCall() {
     stopRing.current?.();
     stopRing.current = null;
     setStep("talking");
-    const first = playCallLine("mara-call-1");
-    setSaying("mara-call-1");
-    startCaption("mara-call-1", first?.speech ?? spokenPace(10));
-    await (first?.done ?? wait(11000));
-    if (!alive.current) return;
-    setStep("listening");
-    const heard = mic ? await recordVoice(LISTEN_MS, setLevel) : (await wait(LISTEN_MS), null);
+    const speak = async (line: CallLine, n: number, cut = false) => {
+      const id = `${line}-${n}`;
+      const take = playCallLine(line, { cut });
+      setSaying({ line, id });
+      startCaption(id, take?.speech ?? spokenPace(said(line).split(" ").length / 2.6));
+      await (take?.done ?? wait(said(line).split(" ").length * 420));
+    };
+    await speak("mara-call-1", 0);
+    // She only hears a stranger when the player really spoke. Silence: she pleads, and
+    // the laptop listens again. Nothing after the last try: she hears breathing.
+    let heard = null;
+    for (let n = 0; n < TRIES && alive.current; n++) {
+      if (n > 0) {
+        setStep("talking");
+        await speak("mara-call-plead", n);
+        if (!alive.current) return;
+      }
+      setStep("listening");
+      heard = mic ? await recordVoice(LISTEN_MS, setLevel) : (await wait(LISTEN_MS), null);
+      if (heard || !mic) break;
+    }
     if (!alive.current) return;
     setStep("reply");
-    const reply: CallLine = heard ? "mara-call-2" : "mara-call-silent";
-    const second = playCallLine(reply, { cut: true });
-    setSaying(reply);
-    startCaption(reply, second?.speech ?? spokenPace(6));
-    await (second?.done ?? wait(7000));
+    await speak(heard ? "mara-call-2" : "mara-call-silent", 0, true);
     if (!alive.current) return;
     glitchNow(0.9);
     finish("answered");
@@ -166,7 +175,7 @@ export default function IncomingCall() {
       )}
 
       {saying && (step === "talking" || step === "reply") && (
-        <Transcript key={saying} id={saying} className={styles.caption} text={CAPTIONS[saying]} />
+        <Transcript key={saying.id} id={saying.id} className={styles.caption} text={said(saying.line)} />
       )}
     </div>
   );
