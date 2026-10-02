@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
+import { grabFrame } from "@/lib/story/frames";
 import { blackout, glitchNow } from "@/lib/story/glitch";
 import { useStory, type AppId } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
@@ -95,6 +96,25 @@ function useDirector() {
     say("welcome", "anon", "She kept everything. Start with the mail.", 2500, "mail");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // the key moments are photographed too, silently (case file, page 2)
+  const { video } = usePresence();
+  const shot = useRef(new Set<string>());
+  useEffect(() => {
+    const moments: Record<string, string> = {
+      photo_0418: "opens IMG_0418",
+      photo_figure: "finds her in the street",
+      "heard_ev-forlater": "listens to her",
+      backup_open: "opens backup_you",
+      look_live: "looks into 4A",
+    };
+    for (const [id, label] of Object.entries(moments)) {
+      if (id in clues && !shot.current.has(id)) {
+        shot.current.add(id);
+        grabFrame(video(), label);
+      }
+    }
+  }, [clues, video]);
 
   useEffect(() => {
     if (stage === 1 && "photo_figure" in clues) {

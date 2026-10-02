@@ -266,7 +266,7 @@ const noSubscribe = () => () => {};
 function Returning() {
   const name = useSyncExternalStore(noSubscribe, readCase, () => null);
   if (!name) return null;
-  return <p className={styles.hint}>case 0418 is still open, {name}.</p>;
+  return <p className={styles.hint}>welcome back, {name}. you&apos;re late.</p>;
 }
 
 // Top-level phase switch: premise → boot (S1) → briefing → desktop → reveal (S9) → login (S10). See docs/desktop.md.

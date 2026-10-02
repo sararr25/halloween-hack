@@ -54,7 +54,9 @@ A full run takes 10 to 15 minutes. Without a camera everything works with the mo
 - `RECOVERY/4`, `operator`, an empty field. The caret stops when your face leaves the frame (or the mouse stays still for 5 s).
 - **Do:** type a name, press Enter.
 - **Expect:** a case list: E.V. missing, two closed cases, and `#0418 <your name> open`. The screen switches off like an old tube. "No frames or audio left your device."
-- Come back later: the first screen says "case 0418 is still open, <name>."
+- **Download the case file**: page 1 is the session, page 2 the evidence (stills of you taken silently on blinks and key moments, CCTV look; never shown during play, memory only) and "case 0419 · session scheduled tomorrow" at the minute you came in.
+- After the download nothing closes: black, the REC light comes back on by itself, "case 0418 · status: open", and the sender: "see you tomorrow at HH:MM." The tab stays "● REC · 0419".
+- Come back later: the first screen says "welcome back, <name>. you're late."
 
 ## Shortcuts for demos (localhost only, `pnpm dev`)
 | Keys | Jumps to |

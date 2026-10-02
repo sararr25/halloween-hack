@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import gsap from "gsap";
-import { key, tubeOff } from "@/lib/audio/sfx";
+import { blip, key, tubeOff } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { downloadCaseFile } from "@/lib/story/casefile";
+import { grabFrame } from "@/lib/story/frames";
 import { crtOff } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
+import { clock } from "@/lib/story/time";
 import { SignGlyph } from "./Decor";
 import styles from "./login.module.css";
 
@@ -22,11 +24,17 @@ const CASES_HOLD_MS = 7000;
 const CASES_BLACK_MS = 8600;
 export const CASE_KEY = "recovery.case0418";
 
-type Step = "login" | "cases" | "off" | "credits";
+type Step = "login" | "cases" | "off" | "credits" | "after";
+// After the download nothing closes (owner: leave them on edge): black, then the recording
+// light comes back on by itself, the case is still open, and the sender has one last line.
+const AFTER_REC_MS = 3000;
+const AFTER_LINE_MS = 4600;
+const AFTER_SEE_MS = 8200;
+const REC_TITLE = "● REC · 0419";
 
 export default function Login() {
   const { state } = useStory();
-  const { tracker } = usePresence();
+  const { tracker, video } = usePresence();
   const [name, setName] = useState("");
   const [step, setStep] = useState<Step>("login");
   const [waiting, setWaiting] = useState(false);
@@ -59,6 +67,7 @@ export default function Login() {
     e.preventDefault();
     const typed = name.trim();
     if (!typed) return;
+    grabFrame(video(), `operator signs · ${typed}`);
     try {
       localStorage.setItem(CASE_KEY, typed);
     } catch {
@@ -110,13 +119,55 @@ export default function Login() {
         blinks,
         call: "call_answered" in clues ? "answered" : "call_declined" in clues ? "declined" : "call_missed" in clues ? "missed" : null,
       });
+      setStep("after");
     } finally {
       setSaving(false);
     }
   };
 
+  const [after, setAfter] = useState(0); // 1 REC, 2 the open case, 3 the sender
+  useEffect(() => {
+    if (step !== "after") return;
+    const t = [
+      setTimeout(() => setAfter(1), AFTER_REC_MS),
+      setTimeout(() => setAfter(2), AFTER_LINE_MS),
+      setTimeout(() => {
+        setAfter(3);
+        blip();
+      }, AFTER_SEE_MS),
+    ];
+    return () => t.forEach(clearTimeout);
+  }, [step]);
+
+  // the tab keeps recording, and nothing (React's own <title>, a tab switch) puts it back
+  useEffect(() => {
+    if (after < 1) return;
+    const hold = () => {
+      if (document.title !== REC_TITLE) document.title = REC_TITLE;
+    };
+    hold();
+    const t = setInterval(hold, 500);
+    return () => clearInterval(t);
+  }, [after]);
+
   // each screen gets its own element: the switch-off leaves a squash on the one before
   if (step === "off") return <div key="off" className={styles.black} />;
+  if (step === "after")
+    return (
+      <div key="after" className={styles.black}>
+        {after >= 1 && <span className={styles.afterRec}>● REC</span>}
+        <div className={styles.afterText}>
+          <p>case file saved.</p>
+          {after >= 2 && <p className={styles.afterOpen}>case 0418 · status: open</p>}
+        </div>
+        {after >= 3 && (
+          <div className={styles.afterNote}>
+            <span>unknown sender</span>
+            <p>see you tomorrow at {clock(state.openedAt)}.</p>
+          </div>
+        )}
+      </div>
+    );
   if (step === "credits")
     return (
       <div key="credits" className={styles.black}>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { shutter, subThud } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
+import { grabFrame } from "@/lib/story/frames";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
 import styles from "./blink.module.css";
@@ -25,7 +26,7 @@ type Shot = { n: number; effect: Effect; at: number };
 
 export default function BlinkCapture() {
   const { state, dispatch } = useStory();
-  const { tracker } = usePresence();
+  const { tracker, video } = usePresence();
   const [shot, setShot] = useState<Shot | null>(null);
   const last = useRef(0);
   const count = useRef(0);
@@ -41,6 +42,7 @@ export default function BlinkCapture() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const effect = reduced ? "drain" : ORDER[count.current % ORDER.length];
     count.current += 1;
+    grabFrame(video(), `eyes closed · ${count.current}`); // kept for the case file only
     if (effect === "drain") subThud(0.35);
     else shutter();
     setShot({ n: count.current, effect, at: now });
