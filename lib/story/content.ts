@@ -165,7 +165,7 @@ export const MAILS: Mail[] = [
     body: [],
     memo: {
       name: "for_later.m4a",
-      length: "0:18",
+      length: "0:13",
       transcript: T("ev-forlater"),
     },
     key: true,
@@ -301,7 +301,7 @@ export const CHATS: Chat[] = [
       {
         me: true,
         voice: {
-          length: "0:20",
+          length: "0:17",
           transcript: T("ev-voicenote"),
         },
         days: 8,
@@ -524,8 +524,8 @@ export const CALLS: Call[] = [
     kind: "missed",
     fromStage: 2,
     voicemail: {
-      length: "0:16",
-      audio: "breathing, a window opening, traffic. No words.",
+      length: "0:18",
+      audio: "E.V. whispering from across the road, she can see her own flat, the light is on; then breathing, a window opening, traffic.",
       transcript: T("ev-voicemail"),
     },
   },
@@ -551,8 +551,8 @@ export const CALLS: Call[] = [
     time: "22:31",
     kind: "missed",
     voicemail: {
-      length: "0:19",
-      audio: "Mum, late at night, frightened and holding it together: the police came, ring me, the landing light is on.",
+      length: "0:17",
+      audio: "Mum, late at night, tender and frightened: she has lost count of the calls, the landing light is on, come home.",
       transcript: T("mum"),
     },
   },

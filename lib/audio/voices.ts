@@ -195,16 +195,16 @@ export function playRecording(id: RecordingId): Spoken | null {
 
   switch (id) {
     case "ev-voicemail": {
-      // 0:16 · two whispered words, then breathing, a window opening, the street
-      line(16);
-      nodes.push(bed(e, now, now + 16, "lowpass", 260, 0.05)); // the room
+      // 0:18 · a few whispered words from across the road, then breathing, a window, the street
+      line(18);
+      nodes.push(bed(e, now, now + 18, "lowpass", 260, 0.05)); // the room
       add(voice(e, "ev-voicemail", now, { at: 0.9, gain: 0.55, phone: true }, nodes));
-      for (let t = 4.2; t < 14; t += rand(2.8, 3.6)) {
+      for (let t = 8.4; t < 16; t += rand(2.8, 3.6)) {
         nodes.push(breath(e, now + t, 1.3, true), breath(e, now + t + 1.4, 1.5, false));
       }
-      nodes.push(sashWindow(e, now + 7.4));
-      nodes.push(bed(e, now + 8.4, now + 16, "lowpass", 420, 0.07)); // the street comes in
-      nodes.push(carPass(e, now + 10.5, 4.2));
+      nodes.push(sashWindow(e, now + 10.6));
+      nodes.push(bed(e, now + 11.6, now + 18, "lowpass", 420, 0.07)); // the street comes in
+      nodes.push(carPass(e, now + 13, 4.2));
       break;
     }
     case "mara-voicemail": {
@@ -224,8 +224,8 @@ export function playRecording(id: RecordingId): Spoken | null {
       break;
     }
     case "ev-forlater": {
-      // 0:18 · E.V.'s voice memo, recorded at her desk the night before: close, a quiet room
-      nodes.push(bed(e, now, now + 18, "lowpass", 260, 0.05));
+      // 0:13 · E.V.'s voice memo, recorded at her desk the night before: close, a quiet room
+      nodes.push(bed(e, now, now + 13, "lowpass", 260, 0.05));
       noiseBurst(e as Engine, now + 0.2, 0.03, 1800, 2, 0.06); // the record button
       add(voice(e, "ev-forlater", now, { at: 1.0, gain: 1, phone: false }, nodes));
       break;
@@ -240,8 +240,8 @@ export function playRecording(id: RecordingId): Spoken | null {
     }
     case "mum-voicemail": {
       // 0:19 · Mum, four days ago, at home late at night: a quiet kitchen
-      line(19.2);
-      nodes.push(bed(e, now, now + 19.2, "lowpass", 180, 0.04));
+      line(17);
+      nodes.push(bed(e, now, now + 17, "lowpass", 180, 0.04));
       add(voice(e, "mum", now, { at: 1.0, gain: 1, phone: true, rate: 0.97 }, nodes));
       break;
     }
@@ -256,8 +256,8 @@ export function playRecording(id: RecordingId): Spoken | null {
       break;
     }
     case "ev-voicenote": {
-      // 0:20 · E.V. at her window, very close to the phone
-      nodes.push(bed(e, now, now + 20, "lowpass", 300, 0.04));
+      // 0:17 · E.V. at her window, very close to the phone
+      nodes.push(bed(e, now, now + 17, "lowpass", 300, 0.04));
       add(voice(e, "ev-voicenote", now, { at: 0.6, gain: 1, phone: false }, nodes));
       break;
     }

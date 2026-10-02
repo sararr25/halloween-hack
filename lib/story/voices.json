@@ -2,10 +2,10 @@
   "_": "One source for every recorded line. `say` is what the voice file says (scripts/make-voices.mjs reads it). `show` is what the transcript writes when it differs: the same words, plus only what the phone 'hears' through noise, marked. Tokens {{entry}} {{now}} are filled at render time.",
   "clips": {
     "ev-voicemail": {
-      "voice": "aura-2-pandora-en",
+      "voice": "aura-2-juno-en",
       "speed": 0.95,
-      "say": "It's me. I'm fine. I'm... by the window.",
-      "show": "It's me. I'm fine. I'm... by the window. [no voice · transcribed anyway] Don't open the backup. It's {{now}} and you're still looking."
+      "say": "It's me. I'm okay. I can see my flat from here. The light's on. Is someone there?",
+      "show": "It's me. I'm okay. I can see my flat from here. The light's on. Is someone there? [no voice · transcribed anyway] Don't open the backup. It's {{now}} and you're still looking."
     },
     "mara-1": {
       "voice": "aura-2-theia-en",
@@ -23,17 +23,17 @@
       "say": "Ev, I went back to yours. Your laptop was still on. There's a recording open on it, and it says: waiting for operator. Who's the operator, Ev? Who are they waiting f"
     },
     "mum": {
-      "voice": "aura-2-athena-en",
+      "voice": "aura-2-hera-en",
       "speed": 0.95,
-      "say": "Evie, it's Mum. I've rung and rung. The police came round. I told them you'd never just go, not without telling me. Ring me, love. Even in the night. I'm leaving the landing light on."
+      "say": "Darling, it's me again. I've rung so many times I've lost count. Theo says not to worry. I'm worrying. Whatever it is, you can come home. I've left the landing light on, like when you were little. Ring me."
     },
     "ev-forlater": {
-      "voice": "aura-2-pandora-en",
+      "voice": "aura-2-juno-en",
       "speed": 1.0,
-      "say": "If you're hearing this, it arrived. I set this mail to arrive the minute someone opens my laptop. Not me. Someone. Look at the time it came in. That's the code for the backup. And please... whoever you are... don't open it."
+      "say": "If you're hearing this, I'm not here anymore. This message waited for you. Look at the time it came in. Four numbers. They open my backup. Everything I found is in there. And so are you."
     },
     "ev-voicenote": {
-      "voice": "aura-2-pandora-en",
+      "voice": "aura-2-juno-en",
       "speed": 1.05,
       "say": "Mara. Okay. I did something stupid. I stood at the window and I raised my hand. Just to see. And the shape over there, it raised its hand too. Not after me. With me. At the exact same time. I'm not imagining it, Mara. I'm not."
     },
