@@ -90,16 +90,16 @@ opens the feed as now.
    Played back distorted: "that's how she sounded the first night, too."
 3. The fake choice: `keep watching` / `look away` (logged either way).
 4. The room playback, then the live feed of 4A showing the player (as now).
-5. **The flip.** The feed cuts. E.V.'s photo from the briefing appears in the lit window
-   across, and she is *outside* the building, on the street, by the lamp post: exactly where
-   the woman in IMG_0418 was standing. She looks up at your window. She raises her hand.
-   Meaning, without a word: she was the operator before you; she got out the day you came in.
-   The woman in the first photo was the one before her. The lock is on the outside.
+5. **The loop (owner decision 2026-10-04).** Not a twist about who E.V. was: the point is the
+   chain. Whoever opens the case becomes the next one in it, victim and operator at once. The
+   feed cuts; in the lit window across, the figure is now *you*, and on the street under the
+   lamp post (where the woman in IMG_0418 stood) a new silhouette looks up at your window:
+   the next operator. The story does not explain E.V.; it shows the position you now hold.
 
 **B6 · Login and the real end.**
-1. Name, case list as now. Then the E.V. row rewrites itself:
-   `#0415 · E.V. · missing · 7 days` → `#0415 · E.V. · released · replaced by operator 0418`.
-   A stamp lands on `#0418 <name> · open`.
+1. Name, case list as now. Then a new row types itself under yours:
+   `#0419 · <name> · missing · 0 days`. You are the operator of 0418 and the subject of 0419.
+   A stamp lands on it: `open`.
 2. Hard cut to black. Two seconds of silence. One sting.
 3. **Title card**, centred, large: `RECOVERY` · `session 0418 · end`. This is the signal the
    playtest asked for. Held for 4 s.
@@ -109,10 +109,31 @@ opens the feed as now.
    the REC dot turns on by itself, a live countdown types in:
    `case 0419 · operator: <name> · starts in 23:59:41`, ticking. Under it, E.V.'s voice, the
    only time we hear her calm: "thank you." Then the sender: "see you tomorrow at HH:MM."
-6. Two buttons: `download case file 0418` (the evidence) and `assign case 0420` (optional
-   share link, B "The Ring"). Tab title: `● REC · 0419 · 23:59:41`, counting down.
-7. If the player comes back: "welcome back, <name>. you're late." (as now). If they come back
+6. `download case file 0418` (the evidence). Tab title: `● REC · 0419 · 23:59:41`, counting down.
+7. **The reminder (owner decision 2026-10-04).** When the final screen has played out, a
+   system-style pop-up: `add to calendar · case 0419 · tomorrow HH:MM` with `add reminder` /
+   `not now`. Consistent with "see you tomorrow at HH:MM".
+   - `add reminder` downloads a real `.ics` file (an event tomorrow at the minute they came
+     in, title "case 0419", description one line from the sender). No account, no server.
+     Then a short creepy music box phrase, a breath, and **everything switches off**: the
+     tube collapse, the REC dot last, total black. The game is over and the player knows it.
+   - `not now` gives the same switch-off, but the sender's last line is "we'll remind you."
+8. If the player comes back: "welcome back, <name>. you're late." (as now). If they come back
    at the exact minute, the first line of the boot log reads `operator 0418 · on time.`
+
+**B7 · The operator registry (owner decision 2026-10-04).** Keep, on a server, only the
+operator name, the date and the time of each session. No photos, no audio, no face data.
+For future use; the obvious one is the loop itself: the case list shows the *real* previous
+player as the operator before you (`#0417 · <last player's name> · closed`).
+- Storage: one table `operators (id serial, name text, opened_at timestamptz, closed_at
+  timestamptz)`. Free tier Postgres (Neon, through the Vercel integration, so the connection
+  string lands in the project env vars and never in the repo). One Next.js route handler,
+  `POST /api/operators`, called once at the name screen.
+- The name is typed by the player, so it is personal data: the login screen says so in one
+  line ("the operator name is kept in the case registry") and the credits line changes to
+  "No frames or audio left your device. Only your operator name and time did." Name capped
+  at 32 chars, trimmed, rate limited by IP in the handler.
+- Shown to other players only after a profanity filter, or not at all until we decide.
 
 ### Why this fixes "it doesn't feel finished" and "no cliffhanger"
 
@@ -191,11 +212,11 @@ rewrite, stamp) using GSAP, which the project already uses.
 After each block: lint, build, full run in the browser, commit, push to the preview.
 Camera and microphone cannot be tested in the in-app browser: the owner checks those on the Mac.
 
-## Decisions for the owner
+## Decisions
 
-- **The flip (B5/B6):** E.V. as the previous operator who got out. It changes what the story
-  *means*. Yes or no before anything in B5-B6 is written.
+- ~~The flip~~ → the loop (B5, B6), decided 2026-10-04.
+- ~~Ending~~ → reminder pop-up, then music and switch-off (B6.7), decided 2026-10-04.
+- Registry → yes, names and times only (B7), decided 2026-10-04. Open: Neon via Vercel?
 - **Fake credits (B3):** risky if the player thinks it really ended and closes the tab. Keep
   them short (6 s) and interrupt them with sound, or drop them.
-- **Share link (The Ring):** fun for virality, but it is the only feature that touches another
-  person. Keep it optional and clearly the player's choice, or leave it out.
+- **Share link "case 0420" (The Ring):** explained to the owner, waiting for an answer.
