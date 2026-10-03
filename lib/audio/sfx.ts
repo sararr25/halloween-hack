@@ -459,3 +459,94 @@ export function phonePing() {
     ping(now + i * 0.9 + 0.23, 0.012, 0.8);
   }
 }
+
+/**
+ * A DM arriving where none should (the "pass it on" invite): a message tone pitched down and
+ * detuned, a breath of reversed air before it, then the same tone again, slower, like tape.
+ */
+export function creepyMessage() {
+  const e = engine;
+  if (!e || muted) return;
+  const now = e.ctx.currentTime;
+  // the breath: noise swelling in, cut dead
+  const n = e.ctx.createBufferSource();
+  n.buffer = e.noise;
+  n.loop = true;
+  const bp = e.ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.setValueAtTime(400, now);
+  bp.frequency.exponentialRampToValueAtTime(2200, now + 0.7);
+  const ng = e.ctx.createGain();
+  ng.gain.setValueAtTime(0.0001, now);
+  ng.gain.exponentialRampToValueAtTime(0.05, now + 0.7);
+  ng.gain.setValueAtTime(0.0001, now + 0.72);
+  n.connect(bp).connect(ng).connect(e.master);
+  n.start(now);
+  n.stop(now + 0.75);
+  const tone = (at: number, rate: number, level: number) => {
+    [784, 988, 659].forEach((f, i) => {
+      [0, 7].forEach((cents) => {
+        const o = e.ctx.createOscillator();
+        o.type = "sine";
+        o.frequency.value = f * rate;
+        o.detune.value = cents;
+        const g = e.ctx.createGain();
+        const t = at + (i * 0.11) / rate;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(level, t + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5 / rate);
+        o.connect(g).connect(e.master);
+        o.start(t);
+        o.stop(t + 0.55 / rate);
+      });
+    });
+  };
+  tone(now + 0.75, 0.84, 0.035);
+  tone(now + 1.6, 0.6, 0.022);
+  noiseBurst(e, now + 0.75, 0.3, 90, 1, 0.08);
+}
+
+/**
+ * A music box winding down: a minor phrase on bright metal tines, each note a little later
+ * than the last and a little flatter, until it stops on a note it never finishes.
+ * Returns how long it lasts, in ms, so the caller can switch everything off on the last note.
+ */
+export function musicBox(): number {
+  const notes = [76, 72, 71, 69, 72, 76, 74, 71, 69, 68, 69, 64, 63];
+  let at = 0;
+  const times = notes.map((_, i) => {
+    const t = at;
+    at += 0.32 + i * i * 0.012; // the spring running out
+    return t;
+  });
+  const total = (times.at(-1) ?? 0) + 1.6;
+  const e = engine;
+  if (!e || muted) return total * 1000;
+  const now = e.ctx.currentTime + 0.05;
+  notes.forEach((midi, i) => {
+    const sag = 1 - (i / notes.length) ** 3 * 0.035;
+    const f = 440 * 2 ** ((midi - 69) / 12) * sag;
+    const t = now + times[i];
+    // a tine: the fundamental and two slightly inharmonic partials
+    [
+      [1, 0.04],
+      [3.01, 0.012],
+      [5.98, 0.005],
+    ].forEach(([mult, level]) => {
+      const o = e.ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = f * mult;
+      const g = e.ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(level, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (mult === 1 ? 1.4 : 0.4));
+      const p = e.ctx.createStereoPanner();
+      p.pan.value = Math.sin(i * 1.7) * 0.25;
+      o.connect(g).connect(p).connect(e.master);
+      o.start(t);
+      o.stop(t + 1.5);
+    });
+    noiseBurst(e, t, 0.01, 5200, 3, 0.012); // the pin plucking the comb
+  });
+  return total * 1000;
+}

@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import gsap from "gsap";
-import { blip, key, tubeOff } from "@/lib/audio/sfx";
+import { blip, creepyMessage, key, musicBox, tubeOff } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { downloadCaseFile } from "@/lib/story/casefile";
 import { grabFrame } from "@/lib/story/frames";
+import { fileOperator, passOnLink, readInvite } from "@/lib/story/registry";
+import { downloadReminder, reminderStart } from "@/lib/story/reminder";
 import { crtOff } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
@@ -24,12 +26,20 @@ const CASES_HOLD_MS = 7000;
 const CASES_BLACK_MS = 8600;
 export const CASE_KEY = "recovery.case0418";
 
-type Step = "login" | "cases" | "off" | "credits" | "after";
+type Step = "login" | "cases" | "off" | "credits" | "after" | "dead";
 // After the download nothing closes (owner: leave them on edge): black, then the recording
 // light comes back on by itself, the case is still open, and the sender has one last line.
 const AFTER_REC_MS = 3000;
 const AFTER_LINE_MS = 4600;
 const AFTER_SEE_MS = 8200;
+// then the way out that is not one (The Ring: pass it on), then the reminder pop-up
+const AFTER_PASS_MS = 11_500;
+const AFTER_REMIND_MS = 17_000;
+// "not now": the sender's answer stays this long before everything switches off
+const LATER_HOLD_MS = 2600;
+// the switch-off, then how long the black holds before the privacy link shows
+const OFF_MS = 1200;
+const PRIVACY_AFTER_MS = 3000;
 const REC_TITLE = "● REC · 0419";
 
 export default function Login() {
@@ -68,6 +78,11 @@ export default function Login() {
     const typed = name.trim();
     if (!typed) return;
     grabFrame(video(), `operator signs · ${typed}`);
+    // the registry keeps the name and the times, nothing else (app/api/operators)
+    fileOperator(typed, state.openedAt, readInvite()).then(setToken, (err: unknown) => {
+      console.error(err);
+      setToken(null);
+    });
     try {
       localStorage.setItem(CASE_KEY, typed);
     } catch {
@@ -125,7 +140,25 @@ export default function Login() {
     }
   };
 
-  const [after, setAfter] = useState(0); // 1 REC, 2 the open case, 3 the sender
+  // undefined while filing, null when the registry could not be reached
+  const [token, setToken] = useState<string | null | undefined>(undefined);
+  const [passed, setPassed] = useState<"no" | "yes" | "failed">("no");
+  const passOn = async () => {
+    if (!token) return;
+    const url = passOnLink(token);
+    try {
+      if (navigator.share) await navigator.share({ title: "case 0420", text: "it's yours now.", url });
+      else await navigator.clipboard.writeText(url);
+      setPassed("yes");
+      creepyMessage();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return; // share sheet closed
+      console.error(err);
+      setPassed("failed");
+    }
+  };
+
+  const [after, setAfter] = useState(0); // 1 REC, 2 the open case, 3 the sender, 4 pass it on, 5 the reminder
   useEffect(() => {
     if (step !== "after") return;
     const t = [
@@ -135,8 +168,48 @@ export default function Login() {
         setAfter(3);
         blip();
       }, AFTER_SEE_MS),
+      setTimeout(() => setAfter(4), AFTER_PASS_MS),
+      setTimeout(() => {
+        setAfter(5);
+        blip();
+      }, AFTER_REMIND_MS),
     ];
     return () => t.forEach(clearTimeout);
+  }, [step]);
+
+  // The reminder: "add" saves a real event and plays a music box winding down; "not now" gets
+  // one line back. Either way, on the last note, everything switches off.
+  const afterEl = useRef<HTMLDivElement>(null);
+  const [ending, setEnding] = useState<"remind" | "later" | null>(null);
+  const answer = (remind: boolean) => {
+    if (remind) downloadReminder(state.openedAt, name.trim());
+    setEnding(remind ? "remind" : "later");
+  };
+  useEffect(() => {
+    if (!ending) return;
+    const hold = ending === "remind" ? musicBox() : LATER_HOLD_MS;
+    const t = [
+      setTimeout(() => {
+        tubeOff();
+        crtOff(1.4);
+        gsap.to(afterEl.current, { scaleY: 0.004, duration: 0.6, ease: "power2.in" });
+        gsap.to(afterEl.current, { scaleX: 0, duration: 0.5, delay: 0.6, ease: "power2.in" });
+      }, hold),
+      setTimeout(() => {
+        crtOff(0);
+        setAfter(0);
+        document.title = "recovery";
+        setStep("dead");
+      }, hold + OFF_MS),
+    ];
+    return () => t.forEach(clearTimeout);
+  }, [ending]);
+
+  const [privacy, setPrivacy] = useState(false);
+  useEffect(() => {
+    if (step !== "dead") return;
+    const t = setTimeout(() => setPrivacy(true), PRIVACY_AFTER_MS);
+    return () => clearTimeout(t);
   }, [step]);
 
   // the tab keeps recording, and nothing (React's own <title>, a tab switch) puts it back
@@ -152,9 +225,19 @@ export default function Login() {
 
   // each screen gets its own element: the switch-off leaves a squash on the one before
   if (step === "off") return <div key="off" className={styles.black} />;
+  if (step === "dead")
+    return (
+      <div key="dead" className={`${styles.black} ${styles.dead}`}>
+        {privacy && (
+          <a className={styles.privacy} href="/privacy" target="_blank" rel="noopener">
+            privacy
+          </a>
+        )}
+      </div>
+    );
   if (step === "after")
     return (
-      <div key="after" className={styles.black}>
+      <div key="after" className={styles.black} ref={afterEl}>
         {after >= 1 && <span className={styles.afterRec}>● REC</span>}
         <div className={styles.afterText}>
           <p>case file saved.</p>
@@ -164,8 +247,35 @@ export default function Login() {
           <div className={styles.afterNote}>
             <span>unknown sender</span>
             <p>see you tomorrow at {clock(state.openedAt)}.</p>
+            {after >= 4 && <p className={styles.afterOpen}>…unless someone takes your place.</p>}
+            {after >= 4 && (
+              <button className={styles.passOn} onClick={passOn} disabled={!token || passed !== "no"}>
+                {token === undefined
+                  ? "filing…"
+                  : token === null
+                    ? "registry offline"
+                    : passed === "yes"
+                      ? "sent · case 0420 is theirs"
+                      : passed === "failed"
+                        ? "copy it yourself:"
+                        : "pass it on · case 0420"}
+              </button>
+            )}
+            {/* sharing and the clipboard both refused: the link itself, selected, to copy by hand */}
+            {passed === "failed" && token && (
+              <input
+                className={styles.passLink}
+                readOnly
+                value={passOnLink(token)}
+                aria-label="your pass-it-on link"
+                onFocus={(e) => e.currentTarget.select()}
+                autoFocus
+              />
+            )}
+            {ending === "later" && <p className={styles.afterOpen}>we&apos;ll remind you.</p>}
           </div>
         )}
+        {after >= 5 && !ending && <ReminderPrompt at={reminderStart(state.openedAt)} onAnswer={answer} />}
       </div>
     );
   if (step === "credits")
@@ -222,6 +332,30 @@ export default function Login() {
           <li className={styles.open}><span>#0418</span><span>{name.trim()}</span><span>open</span></li>
         </ol>
       )}
+    </div>
+  );
+}
+
+/** A calendar alert, as the system would show it: case 0419, tomorrow, the same minute. */
+function ReminderPrompt({ at, onAnswer }: { at: number; onAnswer: (remind: boolean) => void }) {
+  const d = new Date(at);
+  const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  return (
+    <div className={styles.remind} role="alertdialog" aria-labelledby="remind-title">
+      <div className={styles.remindIcon} aria-hidden="true">
+        <span>{month}</span>
+        <b>{d.getDate()}</b>
+      </div>
+      <div className={styles.remindBody}>
+        <p id="remind-title">case 0419</p>
+        <small>tomorrow · {clock(at)} · 17 Harrow St</small>
+      </div>
+      <div className={styles.remindActions}>
+        <button onClick={() => onAnswer(false)}>not now</button>
+        <button className={styles.remindAdd} onClick={() => onAnswer(true)} autoFocus>
+          add reminder
+        </button>
+      </div>
     </div>
   );
 }

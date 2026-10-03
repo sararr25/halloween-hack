@@ -5,6 +5,7 @@ import gsap from "gsap";
 import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay";
 import { drone, glitchSound, lightSwitch, unlockAudio } from "@/lib/audio/sfx";
 import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
+import { hideInviteParam, readInvite } from "@/lib/story/registry";
 import { enterFullscreen } from "@/lib/fullscreen";
 import { music, riser, type MusicMode } from "@/lib/audio/music";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
@@ -12,6 +13,7 @@ import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
 import Briefing from "./Briefing";
 import Desktop from "./Desktop";
+import InviteDM from "./InviteDM";
 import Login, { CASE_KEY } from "./Login";
 import Reveal from "./Reveal";
 import FullscreenToggle from "./FullscreenToggle";
@@ -269,12 +271,24 @@ function Returning() {
   return <p className={styles.hint}>welcome back, {name}. you&apos;re late.</p>;
 }
 
+/** Whoever passed the case on, read once (lib/story/registry.ts takes it off the URL). */
+let invite: string | null | undefined;
+const readInviteOnce = () => (invite === undefined ? (invite = readInvite()) : invite);
+
 // Top-level phase switch: premise → boot (S1) → briefing → desktop → reveal (S9) → login (S10). See docs/desktop.md.
 function Phases() {
   const { state, dispatch } = useStory();
+  const token = useSyncExternalStore(noSubscribe, readInviteOnce, () => null);
+  const [dmRead, setDmRead] = useState(false);
+  const dmDone = useCallback(() => setDmRead(true), []);
+  useEffect(() => {
+    if (token) hideInviteParam();
+  }, [token]);
 
   switch (state.phase) {
     case "premise":
+      // a case passed on: the message from whoever passed it comes first
+      if (token && !dmRead) return <InviteDM token={token} onDone={dmDone} />;
       return (
         <div className={styles.screen}>
           <p className={styles.mono}>E.V. has been missing for 7 days. You have access now. Look carefully.</p>

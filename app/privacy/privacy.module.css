@@ -1,0 +1,9 @@
+.page {
+  max-width: 640px; margin: 0 auto; padding: 72px 16px 96px; min-height: 100%;
+  font: 400 16px / 1.65 var(--font-sans), sans-serif; color: var(--text); background: var(--bg);
+}
+.page h1 { margin: 0 0 12px; font: 400 40px / 1.1 var(--font-serif), serif; color: var(--accent); }
+.page h2 { margin: 36px 0 8px; font-family: var(--font-mono), monospace; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--neon); }
+.page p, .page ul { margin: 0 0 12px; }
+.page ul { padding-left: 20px; }
+.lead { font-size: 18px; color: var(--accent); }
