@@ -1,12 +1,19 @@
 # Handover
 
+> **2026-10-04 · round 6, live.** Plan in `docs/plan-round6.md` (playtest fixes A1-A7, a new second half B1-B7, Rive and `/genjutsu:paint` usage). Built so far, all of it on production:
+> - **Case registry** (B7) on Neon Postgres: operator name, session start and end, a random token, who invited them. No frames, audio or face data. Entries older than 12 months are removed on every new filing.
+> - **Pass it on** ("The Ring"): at the end, `pass it on · case 0420` shares a link (`/?case=<token>`, system share sheet, clipboard, or the link shown to copy by hand). Whoever opens it first gets an **animated DM** (`InviteDM.tsx`): a lock-screen notification that buzzes, a creepy message tone on click, a thread with three bubbles torn in by an RGB split ("i opened it." · "now it's yours." · "case 0420"), "seen", the sender's name scrambling into "E.V. · last seen 7 days ago", then the thread switches off and the story starts.
+> - **Real ending:** after "see you tomorrow at HH:MM" and the pass-it-on line, a calendar alert `case 0419 · tomorrow · HH:MM`. `add reminder` downloads a real `.ics` (alarm 5 min before) and plays a music box winding down; `not now` answers "we'll remind you."; either way everything switches off, the floating controls too, and only a small `privacy` link appears bottom right.
+> - **`/privacy`** page: what is processed locally, what the registry keeps, 12-month retention, contact hello@sararuffini.com.
+> - Not built yet from the plan: A1-A7 (font sizes, notice timing and queue, hint timing and sync, PDF overlap) and B1-B5 (cursor takeover, watcher's notes, fake credits, facade, the loop in S9).
+
 > **2026-09-30 · improvement pass, merged to production.** Rounds 2 and 3 (hints, voice memo, CCTV feed, OS-style briefing, live call with the player's voice, reflection, tab title, PDF case file, the owner's silhouette in S9) are listed in `docs/roadmap.md`.
 >
 > First pass: From the owner's first real playtests: 20 s case briefing, objective line, avatars (+ a chat and a voicemail from Mum), the new Sign, blink captures with four effects and stills kept in backup_you, searchlight flares every ~5 s from stage 2, "cover the camera" invitation, S9 in waiting beats ("don't move.", "raise your hand." with the figure's new raised hand, "that was your room."), explicit S10 presence line, procedural score (calm → suspense with a riser at the code), faster and more urgent voices + two new voicemails, fixed final screen. Details and status: `docs/roadmap.md`. Dev keys added: `Alt+I` briefing, `Alt+K` fake blink.
 
 Status as of 2026-09-29 (night, 3) · live at **https://halloween-hack.vercel.app** · work on `claude/youthful-pascal-m6eofy`, fast-forwarded into the default branch `claude/epic-hopper-x8tj3e` (Vercel production).
 
-Read in this order: this file → `docs/roadmap.md` (the current improvement pass, from the first real playtests) → `docs/walkthrough.md` (the story step by step, how to play it) → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
+Read in this order: this file → `docs/plan-round6.md` (current round: playtest fixes, new second half, the registry) → `docs/roadmap.md` (the current improvement pass, from the first real playtests) → `docs/walkthrough.md` (the story step by step, how to play it) → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
 
 ## TL;DR
 
@@ -23,7 +30,8 @@ Read in this order: this file → `docs/roadmap.md` (the current improvement pas
 
 - Project `sararuffini-projects/halloween-hack` (Hobby), connected to `github.com/sararr25/halloween-hack`. A push to `claude/epic-hopper-x8tj3e` (the repo's default branch) deploys production to https://halloween-hack.vercel.app; other branches get preview URLs.
 - To publish work: `git push origin claude/youthful-pascal-m6eofy` then `git push origin HEAD:claude/epic-hopper-x8tj3e` (fast-forward).
-- The build runs `pnpm install`, whose postinstall fetches the MediaPipe models; no environment variables are needed on Vercel (the Deepgram key is only for `scripts/make-voices.mjs`, locally).
+- The build runs `pnpm install`, whose postinstall fetches the MediaPipe models. **One environment variable is needed: `DATABASE_URL`** (Neon project `recovery-halloween`, id `odd-thunder-72799837`, eu-central-1, database `neondb`). It is set on Vercel for production, preview and development, and in the git-ignored `.env.local`. Never commit it. The Deepgram key is only for `scripts/make-voices.mjs`, locally.
+- **Branches (2026-10-04):** `main` now exists on GitHub and is the branch to work from. Production still deploys from `claude/epic-hopper-x8tj3e` (the repo default); both point at the same commit. To publish: push `main`, then `git push origin main:claude/epic-hopper-x8tj3e` (fast-forward), or `vercel deploy --prod --yes`. Owner decision pending: make `main` the default branch on GitHub and the production branch on Vercel, then retire the `claude/*` branches.
 - `.vercelignore` mirrors `.gitignore`, so a CLI deploy can never upload `.env.local`. `vercel link` added a `VERCEL_OIDC_TOKEN` line to `.env.local` (git-ignored, harmless).
 - The `-sararuffini-projects.vercel.app` URLs answer 302 (Vercel protection on team URLs); use `halloween-hack.vercel.app`.
 
@@ -168,16 +176,25 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 | Rive free-plan mark hidden (overlay fade-in, prewarmed photo and reveal) | ⚠️ timing guessed (4 s); check on a real load |
 | Mail and Messages redesign | ✅ in-app browser |
 | Safari / Firefox, low-end hardware | ❌ untested |
+| Registry API on Neon (file, invite lookup, bad input 400, unknown invite 404), chain recorded | ✅ local against the real database, 2026-10-04; live `/api/operators` answers from the database |
+| Invite DM: notification → thread → E.V. → switch-off → premise | ✅ in-app browser (text and timing); ⚠️ animation and sound not seen or heard in a real browser |
+| Ending: pass it on, reminder pop-up, `.ics`, music box, switch-off, privacy link | ✅ in-app browser; ⚠️ clipboard blocked in the pane (fallback shown), sound unheard |
+| `/privacy` live | ✅ |
 | Vercel deploy | ✅ https://halloween-hack.vercel.app (page, models, audio, Rive files served; `.env.local` absent) |
 
 ## Owner actions pending
 
+0. **Round 6 (2026-10-04):** play the live site to the end, press `pass it on`, open the link in an incognito window (the DM), then `add reminder` (the music box and the switch-off). Listen to the two new procedural sounds (`creepyMessage`, `musicBox` in `lib/audio/sfx.ts`). Decide whether `main` becomes the default and production branch.
 1. **Listen to the voices** (Phone: E.V., Mara x2, Unknown; Messages: E.V.'s voice note). To redo one clip: edit its text in `scripts/make-voices.mjs`, then `node scripts/make-voices.mjs <id>` (uses Deepgram credits, about $0.03 per 1,000 characters).
 2. **Test on the Mac with webcam and headphones**, incognito, whole run: boot scan with your real face, searchlight on the head, Lens shutter on a blink, palm at stage 3, S8 live scan + "looked away" lines, S9 figure copying you and your room played back, S10 caret stopping when you leave the frame, sound levels.
 3. **Read the copy** in `lib/story/content.ts` (mails, chats, notes, invitation, manual) and mark what's off in tone.
 4. **Rive plan:** every published Rive file opens with the Rive mark (checked: even a pushed project is watermarked on the free plan). It is hidden by timing now; only a paid plan (Cadet or higher) + `rive push` of each project removes it.
 
 ## Next steps (recommended order)
+
+**Current: `docs/plan-round6.md`, "Order of work".** Next up is A1-A7 (the seven playtest notes, each traced to its cause in the plan), then B2 watcher's notes, B3 fake credits, `/genjutsu:paint` partial on Act 3, B1 cursor takeover, the Rive scenes (`EndCard`, the loop in `Across`, `Facade`, `Operators`), B5 "say her name".
+
+The list below is older, kept for reference.
 
 Superseded by `docs/roadmap.md` (2026-09-30), which folds in the owner's playtest feedback. Kept below for reference.
 
@@ -188,6 +205,9 @@ Superseded by `docs/roadmap.md` (2026-09-30), which folds in the owner's playtes
 
 ## Known issues / gotchas
 
+- **Registry:** only `app/api/operators/route.ts` touches the database (`lib/registry/db.ts`); the client goes through `lib/story/registry.ts`. The invite token is read during render but taken out of the address bar in an effect (`hideInviteParam`): calling `history.replaceState` while rendering breaks the Next router. In dev, a hot reload can put `?case=` back in the URL; harmless.
+- **`backdrop-filter` on black:** an element with it can vanish from the in-app pane's screenshots. The DM and the reminder use solid backgrounds instead (there is nothing behind them to blur).
+- **Testing the registry** writes real rows: remove test rows afterwards by name, as done on 2026-10-04 (table empty, id sequence reset to 1).
 - **Rive web + WGSL** (details and fixes in `docs/tech-setup.md` §2): `enableGPUCanvas: true` is required; never destroy those instances mid-session; no script 2D canvases on the web; some WGSL compiles in the CLI but draws black on WebGL2 (reserved words like `half`; `u32` colour decoding); `target` is reserved in WGSL itself. When a shader draws black, set the render pass `clearColor` to red: red visible = the pass runs and the problem is in the shader.
 - **In-app browser**: the pane is often "hidden", so `requestAnimationFrame` pauses. GSAP, Rive and screenshots look stuck or black until the mouse moves over the page. Phase changes run on timers for this reason. Camera and audio are blocked there.
 - **Hydration warning with `bis_skin_checked` / `bis_register`**: a browser extension, not our code. Use incognito.

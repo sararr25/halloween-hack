@@ -98,7 +98,21 @@ Tre agganci reali, tutti banali in JS vanilla, zero backend:
 
 ## 8. Stato del progetto / prossimi passi
 
-Aggiornato il 2026-09-29 (sera). Dettagli in `HANDOVER.md`.
+Aggiornato il 2026-10-04. Dettagli in `HANDOVER.md`, piano corrente in `docs/plan-round6.md`.
+
+**Round 6 (2026-10-04)**
+
+- [x] Piano round 6: le 7 note del playtest con la causa nel codice, nuova seconda metà ispirata a The Game, Black Mirror, The Housemaid, Caché, The Ring
+- [x] Il loop come senso del finale: chi apre il caso diventa il prossimo, vittima e operatore
+- [x] Registro degli operatori su Neon: solo nome, data e ora, chi ha invitato chi; i nomi spariscono da soli dopo 12 mesi
+- [x] "Pass it on · case 0420": link da passare a un amico, che riceve un DM animato (notifica che vibra, suono inquietante, bolle con glitch, il nome che diventa E.V.)
+- [x] Finale vero: pop-up "add reminder" con file calendario, carillon che rallenta, spegnimento totale, link `privacy` in basso a destra
+- [x] Pagina `/privacy` (contatto hello@sararuffini.com)
+- [ ] A1-A7: font più grandi, notifiche che restano e in coda, tempi e sincronia dei suggerimenti, PDF senza sovrapposizioni
+- [ ] B1-B5: cursore rubato, note dell'osservatore, finti titoli di coda, facciata del palazzo, il loop in S9
+- [ ] Scene Rive nuove (`EndCard`, `Facade`, `Operators`) e `/genjutsu:paint` sull'Atto 3
+
+**Prima (fino al 2026-09-29)**
 
 **Fatto**
 
