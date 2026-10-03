@@ -13,6 +13,8 @@ export async function POST(request: Request) {
   if (openedAt === null) return Response.json({ error: "bad openedAt" }, { status: 400 });
 
   const sql = registry();
+  // the privacy page promises 12 months: anything older goes before anything new comes in
+  await sql`DELETE FROM operators WHERE closed_at < now() - interval '12 months'`;
   const token = newToken();
   const by = isToken(invite) ? invite : null;
   await sql`

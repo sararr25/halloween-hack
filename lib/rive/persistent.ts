@@ -31,7 +31,7 @@ type Options = {
 
 const pool = new Map<string, PersistentRive>();
 
-export function persistentRive(key: string, o: Options): PersistentRive {
+function persistentRive(key: string, o: Options): PersistentRive {
   const existing = pool.get(key);
   if (existing) return existing;
 

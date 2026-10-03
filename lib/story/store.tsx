@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useReducer, type ReactNode } from
 
 // Story state machine — see docs/desktop.md. Client-side only: nothing leaves the browser.
 
-export type Phase = "premise" | "boot" | "briefing" | "desktop" | "reveal" | "login";
+type Phase = "premise" | "boot" | "briefing" | "desktop" | "reveal" | "login";
 export type Stage = 1 | 2 | 3;
 export type AppId =
   | "mail" | "photos" | "messages" | "notes" | "history" | "phone" | "trash" | "camera" | "backup"
@@ -12,7 +12,7 @@ export type AppId =
 
 export type WindowState = { id: AppId; z: number; x: number; y: number };
 
-export type StoryState = {
+type StoryState = {
   phase: Phase;
   stage: Stage;
   /** Open windows; array order = open order (S9 closes them in reverse). */
@@ -46,7 +46,7 @@ export type StoryState = {
 export type Notice = { id: number; from: "anon" | "system" | "mara"; text: string; open?: AppId; item?: string };
 
 /** Facts about the user, gathered in S1 and reused by the story (S8/S9). */
-export type Session = {
+type Session = {
   /** "granted" | "denied" once the S1 verification ran; null before. */
   camera: "granted" | "denied" | null;
   mic: "granted" | "denied" | null;

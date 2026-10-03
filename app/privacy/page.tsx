@@ -49,9 +49,14 @@ export default function Privacy() {
       <h2>The calendar reminder</h2>
       <p>&ldquo;Add reminder&rdquo; downloads a calendar file made in your browser. It is not sent anywhere.</p>
 
+      <h2>How long</h2>
+      <p>Registry entries are deleted automatically 12 months after the session.</p>
+
       <h2>Deleting your entry</h2>
-      {/* TODO(owner): contact address and retention period to confirm before publishing */}
-      <p>To have your registry entry deleted, write to us with the operator name and the date you played.</p>
+      <p>
+        To have your entry deleted sooner, write to <a href="mailto:hello@sararuffini.com">hello@sararuffini.com</a>{" "}
+        with the operator name and the date you played.
+      </p>
     </main>
   );
 }

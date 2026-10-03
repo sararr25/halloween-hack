@@ -51,7 +51,7 @@ export type Photo = {
   fromStage?: 2 | 3;
 };
 
-export type Voice = { length: string; transcript: string };
+type Voice = { length: string; transcript: string };
 export type ChatLine = {
   me: boolean;
   text?: string;

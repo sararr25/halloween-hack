@@ -35,7 +35,7 @@ const LINE_AT = ROW_AT + ROWS.length * ROW_EVERY + 0.3;
 const GOAL_AT = LINE_AT + 3;
 const CLOSE_AT = GOAL_AT + 3.4;
 const END_AT = CLOSE_AT + 1.6;
-export const BRIEFED_KEY = "recovery.briefed";
+const BRIEFED_KEY = "recovery.briefed";
 
 export default function Briefing() {
   const { state, dispatch } = useStory();

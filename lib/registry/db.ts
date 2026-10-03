@@ -4,7 +4,8 @@ import { neon } from "@neondatabase/serverless";
 // The operator registry (docs/plan-round6.md B7): name, session times, an opaque token for
 // the "pass it on" link, and who passed it. Never frames, audio or face data.
 // Table: operators (id serial, name text, opened_at timestamptz, closed_at timestamptz,
-// token text unique, invited_by int references operators).
+// token text unique, invited_by int references operators on delete set null).
+// Entries older than 12 months are deleted on every new filing (app/privacy/page.tsx).
 
 export function registry() {
   const url = process.env.DATABASE_URL;
@@ -12,7 +13,7 @@ export function registry() {
   return neon(url);
 }
 
-export const NAME_MAX = 32;
+const NAME_MAX = 32;
 // a session older than this is not a session that just ended
 const SESSION_MAX_MS = 12 * 60 * 60 * 1000;
 

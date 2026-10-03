@@ -216,7 +216,11 @@ Camera and microphone cannot be tested in the in-app browser: the owner checks t
 
 - ~~The flip~~ → the loop (B5, B6), decided 2026-10-04.
 - ~~Ending~~ → reminder pop-up, then music and switch-off (B6.7), decided 2026-10-04.
-- Registry → yes, names and times only (B7), decided 2026-10-04. Open: Neon via Vercel?
+- Registry → built (B7): Neon project `recovery-halloween` (eu-central-1), `DATABASE_URL` in
+  `.env.local` and on Vercel. Entries kept 12 months, deleted on every new filing. Contact for
+  deletion: hello@sararuffini.com (app/privacy).
+- Credits line → stays "No frames or audio left your device."; a small `privacy` link bottom
+  right once everything has switched off.
+- Share link "case 0420" (The Ring) → built as an animated DM (`InviteDM.tsx`) instead of a call.
 - **Fake credits (B3):** risky if the player thinks it really ended and closes the tab. Keep
   them short (6 s) and interrupt them with sound, or drop them.
-- **Share link "case 0420" (The Ring):** explained to the owner, waiting for an answer.

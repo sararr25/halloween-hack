@@ -44,7 +44,7 @@ export function prewarmLens() {
  * the runtime's cleanup can crash (glDeleteTextures without a current context), which
  * takes the page — and the camera — down. Closing the photo only detaches the canvas.
  */
-export function lensInstance(): LensInstance {
+function lensInstance(): LensInstance {
   if (shared) return shared;
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-label", "IMG_0418, a night photo of the building across the street");

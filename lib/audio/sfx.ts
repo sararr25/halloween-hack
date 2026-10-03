@@ -112,7 +112,7 @@ export function key() {
 }
 
 /** Digital tear: stepped square wave + filtered static. strength 0..1. */
-export function glitch(strength = 0.5) {
+function glitch(strength = 0.5) {
   const e = engine;
   if (!e || muted) return;
   const now = e.ctx.currentTime;

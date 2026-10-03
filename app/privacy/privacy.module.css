@@ -7,3 +7,4 @@
 .page p, .page ul { margin: 0 0 12px; }
 .page ul { padding-left: 20px; }
 .lead { font-size: 18px; color: var(--accent); }
+.page a { color: var(--neon); }
