@@ -28,17 +28,17 @@ Read in this order: this file → `docs/plan-round6.md` (current round: playtest
 
 ## Deploy (Vercel)
 
-- Project `sararuffini-projects/halloween-hack` (Hobby), connected to `github.com/sararr25/halloween-hack`. A push to `claude/epic-hopper-x8tj3e` (the repo's default branch) deploys production to https://halloween-hack.vercel.app; other branches get preview URLs.
-- To publish work: `git push origin claude/youthful-pascal-m6eofy` then `git push origin HEAD:claude/epic-hopper-x8tj3e` (fast-forward).
+- Project `sararuffini-projects/halloween-hack` (Hobby), connected to `github.com/sararr25/halloween-hack`. Production branch: `main`.
+- To publish work: commit on `main` (or merge a branch into it) and `git push origin main`.
 - The build runs `pnpm install`, whose postinstall fetches the MediaPipe models. **One environment variable is needed: `DATABASE_URL`** (Neon project `recovery-halloween`, id `odd-thunder-72799837`, eu-central-1, database `neondb`). It is set on Vercel for production, preview and development, and in the git-ignored `.env.local`. Never commit it. The Deepgram key is only for `scripts/make-voices.mjs`, locally.
-- **Branches (2026-10-04):** `main` now exists on GitHub and is the branch to work from. Production still deploys from `claude/epic-hopper-x8tj3e` (the repo default); both point at the same commit. To publish: push `main`, then `git push origin main:claude/epic-hopper-x8tj3e` (fast-forward), or `vercel deploy --prod --yes`. Owner decision pending: make `main` the default branch on GitHub and the production branch on Vercel, then retire the `claude/*` branches.
+- **One branch (2026-10-04, owner's call):** `main` is the GitHub default branch and the Vercel production branch. A push to `main` deploys https://halloween-hack.vercel.app; any other branch gets a preview URL. The old `claude/epic-hopper-x8tj3e`, `claude/youthful-pascal-m6eofy` and `feat/playtest-pass` were fully merged into `main` and deleted.
 - `.vercelignore` mirrors `.gitignore`, so a CLI deploy can never upload `.env.local`. `vercel link` added a `VERCEL_OIDC_TOKEN` line to `.env.local` (git-ignored, harmless).
 - The `-sararuffini-projects.vercel.app` URLs answer 302 (Vercel protection on team URLs); use `halloween-hack.vercel.app`.
 
 ## How to run
 
 ```bash
-git checkout claude/youthful-pascal-m6eofy
+git checkout main
 corepack enable && corepack prepare pnpm@10.33.0 --activate   # project pins pnpm 10.33
 pnpm install        # also runs scripts/sync-assets.mjs (wasm + MediaPipe models → public/)
 pnpm dev            # http://localhost:3000 (experience) · /lab (eye test bench)
@@ -184,7 +184,7 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 
 ## Owner actions pending
 
-0. **Round 6 (2026-10-04):** play the live site to the end, press `pass it on`, open the link in an incognito window (the DM), then `add reminder` (the music box and the switch-off). Listen to the two new procedural sounds (`creepyMessage`, `musicBox` in `lib/audio/sfx.ts`). Decide whether `main` becomes the default and production branch.
+0. **Round 6 (2026-10-04):** play the live site to the end, press `pass it on`, open the link in an incognito window (the DM), then `add reminder` (the music box and the switch-off). Listen to the two new procedural sounds (`creepyMessage`, `musicBox` in `lib/audio/sfx.ts`). 
 1. **Listen to the voices** (Phone: E.V., Mara x2, Unknown; Messages: E.V.'s voice note). To redo one clip: edit its text in `scripts/make-voices.mjs`, then `node scripts/make-voices.mjs <id>` (uses Deepgram credits, about $0.03 per 1,000 characters).
 2. **Test on the Mac with webcam and headphones**, incognito, whole run: boot scan with your real face, searchlight on the head, Lens shutter on a blink, palm at stage 3, S8 live scan + "looked away" lines, S9 figure copying you and your room played back, S10 caret stopping when you leave the frame, sound levels.
 3. **Read the copy** in `lib/story/content.ts` (mails, chats, notes, invitation, manual) and mark what's off in tone.
