@@ -108,6 +108,13 @@ interactive in the second half is DOM/SVG. Candidates, in order of impact (see Q
   as data), with thriller sound and motion: hard cuts, held silences, a stamp hit per field,
   the score from round 6b kept under it.
 
+## Status (2026-10-04)
+
+All of A1-A9 and B1-B2 are built, verified in the in-app browser (mouse, no camera) and
+committed. A6 became five Rive projects: `facade`, `casefile` (two artboards), `call`,
+`findmy`. B3 (the whisper heard again from 4A's side) and B4 (the figure in 4A copying the
+head) are not built. Needs the owner on a real Mac: hand steering, headphones, sound mix.
+
 ## Order of work
 
 1. A1, A8, A7 (small, safe). Commit.
