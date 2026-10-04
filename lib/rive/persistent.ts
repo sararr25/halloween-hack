@@ -15,7 +15,7 @@ type Value = number | string;
 export type PersistentRive = {
   canvas: HTMLCanvasElement;
   rive: Rive;
-  /** `name` is relative to the view model prefix, e.g. "sweep" for "scan/sweep". */
+  /** `name` is relative to the view model prefix, e.g. "sweep" for "scan/sweep" (no prefix: a flat view model). */
   set: (name: string, value: Value) => void;
   get: (name: string) => Value | undefined;
 };
@@ -58,7 +58,7 @@ function persistentRive(key: string, o: Options): PersistentRive {
       const vm = rive.viewModelInstance;
       if (!vm) throw new Error(`${o.src}: no view model instance`);
       apply = (name, value) => {
-        const path = `${o.prefix}/${name}`;
+        const path = o.prefix ? `${o.prefix}/${name}` : name;
         const p = typeof value === "string" ? vm.string(path) : vm.number(path);
         if (!p) throw new Error(`${o.src}: missing ${path}`);
         p.value = value as never;
@@ -116,4 +116,15 @@ export const acrossRive = () =>
     prefix: "across",
     fit: Fit.Cover,
     label: "a lit window across the street at night, someone standing in it",
+  });
+
+/** Find My's View live: 17 Harrow St through binoculars (rive/facade, flat view model "Facade"). */
+export const facadeRive = () =>
+  persistentRive("facade", {
+    src: "/rive/facade.riv",
+    artboard: "Facade",
+    stateMachine: "Facade",
+    prefix: "",
+    fit: Fit.Cover,
+    label: "17 Harrow Street at night, through binoculars",
   });

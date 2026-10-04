@@ -1,115 +1,219 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { breath, pingAt } from "@/lib/audio/dread";
+import { breath, pingAt, ringBell } from "@/lib/audio/dread";
 import { lightSwitch, subThud } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
+import { facadeRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
 import { usePost, useStory } from "@/lib/story/store";
 import styles from "./facade.module.css";
 
-// Find My's "View live", Rear Window style (docs/plan-round7.md §6.3). The front of 17
-// Harrow St at night, seen through binoculars: the lens follows the mouse (or the head,
-// with the camera on) and everything outside it is dark. E.V.'s phone keeps pinging, louder
-// and more centred the closer the lens is to 4A, so the flat is found by ear. Resting on a
-// wrong window shows that flat's night in one line; in 2B someone stands with their back to
-// the street and turns round when the lens finds them. Holding the lens on 4A: its light
-// stutters on, a figure has its hand raised, and the reveal starts (look_live).
+// Find My's "View live", Rear Window style (docs/plan-round8.md A4). The front of 17 Harrow St
+// at night, seen through binoculars, drawn and animated in Rive (rive/facade, built by
+// scripts/gen-facade-rml.py): sixteen windows, two per flat, a building that lives on timers
+// (lights, a TV, a cat, someone walking through, the stair light). This file is the game:
+//  - the binoculars follow a raised hand, else the head; the mouse only without a camera.
+//    Moving blurs them; held still for a moment they come into focus, and only a focused
+//    look counts.
+//  - E.V.'s phone (4A, the inner window) pings now and then, quietly, sometimes not at all,
+//    louder and more centred the closer the lenses are. Each ping lights its window faintly
+//    for an instant, so it is seen only by someone already looking there. The battery runs
+//    down; at 1 % the phone dies, silence, then an old bell rings once and it is back.
+//  - The watcher stands with its back to the street in 2B. Focus on it and it turns round.
+//    Look away and it is gone, and stands somewhere else, each time closer to 4A.
+//  - Holding a focused look on 4A's inner window for 2.5 s: its light stutters on, a raised
+//    hand, and the reveal starts (look_live). No click shortcut.
 
 const W = 800;
 const H = 520;
-const WIN = { w: 92, h: 78 };
-const COLS = [262, 446];
-const FLOORS: Record<number, number> = { 4: 64, 3: 168, 2: 272, 1: 376 };
-type Flat = { id: string; x: number; y: number; lit: boolean };
+const WIN = { w: 84, h: 70 };
+const COLS = [150, 268, 448, 566];
+const FLOORS: Record<number, number> = { 4: 58, 3: 156, 2: 254, 1: 352 };
+type Win = { key: string; x: number; y: number };
+const WINDOWS: Win[] = [4, 3, 2, 1].flatMap((floor) => COLS.map((x, i) => ({ key: `${floor}${i + 1}`, x, y: FLOORS[floor] })));
+const byKey = (k: string) => WINDOWS.find((w) => w.key === k)!;
+const TARGET = byKey("42");
+const centre = (w: Win) => ({ x: w.x + WIN.w / 2, y: w.y + WIN.h / 2 });
+// what a focused look shows in each window; none of them mentions the phone
 const NIGHTS: Record<string, string> = {
-  "4A": "4A · no one. The phone is ringing in there.",
-  "4B": "4B · a man asleep in front of the TV",
-  "3A": "3A · nobody home. A cat on the sofa, looking at you.",
-  "3B": "3B · curtains drawn",
-  "2A": "2A · a kitchen, the radio on",
-  "2B": "2B · someone standing very still",
-  "1A": "1A · the hallway. The stairs go up.",
-  "1B": "1B · a woman reading. She looks up. No.",
+  "41": "4A · dark. Curtains open.",
+  "42": "4A · dark. Something on the floor, by the bed.",
+  "43": "4B · a man asleep in front of the TV",
+  "44": "4B · the bathroom light, on a timer",
+  "31": "3A · a cat on the sofa, looking straight at you",
+  "32": "3A · nothing. Then a light, for a second.",
+  "33": "3B · a couple, not talking",
+  "34": "3B · the other room",
+  "21": "2A · someone walking through, again and again",
+  "22": "2A · a kitchen, the lamp still swinging",
+  "23": "2B · someone standing very still",
+  "24": "2B · a child's star projector, nobody in the bed",
+  "11": "1A · the stairwell. The timer light.",
+  "12": "1A · the stairs go up.",
+  "13": "1B · dark",
+  "14": "1B · a woman reading. She looks up. No.",
 };
-const FLATS: Flat[] = [4, 3, 2, 1].flatMap((floor) =>
-  ["A", "B"].map((side, i) => {
-    const id = `${floor}${side}`;
-    return { id, x: COLS[i], y: FLOORS[floor], lit: !["4A", "3B", "1A"].includes(id) };
-  }),
-);
-const TARGET = FLATS.find((f) => f.id === "4A")!;
-const centre = (f: Flat) => ({ x: f.x + WIN.w / 2, y: f.y + WIN.h / 2 });
-const LENS_R = 58;
-// binoculars: two lenses side by side, touching (overlapping, their rims crossed in the middle)
-const LENS_DX = LENS_R;
-const DWELL_MS = 900;
-const FIND_MS = 1500;
-// after the light comes on, how long the figure is seen before the reveal starts
-const FOUND_HOLD_MS = 2600;
+// where the watcher stands, in order: each time it is seen it moves closer to 4A
+const WATCH_PATH = ["23", "32", "41"];
+const LENS_HIT = 18;
+// focus: speed (artboard px/s) that blurs fully, and how still counts as focused
+const BLUR_SPEED = 420;
+const FOCUS_BELOW = 0.14;
+const CAPTION_MS = 700;
+const TURN_MS = 450;
+const LEAVE_MS = 1500;
+const FIND_MS = 2500;
+// after the light comes on, how long the hand is seen before the reveal starts
+const FOUND_HOLD_MS = 2800;
+// the phone: a ping every 4-6 s, one in five missed; the battery and when it dies
+const PING_MS: [number, number] = [4000, 6000];
+const PING_MISS = 0.2;
+const BATTERY: [number, number][] = [
+  [30_000, 3],
+  [55_000, 2],
+  [75_000, 1],
+];
+const DIES_AT = 85_000;
+const BACK_AT = 93_000;
 const NUDGES: [number, string, string][] = [
-  [40_000, "…listen. it rings where she is.", "17 Harrow St · follow the ringing"],
-  [80_000, "…top floor. On the left.", "17 Harrow St · top floor, left"],
+  [40_000, "…listen. it rings where she is.", "17 Harrow St · follow the ringing, hold still to focus"],
+  [80_000, "…top floor. Her flat is on the left. The inner window.", "17 Harrow St · top floor, left, the inner window"],
 ];
 
 export default function Facade() {
   const { dispatch } = useStory();
   const post = usePost();
   const { tracker } = usePresence();
-  const svg = useRef<SVGSVGElement>(null);
-  const holes = useRef<SVGGElement>(null);
-  const rims = useRef<SVGGElement>(null);
+  const host = useRef<HTMLDivElement>(null);
+  useMountedRive(host, facadeRive);
+
+  const target = useRef({ x: W / 2, y: H - 80 });
   const lens = useRef({ x: W / 2, y: H - 80 });
-  const [steer, setSteer] = useState<"hand" | "head">("head");
+  const blur = useRef(0);
+  const glow = useRef(0);
   const [over, setOver] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
   const [caption, setCaption] = useState<string | null>(null);
-  const [turned, setTurned] = useState(false);
+  const [steer, setSteer] = useState<"hand" | "head">("head");
+  const [phone, setPhone] = useState<{ battery: number; state: "ringing" | "offline" | "back" }>({ battery: 4, state: "ringing" });
   const [found, setFound] = useState(false);
   const foundRef = useRef(false);
+  const watch = useRef({ at: 0, turned: false });
 
-  // the lens is moved on the DOM directly (every frame); React only hears which window it is on
-  const place = () => {
-    const { x, y } = lens.current;
-    holes.current?.setAttribute("transform", `translate(${x} ${y})`);
-    rims.current?.setAttribute("transform", `translate(${x} ${y})`);
-    const hit = FLATS.find((f) => x > f.x - 14 && x < f.x + WIN.w + 14 && y > f.y - 14 && y < f.y + WIN.h + 14);
-    setOver(hit?.id ?? null);
+  // the watcher where it stands now, back to the street
+  const placeWatcher = () => {
+    const w = byKey(WATCH_PATH[watch.current.at]);
+    const r = facadeRive();
+    r.set("figX", w.x + WIN.w / 2);
+    r.set("figY", w.y + WIN.h);
+    r.set("turned", 0);
+    r.set("figOn", 1);
   };
+  useEffect(() => {
+    const r = facadeRive();
+    r.set("found", 0);
+    r.set("blur", 0);
+    r.set("glow", 0);
+    placeWatcher();
+     
+  }, []);
 
-  // the lens: the raised hand, else the head (owner, round 8: face or hands, not the mouse);
-  // the mouse only when there is no camera
+  // the input moves a target; the lenses follow it, a little heavy, every frame
+  const fromClient = (cx: number, cy: number) => {
+    const el = host.current;
+    if (!el) return null;
+    const b = el.getBoundingClientRect();
+    const s = Math.max(b.width / W, b.height / H); // Fit.Cover
+    return { x: (cx - b.left - (b.width - W * s) / 2) / s, y: (cy - b.top - (b.height - H * s) / 2) / s };
+  };
   const move = (e: React.PointerEvent) => {
     if (tracker.state.source === "camera") return;
-    const m = svg.current?.getScreenCTM();
-    if (!m) return;
-    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
-    lens.current = { x: p.x, y: p.y };
-    place();
+    const p = fromClient(e.clientX, e.clientY);
+    if (p) target.current = p;
   };
   usePresenceEvent("change", (s) => {
     if (s.source !== "camera" || foundRef.current) return;
-    lens.current = s.hand
+    target.current = s.hand
       ? { x: W / 2 + s.hand.x * (W / 2), y: H / 2 + s.hand.y * (H / 2) }
       : { x: W / 2 - s.headX * 300, y: H / 2 + s.headY * 220 };
     setSteer(s.hand ? "hand" : "head");
-    place();
   });
-  useEffect(place, []);
 
-  // the phone, ringing: closer is louder, brighter, faster, and comes from where 4A is
   useEffect(() => {
-    let t: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      if (foundRef.current) return;
-      const c = centre(TARGET);
-      const d = Math.hypot(lens.current.x - c.x, lens.current.y - c.y);
-      const near = Math.max(0, 1 - d / 520);
-      pingAt(near, (c.x - lens.current.x) / 260);
-      t = setTimeout(tick, 1500 - 950 * near);
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const r = facadeRive();
+      if (!foundRef.current) {
+        const k = 1 - Math.pow(0.002, dt); // frame-rate independent ease
+        const nx = lens.current.x + (target.current.x - lens.current.x) * k;
+        const ny = lens.current.y + (target.current.y - lens.current.y) * k;
+        const speed = Math.hypot(nx - lens.current.x, ny - lens.current.y) / Math.max(dt, 0.001);
+        lens.current = { x: Math.max(0, Math.min(W, nx)), y: Math.max(0, Math.min(H, ny)) };
+        const want = Math.min(1, speed / BLUR_SPEED);
+        // blurs at once when moving, comes into focus slowly when still
+        blur.current += (want - blur.current) * (want > blur.current ? 0.5 : 1 - Math.pow(0.08, dt));
+        r.set("lensX", lens.current.x);
+        r.set("lensY", lens.current.y);
+        r.set("blur", blur.current);
+        const { x, y } = lens.current;
+        const hit = WINDOWS.find((w) => x > w.x - LENS_HIT && x < w.x + WIN.w + LENS_HIT && y > w.y - LENS_HIT && y < w.y + WIN.h + LENS_HIT);
+        setOver(hit?.key ?? null);
+        setFocused(blur.current < FOCUS_BELOW);
+      }
+      if (glow.current > 0) {
+        glow.current = Math.max(0, glow.current - dt * 0.9);
+        r.set("glow", glow.current);
+      }
+      raf = requestAnimationFrame(tick);
     };
-    t = setTimeout(tick, 600);
-    return () => clearTimeout(t);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // the phone: quiet pings from 4A, a battery running down, dead, then back
+  useEffect(() => {
+    const start = Date.now();
+    let t: ReturnType<typeof setTimeout>;
+    let stopBell: (() => void) | null = null;
+    const timers = [
+      ...BATTERY.map(([ms, battery]) => setTimeout(() => setPhone((p) => ({ ...p, battery })), ms)),
+      setTimeout(() => setPhone({ battery: 0, state: "offline" }), DIES_AT),
+      setTimeout(() => {
+        if (foundRef.current) return;
+        setPhone({ battery: 1, state: "back" });
+        stopBell = ringBell();
+        glitchNow(0.6);
+        setTimeout(() => stopBell?.(), 3400);
+      }, BACK_AT),
+    ];
+    const next = () => {
+      t = setTimeout(
+        () => {
+          if (foundRef.current) return;
+          const elapsed = Date.now() - start;
+          const dead = elapsed > DIES_AT && elapsed < BACK_AT + 3500;
+          if (!dead && Math.random() > PING_MISS) {
+            const c = centre(TARGET);
+            const d = Math.hypot(lens.current.x - c.x, lens.current.y - c.y);
+            const near = Math.max(0, 1 - d / 520);
+            pingAt(0.1 + 0.75 * near * near, Math.max(-1, Math.min(1, (c.x - lens.current.x) / 260)));
+            glow.current = 1;
+          }
+          next();
+        },
+        PING_MS[0] + Math.random() * (PING_MS[1] - PING_MS[0]),
+      );
+    };
+    t = setTimeout(next, 1200);
+    return () => {
+      clearTimeout(t);
+      timers.forEach(clearTimeout);
+      stopBell?.();
+    };
   }, []);
 
   const find = () => {
@@ -117,30 +221,53 @@ export default function Facade() {
     foundRef.current = true;
     setFound(true);
     setCaption("4A · E.V.'s iPhone");
-    // the light in 4A: a tube that will not start, then does
-    [0, 260, 520].forEach((ms) => setTimeout(lightSwitch, ms));
-    setTimeout(breath, 900);
+    const r = facadeRive();
+    r.set("figOn", 0);
+    r.set("blur", 0);
+    r.set("found", 1);
+    // the light in 4A: a tube that will not start, then does (timed with the Rive stutter)
+    [100, 360, 620].forEach((ms) => setTimeout(lightSwitch, ms));
+    setTimeout(breath, 1100);
     setTimeout(() => {
       glitchNow(1);
       dispatch({ type: "clue", id: "look_live" });
     }, FOUND_HOLD_MS);
   };
 
-  // resting on a window: its night, in one line; resting on 4A: found
+  // a focused look: the window's night in one line; on the watcher it turns; on 4A, found
+  const watcherKey = () => WATCH_PATH[watch.current.at];
   useEffect(() => {
-    if (!over || found) return;
-    const t = [setTimeout(() => setCaption(NIGHTS[over]), DWELL_MS)];
-    if (over === TARGET.id) t.push(setTimeout(find, FIND_MS));
-    if (over === "2B" && !turned)
+    if (found || !over || !focused) return;
+    const t = [setTimeout(() => setCaption(NIGHTS[over]), CAPTION_MS)];
+    if (over === TARGET.key) t.push(setTimeout(find, FIND_MS));
+    if (over === watcherKey() && !watch.current.turned)
       t.push(
         setTimeout(() => {
-          setTurned(true);
+          watch.current.turned = true;
+          facadeRive().set("turned", 1);
           subThud(0.8);
           glitchNow(0.4, { sound: false });
-        }, 450),
+        }, TURN_MS),
       );
     return () => t.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [over, focused, found]);
+
+  // looked away from the watcher once it has turned: it is gone, and stands somewhere closer
+  useEffect(() => {
+    if (found || !watch.current.turned || over === watcherKey()) return;
+    const t = setTimeout(() => {
+      if (foundRef.current) return;
+      facadeRive().set("figOn", 0);
+      glitchNow(0.5, { sound: false });
+      setTimeout(() => {
+        if (foundRef.current) return;
+        watch.current = { at: Math.min(watch.current.at + 1, WATCH_PATH.length - 1), turned: false };
+        placeWatcher();
+      }, 1200);
+    }, LEAVE_MS);
+    return () => clearTimeout(t);
+     
   }, [over, found]);
 
   // nobody hears it: the sender helps, twice
@@ -153,97 +280,28 @@ export default function Facade() {
     return () => t.forEach(clearTimeout);
   }, [post]);
 
-  // the 2B figure turns round: a squash through zero, like a body turning in a doorway
-  const figure = useRef<SVGImageElement>(null);
-  useEffect(() => {
-    if (!turned || !figure.current) return;
-    const b = centre(FLATS.find((f) => f.id === "2B")!);
-    const tw = gsap.fromTo(
-      figure.current,
-      { scaleX: 1 },
-      { keyframes: { scaleX: [1, 0.08, 1] }, duration: 0.5, ease: "power2.inOut", svgOrigin: `${b.x} ${b.y}` },
-    );
-    return () => void tw.kill();
-  }, [turned]);
-
   const camera = tracker.state.source === "camera";
+  const status = phone.state === "offline" ? "offline" : `${phone.battery}% · ${phone.state === "back" ? "back online" : "ringing"}`;
 
   return (
-    <div className={styles.facade}>
-      <svg
-        ref={svg}
-        className={styles.view}
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="xMidYMid slice"
-        onPointerMove={move}
-        aria-label="17 Harrow Street at night, through binoculars. Find the flat where her phone is ringing."
-      >
-        <defs>
-          <mask id="facade-lens">
-            <rect width={W} height={H} fill="white" />
-            <g ref={holes}>
-              <circle cx={-LENS_DX} r={LENS_R} fill="black" />
-              <circle cx={LENS_DX} r={LENS_R} fill="black" />
-            </g>
-          </mask>
-          <radialGradient id="facade-glow">
-            <stop offset="0" stopColor="#e9dcb4" stopOpacity="0.55" />
-            <stop offset="1" stopColor="#e9dcb4" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        <rect width={W} height={H} className={styles.sky} />
-        {/* the terrace: brick, a cornice, the door at street level */}
-        <rect x="180" y="24" width="440" height="500" className={styles.wall} />
-        <rect x="170" y="18" width="460" height="14" className={styles.cornice} />
-        {Array.from({ length: 30 }, (_, i) => (
-          <line key={i} x1="180" x2="620" y1={36 + i * 16} y2={36 + i * 16} className={styles.brick} />
-        ))}
-        <rect x="370" y="470" width="60" height="54" className={styles.door} />
-
-        {FLATS.map((f) => (
-          <g key={f.id} onClick={() => (f.id === TARGET.id ? find() : setCaption(NIGHTS[f.id]))} className={styles.window}>
-            <rect x={f.x - 6} y={f.y - 6} width={WIN.w + 12} height={WIN.h + 12} className={styles.frame} />
-            <rect
-              x={f.x}
-              y={f.y}
-              width={WIN.w}
-              height={WIN.h}
-              className={f.id === TARGET.id ? (found ? styles.lit4a : styles.dark) : f.lit ? styles.lit : styles.dark}
-            />
-            {f.id === "4B" && <rect x={f.x + 8} y={f.y + 44} width="34" height="22" className={styles.tv} />}
-            {f.id === "3A" && <ellipse cx={f.x + 60} cy={f.y + 64} rx="12" ry="6" className={styles.shape} />}
-            {f.id === "1B" && <circle cx={f.x + 22} cy={f.y + 30} r="16" fill="url(#facade-glow)" />}
-            {f.id === "2B" && (
-              <image
-                ref={figure}
-                href="/figure/body.webp"
-                x={f.x + 26}
-                y={f.y + 18}
-                width="44"
-                height="62"
-                className={turned ? styles.facing : styles.back}
-              />
-            )}
-            {f.id === TARGET.id && found && <image href="/figure/raise/56.webp" x={f.x + 22} y={f.y + 14} width="52" height="66" />}
-            {/* glazing bars */}
-            <line x1={f.x + WIN.w / 2} x2={f.x + WIN.w / 2} y1={f.y} y2={f.y + WIN.h} className={styles.bar} />
-            <line x1={f.x} x2={f.x + WIN.w} y1={f.y + WIN.h / 2} y2={f.y + WIN.h / 2} className={styles.bar} />
-          </g>
-        ))}
-
-        {/* the night outside the binoculars */}
-        <rect width={W} height={H} className={styles.dim} mask="url(#facade-lens)" />
-        <g ref={rims} className={styles.rims}>
-          <circle cx={-LENS_DX} r={LENS_R} />
-          <circle cx={LENS_DX} r={LENS_R} />
-        </g>
-      </svg>
-
+    <div className={styles.facade} onPointerMove={move}>
+      <div ref={host} className={styles.view} />
       <p className={styles.head}>
         <span className={styles.live}>● LIVE</span> 17 HARROW ST ·{" "}
-        {!camera ? "move the mouse to look" : steer === "hand" ? "your hand moves the binoculars" : "raise your hand to move the binoculars, or turn your head"}
+        {!camera
+          ? "move the mouse to look, hold still to focus"
+          : steer === "hand"
+            ? "your hand moves the binoculars · hold still to focus"
+            : "raise your hand to move the binoculars, or turn your head"}
       </p>
+      <p className={styles.phone} data-state={phone.state}>
+        E.V.&apos;s iPhone · {status}
+      </p>
+      {!found && (
+        <p className={styles.focus} data-on={focused}>
+          {focused ? "focus" : "· · ·"}
+        </p>
+      )}
       {caption && (
         <p key={caption} className={styles.caption} data-found={found}>
           {caption}
