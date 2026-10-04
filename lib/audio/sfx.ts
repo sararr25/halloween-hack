@@ -553,9 +553,10 @@ export function musicBox(): number {
 
 /**
  * The headphone check before anything starts (round 8, Gate.tsx): a breathy whisper on one
- * side only, `pan` -1 left or 1 right. The facade later uses the same side cue for 4A.
+ * side only, `pan` -1 left to 1 right. The facade brings the same whisper back from 4A's side
+ * (quieter, `level` < 1) whenever the phone misses a ping.
  */
-export function sideWhisper(pan: -1 | 1) {
+export function sideWhisper(pan: number, level = 1) {
   const e = engine;
   if (!e) return;
   const now = e.ctx.currentTime;
@@ -568,12 +569,12 @@ export function sideWhisper(pan: -1 | 1) {
   bp.Q.value = 0.9;
   const g = e.ctx.createGain();
   g.gain.setValueAtTime(0, now);
-  g.gain.linearRampToValueAtTime(0.16, now + 0.35);
-  g.gain.linearRampToValueAtTime(0.1, now + 0.6);
-  g.gain.linearRampToValueAtTime(0.18, now + 0.8);
+  g.gain.linearRampToValueAtTime(0.16 * level, now + 0.35);
+  g.gain.linearRampToValueAtTime(0.1 * level, now + 0.6);
+  g.gain.linearRampToValueAtTime(0.18 * level, now + 0.8);
   g.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
   const p = e.ctx.createStereoPanner();
-  p.pan.value = pan;
+  p.pan.value = Math.max(-1, Math.min(1, pan));
   src.connect(bp).connect(g).connect(p).connect(e.master);
   src.start(now);
   src.stop(now + 1.5);

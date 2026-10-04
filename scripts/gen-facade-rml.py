@@ -12,6 +12,7 @@ The host (components/desktop/views/Facade.tsx) writes the view model "Facade":
   figOn          0..1 the watcher's opacity
   turned         0 back to the street, 1 facing you (plays Turn)
   found          0 / 1 (plays Found: 4A stutters on, the raised hand)
+  headX, headY   -1..1 the player's head: the figure in 4A copies it
 
 Run: python3 scripts/gen-facade-rml.py && pnpm rive:facade
 Draw order in RML: the first element declared paints on top.
@@ -34,9 +35,11 @@ def nid():
 
 
 VM = "0:10"
-P = {k: f"0:{11 + i}" for i, k in enumerate(["lensX", "lensY", "blur", "glow", "figX", "figY", "figOn", "turned", "found"])}
+P = {k: f"0:{11 + i}" for i, k in enumerate(["lensX", "lensY", "blur", "glow", "figX", "figY", "figOn", "turned", "found", "headX", "headY"])}
 VMI = "0:30"
 HAZE_MAP = "0:40"
+# the figure in 4A copies the player's head once found (headX/headY -1..1): sway, tilt, nod
+HEAD_X, HEAD_R, HEAD_Y = "0:41", "0:42", "0:43"
 
 
 def bind(prop, key, conv=None):
@@ -149,7 +152,10 @@ def window(floor, col):
     if key == "42":  # 4A inner window: the phone's glow, and on Found the raised hand
         glow = anim_targets["glow"] = nid()
         hand = anim_targets["hand"] = nid()
-        parts.append(f'<Image x="{WIN_W / 2}" y="{WIN_H - 31}" scaleX="0.42" scaleY="0.42" opacity="0" assetId="0:92" name="Hand" id="{hand}"/>')
+        parts.append(
+            f'<Node x="{WIN_W / 2}" y="{WIN_H - 31}" name="Copy">{bind("headX", 13, HEAD_X)}{bind("headX", 15, HEAD_R)}{bind("headY", 14, HEAD_Y)}'
+            f'<Image x="0" y="0" scaleX="0.42" scaleY="0.42" opacity="0" assetId="0:92" name="Hand" id="{hand}"/></Node>'
+        )
         parts.append(shape("Phone glow", [ell(56, 58, 60, 40)], fill=radial(56, 58, 30, "FFCFE6FF", "00CFE6FF"), sid=glow, opacity=0, binds=bind("glow", 18)))
     fill = linear(0, 0, 0, WIN_H, WARM_IN, WARM) if key != "24" else solid("FF203050")
     parts.append(shape("Light", [rect(0, 0, WIN_W, WIN_H)], fill=fill, sid=light_ids[key], opacity=LIT[key] if key != "24" else 0.9))
@@ -283,7 +289,7 @@ def build():
         + "</StateMachine>"
     )
 
-    defaults = {"lensX": 400, "lensY": 440, "blur": 0, "glow": 0, "figX": 490, "figY": 324, "figOn": 1, "turned": 0, "found": 0}
+    defaults = {"headX": 0, "headY": 0, "lensX": 400, "lensY": 440, "blur": 0, "glow": 0, "figX": 490, "figY": 324, "figOn": 1, "turned": 0, "found": 0}
     vm_props = "".join(f'<ViewModelPropertyNumber name="{k}" id="{v}"/>' for k, v in P.items())
     vm_vals = "".join(f'<ViewModelInstanceNumber propertyValue="{defaults[k]}" viewModelPropertyId="{v}"/>' for k, v in P.items())
 
@@ -294,6 +300,9 @@ def build():
         + lens_xml + "\n" + watcher_xml + "\n" + "\n".join(windows) + "\n" + wall + "\n" + sm + "\n" + anim_xml + "\n"
         + "</Artboard>\n"
         + f'<DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="0.75" clampLower="true" clampUpper="true" name="Haze" id="{HAZE_MAP}"/>\n'
+        + f'<DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="{WIN_W / 2 - 9}" maxOutput="{WIN_W / 2 + 9}" clampLower="true" clampUpper="true" name="Head x" id="{HEAD_X}"/>\n'
+        + f'<DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="-0.2" maxOutput="0.2" clampLower="true" clampUpper="true" name="Head tilt" id="{HEAD_R}"/>\n'
+        + f'<DataConverterRangeMapper minInput="-1" maxInput="1" minOutput="{WIN_H - 35}" maxOutput="{WIN_H - 27}" clampLower="true" clampUpper="true" name="Head y" id="{HEAD_Y}"/>\n'
         + f'<ViewModel defaultInstanceId="{VMI}" name="Facade" id="{VM}">{vm_props}<ViewModelInstance exports="true" name="Default" id="{VMI}">{vm_vals}</ViewModelInstance></ViewModel>\n'
         + '<ImageAsset file="figure_back.png" name="figure_back" id="0:90"/>\n'
         + '<ImageAsset file="figure_front.png" name="figure_front" id="0:91"/>\n'

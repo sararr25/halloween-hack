@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { breath, pingAt, ringBell } from "@/lib/audio/dread";
-import { lightSwitch, subThud } from "@/lib/audio/sfx";
+import { lightSwitch, sideWhisper, subThud } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { facadeRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
@@ -22,8 +22,11 @@ import styles from "./facade.module.css";
 //    down; at 1 % the phone dies, silence, then an old bell rings once and it is back.
 //  - The watcher stands with its back to the street in 2B. Focus on it and it turns round.
 //    Look away and it is gone, and stands somewhere else, each time closer to 4A.
+//  - A missed ping is not silence: the whisper from the headphone check (Gate.tsx) comes back,
+//    quieter, from the side where 4A is.
 //  - Holding a focused look on 4A's inner window for 2.5 s: its light stutters on, a raised
-//    hand, and the reveal starts (look_live). No click shortcut.
+//    hand, and the figure copies the player's head for a few seconds; then the reveal
+//    starts (look_live). No click shortcut.
 
 const W = 800;
 const H = 520;
@@ -65,7 +68,7 @@ const TURN_MS = 450;
 const LEAVE_MS = 1500;
 const FIND_MS = 2500;
 // after the light comes on, how long the hand is seen before the reveal starts
-const FOUND_HOLD_MS = 2800;
+const FOUND_HOLD_MS = 4800;
 // the phone: a ping every 4-6 s, one in five missed; the battery and when it dies
 const PING_MS: [number, number] = [4000, 6000];
 const PING_MISS = 0.2;
@@ -133,7 +136,14 @@ export default function Facade() {
     if (p) target.current = p;
   };
   usePresenceEvent("change", (s) => {
-    if (s.source !== "camera" || foundRef.current) return;
+    // found: the figure in 4A copies the head (camera), or the mouse playing the head
+    if (foundRef.current) {
+      const r = facadeRive();
+      r.set("headX", s.headX);
+      r.set("headY", s.headY);
+      return;
+    }
+    if (s.source !== "camera") return;
     target.current = s.hand
       ? { x: W / 2 + s.hand.x * (W / 2), y: H / 2 + s.hand.y * (H / 2) }
       : { x: W / 2 - s.headX * 300, y: H / 2 + s.headY * 220 };
@@ -196,13 +206,14 @@ export default function Facade() {
           if (foundRef.current) return;
           const elapsed = Date.now() - start;
           const dead = elapsed > DIES_AT && elapsed < BACK_AT + 3500;
+          const c = centre(TARGET);
+          const pan = (c.x - lens.current.x) / 260;
           if (!dead && Math.random() > PING_MISS) {
-            const c = centre(TARGET);
             const d = Math.hypot(lens.current.x - c.x, lens.current.y - c.y);
             const near = Math.max(0, 1 - d / 520);
-            pingAt(0.1 + 0.75 * near * near, Math.max(-1, Math.min(1, (c.x - lens.current.x) / 260)));
+            pingAt(0.1 + 0.75 * near * near, Math.max(-1, Math.min(1, pan)));
             glow.current = 1;
-          }
+          } else if (!dead) sideWhisper(pan, 0.55);
           next();
         },
         PING_MS[0] + Math.random() * (PING_MS[1] - PING_MS[0]),
@@ -224,6 +235,8 @@ export default function Facade() {
     const r = facadeRive();
     r.set("figOn", 0);
     r.set("blur", 0);
+    r.set("headX", tracker.state.headX);
+    r.set("headY", tracker.state.headY);
     r.set("found", 1);
     // the light in 4A: a tube that will not start, then does (timed with the Rive stutter)
     [100, 360, 620].forEach((ms) => setTimeout(lightSwitch, ms));
