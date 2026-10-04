@@ -41,6 +41,8 @@ export async function fileOperator(name: string, openedAt: number, invite: strin
 
 /** Who passed the case on, or null when the link is unknown. */
 export async function inviterOf(token: string): Promise<string | null> {
+  // dev only: /?case=dev plays the DM from a made-up sender, without the registry
+  if (process.env.NODE_ENV === "development" && token === "dev") return "Giulia";
   const res = await fetch(`/api/operators?invite=${encodeURIComponent(token)}`);
   if (res.status === 404 || res.status === 400) return null;
   if (!res.ok) throw new Error(`registry: invite lookup failed (${res.status})`);

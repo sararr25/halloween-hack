@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { blip, glitchSound, key, tubeOff } from "@/lib/audio/sfx";
+import { blip, glitchSound, key, subThud, tubeOff } from "@/lib/audio/sfx";
 import { dread, jumpStinger, ringNotify, slam } from "@/lib/audio/dread";
+import { casefileRive, useMountedRive } from "@/lib/rive/persistent";
 import { inviterOf } from "@/lib/story/registry";
 import styles from "./invite.module.css";
 
@@ -17,28 +18,37 @@ gsap.registerPlugin(useGSAP);
 //     buzz on screen, until it is opened.
 //  2. Opening it: a figure lunges out of a white flash (the one jump scare), then black.
 //  3. The thread, under a score in the spirit of The Shining. Two lines from the sender,
-//     then the screen is taken over by three full-screen lines (12 hours, find her, or
-//     you're next), then the sender again, small and close: sorry, forgive me, love you.
+//     then the screen is taken over by the case file (rive/casefile, round 8: the old shouted
+//     lines were off brand): fields that type themselves, the stamp, a held silence, "find
+//     her. / or you're next." Then the sender again, small and close: sorry, forgive me, love you.
 //  4. "seen". A countdown from 12:00:00 runs in the header. The name scrambles into E.V.
 //     for a breath, the thread collapses like an old tube and the story starts as usual.
 // An unknown or broken link skips all of it.
 
 type Bubble = { kind: "bubble"; text: string; typing: number; style?: "case" };
-type Card = { kind: "card"; small?: string; big: string; hold: number };
+type Card = { kind: "case"; hold: number };
 type Line = Bubble | Card;
 
 const script = (from: string): Line[] => [
   { kind: "bubble", text: "it's me.", typing: 1300 },
   { kind: "bubble", text: "don't close this. please. read all of it.", typing: 2000 },
-  { kind: "card", small: "you have", big: "12 hours", hold: 2600 },
-  { kind: "card", big: "to find her.", hold: 1900 },
-  { kind: "card", small: "or", big: "you're next.", hold: 2400 },
+  { kind: "case", hold: 13_500 },
   { kind: "bubble", text: "i'm sorry. i had to pass it to you.", typing: 2600 },
   { kind: "bubble", text: "it was the only way to save myself.", typing: 2000 },
   { kind: "bubble", text: "if you survive this, i hope one day you'll forgive me.", typing: 2900 },
   { kind: "bubble", text: `love you. ${from}`, typing: 1900 },
   { kind: "bubble", text: "case 0420", typing: 1100, style: "case" },
 ];
+
+// The case file's beats in seconds, mirrored from scripts/gen-casefile-rml.py: when each line
+// types on [start, end], when the stamp lands, when the countdown row appears.
+const CASE_TYPED: [number, number][] = [
+  [0, 0.7], [0.4, 0.9], [1.2, 1.6], [1.35, 1.95], [2.2, 2.6], [2.35, 2.95], [3.2, 3.6], [3.35, 3.95], [4.2, 4.6], [4.35, 4.95],
+];
+const CASE_ROWS = [1.2, 2.2, 3.2, 4.2];
+const CASE_REMAINING = 4.35;
+const CASE_STAMP = 5.4;
+const CASE_LINES: [number, number][] = [[7.4, 8.4], [9.4, 10.6]];
 
 const SCRAMBLE = "▓▒░#%&@$ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const RING_EVERY_MS = 3400;
@@ -227,16 +237,14 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
         );
         at += 650;
       } else {
-        const first = line.big === "12 hours";
         t.push(
           setTimeout(() => {
             setTyping(false);
             setCard(line);
-            slam(first ? 1 : 0.7);
-            // the countdown starts the moment it is said, and stays
-            if (first) setClockFrom(Date.now());
           }, at),
         );
+        // the countdown in the header starts when the case file says it, and stays
+        t.push(setTimeout(() => setClockFrom(Date.now()), at + CASE_REMAINING * 1000));
         at += line.hold;
         t.push(setTimeout(() => setCard(null), at));
         at += 500;
@@ -349,33 +357,56 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
           {seen && <small className={styles.seen}>seen just now</small>}
         </div>
       </div>
-      {card && <FullLine key={card.big} card={card} />}
+      {card && <CaseFile from={from} />}
     </div>
   );
 }
 
 /**
- * A line that takes the whole screen: each word slams in, the screen shakes, it flickers.
- * CSS keyframes, not tweens (invite.module.css .card): they run on time, so a throttled
- * tab can never leave a word invisible.
+ * The case file, full screen (rive/casefile): Rive types every field on, slams the stamp and
+ * holds the silence; this adds the sound on the same beats and keeps the countdown live.
  */
-function FullLine({ card }: { card: Card }) {
-  // a keystroke for every letter of the small line, as if typed somewhere else
+function CaseFile({ from }: { from: string }) {
+  const host = useRef<HTMLDivElement>(null);
+  useMountedRive(host, casefileRive);
   useEffect(() => {
-    if (!card.small) return;
-    const typed = Array.from(card.small, (_, i) => setTimeout(key, i * 45));
-    return () => typed.forEach(clearTimeout);
-  }, [card.small]);
-  return (
-    <div className={styles.card} role="alert">
-      {card.small && <p className={styles.cardSmall}>{card.small}</p>}
-      <p className={styles.cardBig}>
-        {card.big.split(" ").map((w, i) => (
-          <span key={i} className={styles.cardWord} style={{ animationDelay: `${0.1 + i * 0.14}s` }}>
-            {w}
-          </span>
-        ))}
-      </p>
-    </div>
-  );
+    const r = casefileRive();
+    r.set("from", `${from} · released`);
+    r.set("remaining", "12:00:00");
+    r.set("play", 1);
+    const at = (s: number, fn: () => void) => setTimeout(fn, s * 1000);
+    const t: ReturnType<typeof setTimeout>[] = [];
+    // a keystroke for every few letters while a line types on
+    CASE_TYPED.forEach(([a, b]) => {
+      for (let s = a; s < b; s += 0.06) t.push(at(s, key));
+    });
+    CASE_ROWS.forEach((s) => t.push(at(s, () => subThud(0.35))));
+    t.push(
+      at(CASE_STAMP, () => {
+        slam(1);
+        glitchSound(0.6);
+      }),
+    );
+    // the last two lines type slower, the second ends on a hit
+    CASE_LINES.forEach(([a, b]) => {
+      for (let s = a; s < b; s += 0.11) t.push(at(s, key));
+    });
+    t.push(at(CASE_LINES[1][1] + 0.1, () => slam(0.6)));
+    // the countdown, live, from the moment its row appears
+    let clock: ReturnType<typeof setInterval> | undefined;
+    t.push(
+      at(CASE_REMAINING, () => {
+        const start = Date.now();
+        clock = setInterval(() => {
+          const s = Math.floor(Math.max(0, DEADLINE_MS - (Date.now() - start)) / 1000);
+          r.set("remaining", `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`);
+        }, 250);
+      }),
+    );
+    return () => {
+      t.forEach(clearTimeout);
+      clearInterval(clock);
+    };
+  }, [from]);
+  return <div ref={host} className={styles.card} role="alert" aria-label="case 0420. assigned to you. find her, or you're next." />;
 }

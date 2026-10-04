@@ -128,3 +128,13 @@ export const facadeRive = () =>
     fit: Fit.Cover,
     label: "17 Harrow Street at night, through binoculars",
   });
+
+/** The pass-it-on DM: the case file that takes the screen (rive/casefile, flat view model "CaseFile"). */
+export const casefileRive = () =>
+  persistentRive("casefile", {
+    src: "/rive/casefile.riv",
+    artboard: "CaseFile",
+    stateMachine: "CaseFile",
+    prefix: "",
+    label: "case 0420, assigned to you",
+  });
