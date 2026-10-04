@@ -119,24 +119,29 @@ export default function Boot() {
     log("camera + microphone · processed on this device only");
     await wait(700);
 
-    const ok = await tracker.startCamera(el, { withMic: true });
-    const at = Date.now();
-    dispatch({
-      type: "session",
-      session: {
-        camera: ok ? "granted" : "denied",
-        mic: ok && tracker.micGranted ? "granted" : "denied",
-        verifiedAt: at,
-      },
-    });
+    // the gate (Gate.tsx) asked before the premise; only a session that skipped it (dev
+    // shortcuts) is asked here
+    const asked = state.session.camera !== null;
+    const ok = asked ? state.session.camera === "granted" : await tracker.startCamera(el, { withMic: true });
+    const at = asked ? (state.session.verifiedAt ?? Date.now()) : Date.now();
+    if (!asked)
+      dispatch({
+        type: "session",
+        session: {
+          camera: ok ? "granted" : "denied",
+          mic: ok && tracker.micGranted ? "granted" : "denied",
+          verifiedAt: at,
+        },
+      });
 
     if (!ok) {
       // Refusal is data too: the story will remember it. And the mapping happens anyway.
-      try {
-        localStorage.setItem("recovery.cameraDenied", new Date(at).toISOString());
-      } catch {
-        // storage blocked: the refusal is still in the story state for this session
-      }
+      if (!asked)
+        try {
+          localStorage.setItem("recovery.cameraDenied", new Date(at).toISOString());
+        } catch {
+          // storage blocked: the refusal is still in the story state for this session
+        }
       setRefused(true);
       scanRive().set("mode", 1);
       glitchNow(0.9);

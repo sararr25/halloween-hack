@@ -72,18 +72,6 @@
 .typing i:nth-child(3) { animation-delay: 0.3s; }
 .seen { justify-self: start; padding-left: 6px; font: 400 11.5px var(--font-sans), sans-serif; color: var(--muted); animation: fadeIn 0.6s ease-out both; }
 
-/* 0 · the sleeping screen: a click is needed before any sound can play */
-.wake {
-  border: 0; cursor: pointer; color: var(--muted); font-family: var(--font-mono), monospace;
-  background: #000; gap: 14px;
-}
-.wakeDot {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--neon); justify-self: center;
-  box-shadow: 0 0 14px rgba(0, 240, 255, 0.8); animation: breathe 2.4s ease-in-out infinite;
-}
-.wakeText { font-size: 15px; letter-spacing: 0.18em; color: rgba(238, 240, 244, 0.7); animation: fadeIn 1.4s ease-out 0.4s both; }
-.wakeHint { font-size: 12px; letter-spacing: 0.14em; animation: fadeIn 1.4s ease-out 1.2s both; }
-.wake:focus-visible .wakeText { color: var(--accent); }
 
 /* 2 · the jump scare */
 .blackStage { position: fixed; inset: 0; background: #000; overflow: hidden; }
@@ -151,6 +139,6 @@
 @keyframes riseIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } }
 @keyframes dot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .clock, .tap, .notice, .thread, .seen, .typing i, .wakeDot, .wakeText, .wakeHint, .grain, .countdown, .dread::after,
+  .clock, .tap, .notice, .thread, .seen, .typing i, .grain, .countdown, .dread::after,
   .card, .cardSmall, .cardBig, .cardWord { animation: none; }
 }

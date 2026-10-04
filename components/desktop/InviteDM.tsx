@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { blip, glitchSound, key, tubeOff, unlockAudio } from "@/lib/audio/sfx";
+import { blip, glitchSound, key, tubeOff } from "@/lib/audio/sfx";
 import { dread, jumpStinger, ringNotify, slam } from "@/lib/audio/dread";
-import { enterFullscreen } from "@/lib/fullscreen";
 import { inviterOf } from "@/lib/story/registry";
 import styles from "./invite.module.css";
 
@@ -13,8 +12,7 @@ gsap.registerPlugin(useGSAP);
 
 // The Ring, as a DM (docs/plan-round6.md, "pass it on"). Someone who finished passed the
 // case on; whoever opens their link is met, before anything else, by a message from them.
-//  0. Black, "click to wake the screen": browsers keep sound locked until a click, and
-//     everything after this needs sound.
+//  (Sound is already unlocked: the gate before it, Gate.tsx, took the first click.)
 //  1. The lock screen. The notification rings like the phone in The Ring, in time with the
 //     buzz on screen, until it is opened.
 //  2. Opening it: a figure lunges out of a white flash (the one jump scare), then black.
@@ -50,11 +48,11 @@ const SCARE_MS = 380;
 const SCARE_BLACK_MS = 900;
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-type Step = "wake" | "lock" | "scare" | "thread";
+type Step = "lock" | "scare" | "thread";
 
 export default function InviteDM({ token, onDone }: { token: string; onDone: () => void }) {
   const [from, setFrom] = useState<string | null>(null);
-  const [step, setStep] = useState<Step>("wake");
+  const [step, setStep] = useState<Step>("lock");
   const done = useRef(onDone);
   useEffect(() => {
     done.current = onDone;
@@ -93,30 +91,9 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: () 
   }, []);
 
   if (!from) return <div className={styles.stage} />;
-  if (step === "wake")
-    return (
-      <Wake
-        onWake={() => {
-          unlockAudio(); // the gesture that lets every sound after this play
-          enterFullscreen();
-          setStep("lock");
-        }}
-      />
-    );
   if (step === "lock") return <Notice from={from} onOpen={() => setStep("scare")} />;
   if (step === "scare") return <Scare onDone={scareDone} />;
   return <Thread from={from} onDone={threadDone} />;
-}
-
-/** A sleeping screen. The only thing on it says how to wake it. */
-function Wake({ onWake }: { onWake: () => void }) {
-  return (
-    <button className={`${styles.stage} ${styles.wake}`} onClick={onWake} autoFocus>
-      <span className={styles.wakeDot} aria-hidden="true" />
-      <span className={styles.wakeText}>click to wake the screen</span>
-      <span className={styles.wakeHint}>sound on · headphones</span>
-    </button>
-  );
 }
 
 function Notice({ from, onOpen }: { from: string; onOpen: () => void }) {

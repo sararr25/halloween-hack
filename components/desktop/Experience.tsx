@@ -13,6 +13,7 @@ import { StoryProvider, useStory, type Stage } from "@/lib/story/store";
 import Boot from "./Boot";
 import Briefing from "./Briefing";
 import Desktop from "./Desktop";
+import Gate from "./Gate";
 import InviteDM from "./InviteDM";
 import Login, { CASE_KEY } from "./Login";
 import Reveal from "./Reveal";
@@ -281,12 +282,16 @@ function Phases() {
   const token = useSyncExternalStore(noSubscribe, readInviteOnce, () => null);
   const [dmRead, setDmRead] = useState(false);
   const dmDone = useCallback(() => setDmRead(true), []);
+  // camera, microphone, headphones and full screen come before anything (Gate.tsx)
+  const [ready, setReady] = useState(false);
+  const gateDone = useCallback(() => setReady(true), []);
   useEffect(() => {
     if (token) hideInviteParam();
   }, [token]);
 
   switch (state.phase) {
     case "premise":
+      if (!ready) return <Gate onDone={gateDone} />;
       // a case passed on: the message from whoever passed it comes first
       if (token && !dmRead) return <InviteDM token={token} onDone={dmDone} />;
       return (
@@ -295,14 +300,13 @@ function Phases() {
           <button
             className={styles.cta}
             onClick={() => {
-              unlockAudio(); // audio stays locked until a user gesture
-              enterFullscreen(); // so is full screen: no tabs, no address bar
+              unlockAudio(); // already unlocked by the gate; harmless, and safe if it was skipped
+              enterFullscreen(); // back into full screen if Esc left it after the gate
               dispatch({ type: "phase", phase: "boot" });
             }}
           >
             Open
           </button>
-          <p className={styles.hint}>best with headphones</p>
           <Returning />
         </div>
       );
