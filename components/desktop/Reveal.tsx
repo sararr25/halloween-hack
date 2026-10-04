@@ -21,8 +21,9 @@ import styles from "./reveal.module.css";
 //  2. The figure comes forward and copies the player's head 1:1, no lag. "don't move."
 //     makes them try, and see it.
 //  3. "raise your hand." (E.V.'s voice note). With the camera the figure's arm goes where
-//     the player's hand goes, live, the elbow worked out from it. Nothing raised in time, or
-//     no camera: it raises it anyway, on its own.
+//     the player's hand goes, live, the elbow worked out from it, and only then (owner,
+//     round 10: it never moves an arm the player has not moved). Without a camera, moving
+//     the mouse up raises it. Nothing raised in time: it stays still, waiting.
 //  4. Silence while the room is recorded (microphone granted in S1, memory only), then it
 //     is played back: "that was your room."
 //  5. The window corrupts into the live camera of flat 4A: the player. Then black, login.
@@ -43,12 +44,15 @@ const ART = { w: 1280, h: 800 };
 const PHOTO = { w: 1536, h: 1024 };
 const LIT = { x: 914, y: 362 };
 const WIN = { w: 60, h: 124 };
-// The figure's hand when it raises it by itself, in face widths from its nose (mirrored like
-// the head): beside the head, a little above the eyes. It comes up from this far below.
+// Without a camera, where the figure's hand goes when the mouse raises it, in face widths
+// from its nose (mirrored like the head): beside the head, a little above the eyes. It comes
+// up from this far below.
 const ARM_UP = { x: 1.8, y: -0.3 };
 const ARM_RISE = 3.2;
-// how soft the figure is with the camera far away, as a share of the glass's width
+// how soft the figure is with the camera far away, and still at its closest (never sharp
+// enough to tell it is not the player: their hair, their clothes), as shares of the glass's width
 const SOFT = 0.035;
+const SOFT_NEAR = 0.014;
 // with the camera, the player's hand this far above their nose counts as raised
 const RAISED_Y = -0.2;
 
@@ -64,9 +68,6 @@ export default function Reveal() {
   const advance = useRef<(() => void) | null>(null);
   const palm = useRef<(() => void) | null>(null);
   const lift = useRef<(() => void) | null>(null);
-  // the figure raising its hand by itself (no hand in time, or the mouse): the player's own
-  // hand is not followed meanwhile
-  const scripted = useRef(false);
 
   useMountedRive(host, acrossRive);
   const figureCanvas = useRef<HTMLCanvasElement>(null);
@@ -163,15 +164,16 @@ export default function Reveal() {
       }
       // far: soft; near: sharp. Seen through the glass, never pure black.
       const near = Math.min(1, Math.max(0, (v.zoom - 0.25) / 0.7));
-      cv.style.filter = `blur(${(SOFT * glass.w * (1 - near) * (1 - near)).toFixed(2)}px)`;
+      cv.style.filter = `blur(${(glass.w * (SOFT_NEAR + (SOFT - SOFT_NEAR) * (1 - near) * (1 - near))).toFixed(2)}px)`;
       cv.style.opacity = String(v.figure * Math.min(v.light, 1 - v.corruption));
 
       if (following.current) {
         a.set("headX", head.current.x);
         a.set("headY", head.current.y);
       }
-      // its hand goes where the player's is (camera), else it is raised by `hand`
-      const live = following.current && !scripted.current ? tracker.state.arm : null;
+      // its hand goes where the player's is (camera), and nowhere when theirs is not seen;
+      // without a camera the mouse raises it (`hand`)
+      const live = following.current ? tracker.state.arm : null;
       const arm = live ?? (v.hand > 0.02 ? { x: ARM_UP.x, y: ARM_UP.y + (1 - v.hand) * ARM_RISE } : null);
       fig.render(glass, { headX: following.current ? head.current.x : 0, headY: following.current ? head.current.y : 0, arm });
       if (live && live.y < RAISED_Y) palm.current?.();
@@ -253,15 +255,11 @@ export default function Reveal() {
         say(null);
         await sleep(3200);
       } else {
-        scripted.current = true;
-        to({ hand: 1 }, 1.6, "power2.inOut"); // on its own
-        await sleep(1200);
-        say(camera ? "it raised its hand. you didn't." : "it didn't wait for you.");
+        // nothing raised: it does not raise one either, it waits
+        say("it's still waiting.");
         await sleep(3400);
       }
-      // down again; with the camera it goes back to following the player's hand
-      to({ hand: 0 }, 1.2, "power2.inOut");
-      timers.push(setTimeout(() => (scripted.current = false), 1300));
+      if (!camera) to({ hand: 0 }, 1.2, "power2.inOut");
       say(null);
       await sleep(1400);
 
