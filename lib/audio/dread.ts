@@ -477,3 +477,122 @@ export function alertChime() {
   bell(e, now + 0.16, 1318.5, 0.035, 0.6);
   bell(e, now + 0.42, 1567.98 * 0.94, 0.03, 1.4);
 }
+
+/**
+ * The phone in The Ring: an old electromechanical bell, two long rings, a long silence,
+ * again, in a big empty room. Mara's second call (IncomingCall.tsx). Returns a stop function.
+ */
+export function ringBell(): () => void {
+  const e = live();
+  if (!e) return () => {};
+  const out = e.ctx.createGain();
+  out.connect(e.master);
+  const rv = reverb(e);
+  out.connect(rv);
+  // one ring: two bells a minor third apart, struck by a clapper at 20 Hz
+  const ringOnce = (at: number, dur: number) => {
+    const clap = e.ctx.createGain();
+    clap.gain.value = 0.5;
+    const lfo = e.ctx.createOscillator();
+    lfo.type = "square";
+    lfo.frequency.value = 20;
+    const depth = e.ctx.createGain();
+    depth.gain.value = 0.5;
+    lfo.connect(depth).connect(clap.gain);
+    const env = e.ctx.createGain();
+    env.gain.setValueAtTime(0, at);
+    env.gain.linearRampToValueAtTime(0.07, at + 0.01);
+    env.gain.setValueAtTime(0.07, at + dur);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + dur + 0.5);
+    clap.connect(env).connect(out);
+    lfo.start(at);
+    lfo.stop(at + dur + 0.55);
+    [1046.5, 1244.5].forEach((f) =>
+      [
+        [1, 1],
+        [2.4, 0.3],
+        [4.1, 0.12],
+      ].forEach(([mult, amp]) => {
+        const o = e.ctx.createOscillator();
+        o.frequency.value = f * mult;
+        o.detune.value = rand(-12, 12);
+        const g = e.ctx.createGain();
+        g.gain.value = amp;
+        o.connect(g).connect(clap);
+        o.start(at);
+        o.stop(at + dur + 0.55);
+      }),
+    );
+  };
+  let next = e.ctx.currentTime + 0.05;
+  const schedule = () => {
+    while (next < e.ctx.currentTime + 1) {
+      ringOnce(next, 0.4);
+      ringOnce(next + 0.6, 0.4);
+      next += 3.2;
+    }
+  };
+  schedule();
+  const timer = setInterval(schedule, 250);
+  return () => {
+    clearInterval(timer);
+    out.gain.setTargetAtTime(0, e.ctx.currentTime, 0.03);
+    setTimeout(() => out.disconnect(), 400);
+  };
+}
+
+/**
+ * Find My's ping where the phone is: `near` 0 (far) to 1 (with you), `pan` -1 left to 1 right.
+ * Far away it is thin, quiet and dull; close it is loud, bright and dry.
+ */
+export function pingAt(near: number, pan = 0) {
+  const e = live();
+  if (!e) return;
+  const now = e.ctx.currentTime;
+  const lp = e.ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 900 + 7000 * near * near;
+  const p = e.ctx.createStereoPanner();
+  p.pan.value = Math.max(-1, Math.min(1, pan));
+  lp.connect(p).connect(e.master);
+  if (near < 0.6) lp.connect(reverb(e));
+  const level = 0.012 + 0.07 * near * near;
+  [1318.5, 1760].forEach((f, i) => {
+    const o = e.ctx.createOscillator();
+    o.frequency.value = f;
+    const g = e.ctx.createGain();
+    const t = now + i * 0.12;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.connect(g).connect(lp);
+    o.start(t);
+    o.stop(t + 0.4);
+  });
+}
+
+/** A breath right next to the ear, after the phone has arrived "with you". */
+export function breath() {
+  const e = live();
+  if (!e) return;
+  const now = e.ctx.currentTime;
+  [0, 1.3].forEach((dt, i) => {
+    const src = e.ctx.createBufferSource();
+    src.buffer = e.noise;
+    src.loop = true;
+    const bp = e.ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(i ? 1400 : 700, now + dt);
+    bp.frequency.linearRampToValueAtTime(i ? 700 : 1300, now + dt + 1.1);
+    const g = e.ctx.createGain();
+    g.gain.setValueAtTime(0, now + dt);
+    g.gain.linearRampToValueAtTime(0.08, now + dt + 0.5);
+    g.gain.linearRampToValueAtTime(0, now + dt + 1.2);
+    const p = e.ctx.createStereoPanner();
+    p.pan.value = -0.7;
+    src.connect(bp).connect(g).connect(p).connect(e.master);
+    src.start(now + dt);
+    src.stop(now + dt + 1.25);
+  });
+}

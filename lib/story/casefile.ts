@@ -104,33 +104,37 @@ async function drawEvidence(f: CaseFacts, shots: Frame[]): Promise<HTMLCanvasEle
   x.fillStyle = INK;
   x.fillRect(0, 0, W, H);
   const L = 120;
-  const t = (s: string, px: number, py: number, font: string, color: string, spacing = 0) => {
+  const t = (s: string, px: number, py: number, font: string, color: string, spacing = 0, maxWidth?: number) => {
     x.font = font;
     x.fillStyle = color;
     x.letterSpacing = `${spacing}px`;
-    x.fillText(s, px, py);
+    x.fillText(s, px, py, maxWidth);
     x.letterSpacing = "0px";
   };
   t("EVIDENCE", L, 170, `20px ${mono}`, MUTED, 6);
   t("The operator, as recorded", L, 260, `400 64px ${serif}`, TEXT);
   t(`case 0418 · ${shots.length || "no"} frames · 17 Harrow St · flat 4A · cam 2`, L, 310, `22px ${mono}`, NEON, 1);
 
-  // a contact sheet, 2 x 3
-  const cols = 2;
-  const gap = 40;
-  const fw = (W - 2 * L - gap) / cols;
+  // a contact sheet, 3 x 2 (owner playtest: with 2 columns the third row ran into the text)
+  const cols = 3;
+  const gap = 30;
+  const rowGap = 80;
+  const fw = (W - 2 * L - (cols - 1) * gap) / cols;
   const fh = fw * 0.75;
-  const slots = shots.length ? shots : [null, null];
-  slots.slice(0, 6).forEach((fr, i) => {
+  const top = 380;
+  const slots = (shots.length ? shots : [null, null]).slice(0, 6);
+  slots.forEach((fr, i) => {
     const px = L + (i % cols) * (fw + gap);
-    const py = 380 + Math.floor(i / cols) * (fh + 90);
+    const py = top + Math.floor(i / cols) * (fh + rowGap);
     const stamp = fr ? `CAM 2  ${clock(fr.at, true)}` : "CAM 2  --:--:--";
     cctv(x, fr?.canvas ?? null, px, py, fw, fh, stamp, mono, missing);
-    t(fr ? fr.label : "no signal", px, py + fh + 36, `20px ${mono}`, MUTED, 1);
+    t(fr ? fr.label : "no signal", px, py + fh + 32, `18px ${mono}`, MUTED, 1, fw);
   });
 
-  // what comes next: nothing is closed
-  const by = H - 330;
+  // what comes next: nothing is closed. Placed under the last row of frames, never on them
+  const rows = Math.ceil(slots.length / cols);
+  const gridBottom = top + rows * (fh + rowGap) - rowGap + 32;
+  const by = gridBottom + 150;
   x.fillStyle = "rgba(255,255,255,0.1)";
   x.fillRect(L, by - 60, W - 2 * L, 1.5);
   const tomorrow = new Date(f.openedAt + 86_400_000).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });

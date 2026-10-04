@@ -91,11 +91,22 @@
 @media (prefers-reduced-motion: reduce) { .afterRec, .afterOpen { animation: none; } }
 
 /* the way out that is not one: pass the case on */
-.passOn {
-  justify-self: start; margin-top: 6px; padding: 6px 10px; border-radius: 6px;
-  font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.06em;
-  color: var(--neon); border: 1px solid rgba(0, 240, 255, 0.35); animation: fadeIn 0.6s ease-out both;
+.passBlock {
+  position: fixed; left: 50%; bottom: 22vh; translate: -50% 0; width: min(440px, calc(100vw - 32px));
+  display: grid; gap: 10px; justify-items: center;
 }
+.passOn {
+  padding: 12px 22px; border-radius: 8px; font-family: var(--font-mono), monospace; font-size: 15px;
+  letter-spacing: 0.08em; color: var(--neon); border: 1px solid rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.15);
+  animation: fadeIn 0.6s ease-out both, passBreathe 2.6s ease-in-out 0.6s infinite;
+}
+.passOn:disabled { animation: fadeIn 0.6s ease-out both; }
+@keyframes passBreathe { 50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.35); border-color: rgba(0, 240, 255, 0.9); } }
+/* after the switch-off, when nobody took the case */
+.unassigned { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 4px; animation: fadeIn 2s ease-out both; }
+.unassigned p { margin: 0; font-family: var(--font-mono), monospace; font-size: 13px; letter-spacing: 0.06em; color: var(--muted); }
+.unassigned .passBlock { position: static; translate: none; }
 .passOn:hover:not(:disabled) { background: rgba(0, 240, 255, 0.08); }
 .passOn:disabled { color: var(--muted); border-color: rgba(255, 255, 255, 0.1); cursor: default; }
 

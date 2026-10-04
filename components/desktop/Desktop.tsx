@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { grabFrame } from "@/lib/story/frames";
 import { blackout, glitchNow } from "@/lib/story/glitch";
-import { useStory, type AppId } from "@/lib/story/store";
+import { usePost, useStory, type AppId, type Until } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
 import { APPS, type AppDef } from "./apps";
 import BlinkCapture from "./BlinkCapture";
@@ -46,35 +46,36 @@ const IDLE_NUDGE_MS = 100_000;
 // on it names the next place to look, so the player can follow it without any hint.
 //  stage 1  note "lights across" → Theo's chat → IMG_0418 → the figure in the street
 //  stage 2  note "backup" (changed tonight) → the No caller ID voicemail → the code
-// The objective in the menubar is the same step, in the system's words.
+// The objective in the menubar is the same step in a few words, and it only shows once the
+// hint for that step has been posted on the right (usePost), never ahead of it.
 type Clues = Record<string, number>;
-type Step = { done: (c: Clues, wrong: number) => boolean; objective: string; text: string; open?: AppId; item?: string };
+type Step = { done: Until; objective: string; text: string; open?: AppId; item?: string };
 const PATH: Record<1 | 2, Step[]> = {
   1: [
     {
       done: (c) => "note_lights" in c || "chat_theo" in c || "photo_0418" in c,
-      objective: "find out what she saw across the road",
+      objective: "Notes · read “lights across”",
       text: "…she wrote down every night the light came on. Her notes.",
       open: "notes",
       item: "lights",
     },
     {
       done: (c) => "chat_theo" in c || "photo_0418" in c,
-      objective: "find who she sent frame 6 to",
+      objective: "Messages · read her chat with Theo",
       text: "…she sent it to the only one who looks properly. Her brother.",
       open: "messages",
       item: "theo",
     },
     {
       done: (c) => "photo_0418" in c,
-      objective: "find the photo she sent",
+      objective: "Photos · open IMG_0418, the photo she sent Theo",
       text: "…the photo she sent Theo. IMG_0418.",
       open: "photos",
       item: "IMG_0418",
     },
     {
       done: (c) => "photo_figure" in c,
-      objective: "find what she saw in IMG_0418",
+      objective: "IMG_0418 · hold the lens on the woman in the street",
       text: "…not the window. The street under it. Hold the lens on her.",
       open: "photos",
       item: "IMG_0418",
@@ -83,33 +84,39 @@ const PATH: Record<1 | 2, Step[]> = {
   2: [
     {
       done: (c, wrong) => "note_code" in c || "voicemail_unknown" in c || wrong > 0,
-      objective: "read the note that changed tonight",
+      objective: "Notes · read “backup”",
       text: "…one of her notes changed tonight. “backup”.",
       open: "notes",
       item: "code",
     },
     {
       done: (c, wrong) => "voicemail_unknown" in c || wrong > 0,
-      objective: "find the call that said the numbers",
+      objective: "Phone · play the call from No caller ID",
       text: "…No caller ID, the night she went. Read what the phone wrote, not what you hear.",
       open: "phone",
       item: "unknown",
     },
     {
-      done: (_, wrong) => wrong > 0,
-      objective: "open backup_you · four digits",
+      // the Recovery menu is given away only after three wrong codes (owner playtest)
+      done: (_, wrong) => wrong >= RECOVERY_HINT_AFTER,
+      objective: "backup_you · the four digits are in the transcript",
       text: "…the transcript heard what the static covered. Four digits, like a clock.",
       open: "phone",
       item: "unknown",
     },
-    { done: () => false, objective: "open backup_you · four digits", text: "…it's the minute you came in. The Recovery menu remembers it." },
+    {
+      done: () => false,
+      objective: "Recovery menu · the minute you came in",
+      text: "…it's the minute you came in. The Recovery menu remembers it.",
+    },
   ],
 };
+const RECOVERY_HINT_AFTER = 3;
 const stepOf = (stage: 1 | 2, clues: Clues, wrong: number) => PATH[stage].find((p) => !p.done(clues, wrong));
 // first hint after this long without progress, then the next one after HINT_AGAIN
-// (long enough to wander: the path is meant to be found by reading)
+// (long enough to wander: the path is meant to be found by reading; never under 60 s)
 const HINT_FIRST = 120_000;
-const HINT_AGAIN = 70_000;
+const HINT_AGAIN = 75_000;
 
 /**
  * Turns clues into story beats: the stage changes only on key clues (photo figure → 2,
@@ -124,28 +131,41 @@ function useDirector() {
   useEffect(() => {
     calm.current = state.calm;
   });
-  const say = (key: string, from: "anon" | "system", text: string, delay = 0, open?: AppId, item?: string) => {
+  const post = usePost();
+  const say = (
+    key: string,
+    from: "anon" | "system",
+    text: string,
+    delay = 0,
+    open?: AppId,
+    item?: string,
+    objective?: { text: string; until?: Until },
+  ) => {
     if (said.current.has(key)) return;
     said.current.add(key);
     setTimeout(() => {
       // the interlude has its own voices: a late message from the sender stays unsent
       if (from === "anon" && calm.current) return;
-      dispatch({ type: "notify", from, text, open, item });
+      post({ from, text, open, item }, objective);
     }, delay);
   };
-  // the latest hint stays under the objective (Objective reads it from the notices)
+  // the latest hint stays under the menubar until its step is done (HintLine)
   const lastHint = useRef<string | null>(null);
-  const hint = (st: 1 | 2) => {
+  const hint = (st: 1 | 2, wrong = wrongCodes) => {
     if (calm.current) return;
-    const step = stepOf(st, clues, wrongCodes);
+    const step = stepOf(st, clues, wrong);
     if (!step || lastHint.current === step.text) return;
     lastHint.current = step.text;
-    dispatch({ type: "notify", from: "anon", text: step.text, open: step.open, item: step.item });
-    dispatch({ type: "hint", text: step.text, open: step.open, item: step.item });
+    post({ from: "anon", text: step.text, open: step.open, item: step.item }, { text: step.objective, until: step.done });
+    dispatch({ type: "hint", text: step.text, open: step.open, item: step.item, until: step.done });
   };
 
   useEffect(() => {
-    say("welcome", "anon", "She kept everything. Notes, calls, photos. Start with what she wrote down.", 2500, "notes", "lights");
+    const first = PATH[1][0];
+    say("welcome", "anon", "She kept everything. Notes, calls, photos. Start with what she wrote down.", 2500, "notes", "lights", {
+      text: first.objective,
+      until: first.done,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -173,7 +193,8 @@ function useDirector() {
       dispatch({ type: "stage", stage: 2 });
       // the clues for the code arrive with the backup, not before (no skipping ahead);
       // the first one is a note that changed by itself, and it points at the phone
-      say("stage2", "system", "Notes · “backup” · edited just now", 1500, "notes", "code");
+      const first = PATH[2][0];
+      say("stage2", "system", "Notes · “backup” · edited just now", 1500, "notes", "code", { text: first.objective, until: first.done });
     }
     // the mail she scheduled lands once the phone has been heard: a second voice, not the first
     if (stage === 2 && "voicemail_unknown" in clues) say("forlater", "system", "1 new mail · E.V. · for later · scheduled", 9000, "mail", "for-later");
@@ -212,7 +233,10 @@ function useDirector() {
   const { tracker } = usePresence();
   useEffect(() => {
     if (stage !== 3 || !("backup_open" in clues)) return;
-    say("log", "anon", "one of those files is still being written.", 7000);
+    say("log", "anon", "one of those files is still being written.", 7000, undefined, undefined, {
+      text: "backup_you · open the file still being written",
+      until: (c) => "session_open" in c,
+    });
     say(
       "cover",
       "anon",
@@ -222,9 +246,10 @@ function useDirector() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, clues]);
 
-  // A second wrong code is a hint at once (the first one may just be a typo).
+  // A second wrong code is a hint at once (the first one may just be a typo); the third
+  // gives the Recovery menu away.
   useEffect(() => {
-    if (wrongCodes >= 2 && stage === 2) hint(2);
+    if ((wrongCodes === 2 || wrongCodes === RECOVERY_HINT_AFTER) && stage === 2) hint(2, wrongCodes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrongCodes]);
 
@@ -249,7 +274,10 @@ function useDirector() {
   useEffect(() => {
     if (stage !== 3) return;
     const t = setTimeout(() => {
-      if (!calm.current) say("idle3", "anon", "…open the one in progress.", 0, "backup");
+      if (!calm.current) say("idle3", "anon", "…open the one in progress.", 0, "backup", undefined, {
+        text: "backup_you · open session_0418.log",
+        until: (c) => "session_open" in c,
+      });
     }, IDLE_NUDGE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -258,8 +286,8 @@ function useDirector() {
 
 const CLOSE_GAP_MS = 420;
 // The interlude: after the session log closes, how long until "View live" happens anyway.
-const LOCATE_NUDGE_MS = 45_000;
-const LOCATE_TIMEOUT_MS = 180_000;
+// (Find My has its own nudges now: views/Locate.tsx)
+const LOCATE_TIMEOUT_MS = 300_000;
 
 /**
  * The interlude after S8. When session_0418.log closes (by the user or by itself) the case
@@ -269,6 +297,7 @@ const LOCATE_TIMEOUT_MS = 180_000;
  */
 function useInterlude() {
   const { state, dispatch } = useStory();
+  const post = usePost();
   const wasOpen = useRef(false);
   const started = useRef(false);
   const sessionOpen = state.windows.some((w) => w.id === "session");
@@ -284,6 +313,8 @@ function useInterlude() {
         // the interlude starts clean: no stage 3 message lands over Mara's call
         dispatch({ type: "clearNotices" });
         dispatch({ type: "calm", calm: true });
+        // the case seems over: no task until the story gives one again (after Mara's call)
+        dispatch({ type: "objective", text: "" });
         dispatch({ type: "notify", from: "system", text: "operator review 0418 · closed · nothing found" });
       }),
       at(3200, () => dispatch({ type: "notify", from: "system", text: "case reopened · E.V. · new signal" })),
@@ -302,14 +333,16 @@ function useInterlude() {
       // she does not say which flat: the player has to know it (Find My asks)
       at(1500, () => dispatch({ type: "notify", from: "mara", text: "it says you're across the road. number 17. which flat??" })),
       at(5000, () => {
-        dispatch({ type: "notify", from: "system", text: "Find My · E.V.'s iPhone is online" });
+        post(
+          { from: "system", text: "Find My · E.V.'s iPhone is online" },
+          { text: "Find My · play a sound on her phone", until: (c) => "locate_ping" in c },
+        );
         dispatch({ type: "open", id: "locate" });
       }),
-      at(5000 + LOCATE_NUDGE_MS, () => dispatch({ type: "notify", from: "anon", text: "…go on. look. pick the flat." })),
       at(5000 + LOCATE_TIMEOUT_MS, () => dispatch({ type: "clue", id: "look_live" })),
     ];
     return () => timers.forEach(clearTimeout);
-  }, [called, dispatch]);
+  }, [called, dispatch, post]);
 }
 
 /**
@@ -377,17 +410,16 @@ function RecoveryMenu() {
 }
 
 /**
- * What to do now, in the menubar: the operator's task list, one line. It moves on with the
- * key clues, so nobody is left wondering what the game wants.
+ * What to do now, in the menubar: the short form of the last notice that gave one (usePost),
+ * so it is never ahead of the notices. Once that step is done it says only "keep looking"
+ * until the next notice. Reading the session log is the one thing it follows by itself.
  */
 function objectiveOf(state: ReturnType<typeof useStory>["state"]) {
-  const { stage, clues, calm, windows } = state;
-  const isOpen = (id: string) => windows.some((w) => w.id === id);
-  if (isOpen("locate")) return "which flat is her phone in?";
-  if (calm) return "find where her phone is";
-  if (stage === 3 && isOpen("session")) return "read it. close it when you're ready";
-  if (stage === 3) return "open the file still being written";
-  return stepOf(stage === 2 ? 2 : 1, clues, state.wrongCodes)?.objective ?? "open backup_you · four digits";
+  const { objective, clues, wrongCodes, windows } = state;
+  if (windows.some((w) => w.id === "session")) return "read it. close it when you're ready";
+  if (!objective) return "";
+  if (objective.until?.(clues, wrongCodes)) return "keep looking";
+  return objective.text;
 }
 
 function Objective() {
@@ -402,6 +434,8 @@ function Objective() {
     const t = gsap.fromTo(el.current, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "steps(24)" });
     return () => void t.kill();
   }, [text]);
+  // nothing to do yet: the first notice has not arrived
+  if (!text) return null;
   return (
     <span className={styles.objective}>
       objective · <span ref={el}>{text}</span>
@@ -413,7 +447,8 @@ function Objective() {
 function HintLine() {
   const { state, dispatch } = useStory();
   const h = state.hint;
-  if (!h || state.calm || state.stage === 3) return null;
+  // gone the moment its step is done, like the objective
+  if (!h || state.calm || state.stage === 3 || h.until?.(state.clues, state.wrongCodes)) return null;
   return (
     <button
       className={`${styles.hintLine} ${styles.glass}`}

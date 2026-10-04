@@ -40,6 +40,8 @@ export default function Session() {
   useMountedRive(scanHost, scanRive);
   // the reveal's scene starts loading now, so its first frame is ready when it is needed
   useEffect(() => void acrossRive(), []);
+  // the menubar objective that pointed here is done (Desktop.tsx)
+  useEffect(() => dispatch({ type: "clue", id: "session_open" }), [dispatch]);
 
   // The scan goes live: every analysed frame, or the guess following the mouse.
   useEffect(() => {

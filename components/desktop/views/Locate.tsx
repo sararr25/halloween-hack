@@ -1,19 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import gsap from "gsap";
-import { phonePing } from "@/lib/audio/sfx";
+import { blip, creepyMessage, key } from "@/lib/audio/sfx";
+import { breath, pingAt } from "@/lib/audio/dread";
 import { usePresenceEvent } from "@/lib/presence/context";
 import { glitchNow } from "@/lib/story/glitch";
-import { useStory } from "@/lib/story/store";
+import { usePost, useStory } from "@/lib/story/store";
+import Facade from "./Facade";
 import styles from "./locate.module.css";
 
 // The interlude before the reveal: the case seems to go back to E.V. Her phone is online
-// again, in flat 4A across the road, the empty one. Drawn like the real Find My (dark
-// map, devices on the left): this Mac is at number 16, her flat, and her phone is 20 m
-// away at number 17. The phone drifts a little when the user moves (nobody says why).
-// "Play sound" pings in the user's own headphones. "View live" starts the reveal
-// (useReveal in Desktop.tsx).
+// again, across the road. Drawn like the real Find My (dark map, devices on the left): this
+// Mac is at number 16, her flat, and her phone is 20 m away at number 17. The phone drifts
+// a little when the user moves (nobody says why). The player has to act (owner playtest,
+// docs/plan-round7.md §6):
+//  1. "Play Sound": the ping is not across the road, it is behind you, coming closer. The
+//     distance counts down by itself and the pin crosses the road onto This Mac. 0 m.
+//  2. "Mark As Lost": a message for the lock screen. The phone writes back.
+//  3. The pin goes back to no. 17. "View live" opens the building (Facade.tsx), where the
+//     flat is found by ear; finding it starts the reveal (useReveal in Desktop.tsx).
 
 // Harrow St runs across the map; terraced houses both sides, odd numbers north.
 const ROAD = { y: 250, h: 22 };
@@ -41,7 +47,7 @@ const BLOCKS: [number, number, number, number][] = [
 
 type Device = { id: string; name: string; where: string; when: string; far?: string; glyph: "phone" | "laptop" | "buds" };
 const DEVICES: Device[] = [
-  { id: "iphone", name: "E.V.'s iPhone", where: "17 Harrow St", when: "Now", far: "20 m", glyph: "phone" },
+  { id: "iphone", name: "E.V.'s iPhone", where: "17 Harrow St", when: "Now", glyph: "phone" },
   { id: "mac", name: "E.V.'s MacBook Pro", where: "This Mac", when: "With you", glyph: "laptop" },
   { id: "buds", name: "E.V.'s AirPods", where: "No location found", when: "7 days ago", glyph: "buds" },
 ];
@@ -52,46 +58,31 @@ function Glyph({ kind }: { kind: Device["glyph"] }) {
   return <path d="M-4 -5a2 2 0 0 1 2 2v7M4 -5a2 2 0 0 0-2 2v7" />;
 }
 
-// Find My knows the building, not the flat. "View live" asks which camera to open: the
-// player has to remember the empty flat (Hale, Mara, the parcel, the police draft). Each
-// wrong flat answers with someone else's ordinary night, a glitch, and no signal.
-const FLATS = ["4A", "4B", "3A", "3B", "2A", "2B", "1A", "1B"];
-const ANSWER = "4A";
-const WRONG: Record<string, string> = {
-  "4B": "4B · occupied · a man asleep in front of the TV",
-  "3A": "3A · occupied · nobody home, a cat on the sofa",
-  "3B": "3B · camera off since 2023",
-  "2A": "2A · occupied · a kitchen, the radio on",
-  "2B": "2B · occupied · two kids, a night light",
-  "1A": "1A · the hallway. The stairs go up.",
-  "1B": "1B · occupied · a woman reading. She looks up. No.",
-};
+// It comes to you: metres, how far left the ping sits (behind you, then centred)
+const APPROACH: [number, number][] = [
+  [20, -0.9],
+  [12, -0.75],
+  [6, -0.5],
+  [2, -0.2],
+  [0, 0],
+];
+const APPROACH_STEP_MS = 1700;
+const REPLY_EVERY_MS = 2300;
+
+type Step = "map" | "coming" | "here" | "lost" | "reply" | "back" | "live";
 
 export default function Locate() {
   const { dispatch } = useStory();
+  const post = usePost();
   const pin = useRef<SVGGElement>(null);
+  const travel = useRef<SVGGElement>(null);
   const view = useRef<SVGGElement>(null);
   const [since, setSince] = useState(0);
-  const [pinged, setPinged] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const [tried, setTried] = useState<string[]>([]);
-
-  const pick = (flat: string) => {
-    if (flat === ANSWER) {
-      glitchNow(1);
-      dispatch({ type: "clue", id: "look_live" });
-      return;
-    }
-    glitchNow(0.5);
-    const next = tried.includes(flat) ? tried : [...tried, flat];
-    setTried(next);
-    // each wrong flat sends the player somewhere else she wrote it down: a note, a search, a chat
-    if (next.length === 2)
-      dispatch({ type: "notify", from: "anon", text: "…she listed five things she was sure of. One is a flat.", open: "notes", item: "sure" });
-    if (next.length === 4)
-      dispatch({ type: "notify", from: "anon", text: "…she searched for it the night she went.", open: "history" });
-    if (next.length === 6) dispatch({ type: "notify", from: "anon", text: "…she asked Hale which flat. Read it.", open: "messages", item: "hale" });
-  };
+  const [step, setStep] = useState<Step>("map");
+  const [metres, setMetres] = useState(20);
+  const [message, setMessage] = useState("");
+  const [replies, setReplies] = useState<string[]>([]);
+  const [typing, setTyping] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setSince((s) => s + 1), 1000);
@@ -123,12 +114,71 @@ export default function Locate() {
     });
   });
 
-  const ping = () => {
-    phonePing();
-    setPinged(true);
+  // the pin crossing the road: 0 = at no. 17, 1 = on This Mac
+  const cross = (k: number, seconds: number) => {
+    const to = { x: (MAC.x - PHONE.x) * k, y: (MAC.y - PHONE.y) * k };
+    gsap.to(travel.current, { attr: { transform: `translate(${to.x} ${to.y})` }, duration: seconds, ease: "power2.inOut" });
   };
 
+  // 1 · Play Sound: it is behind you, and coming
+  const ping = () => {
+    dispatch({ type: "clue", id: "locate_ping" });
+    setStep("coming");
+    APPROACH.forEach(([m, pan], i) =>
+      setTimeout(() => {
+        setMetres(m);
+        pingAt(0.35 + (0.65 * i) / (APPROACH.length - 1), pan);
+        cross(1 - m / 20, 1.2);
+        if (m === 0) {
+          glitchNow(0.8);
+          setTimeout(breath, 500);
+          setStep("here");
+          post(
+            { from: "anon", text: "…it isn't across the road any more." },
+            { text: "Find My · mark her phone as lost", until: (c) => "locate_lost" in c },
+          );
+        }
+      }, 300 + i * APPROACH_STEP_MS),
+    );
+  };
+
+  // 2 · Mark As Lost: whatever is written, the phone answers
+  const send = (e: FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    dispatch({ type: "clue", id: "locate_lost" });
+    setStep("reply");
+    const lines = ["i can see you typing.", "you write like she did.", "i'm not behind you. look across the road."];
+    lines.forEach((line, i) => {
+      setTimeout(() => setTyping(true), 600 + i * REPLY_EVERY_MS);
+      setTimeout(
+        () => {
+          setTyping(false);
+          setReplies((r) => [...r, line]);
+          if (i === lines.length - 1) creepyMessage();
+          else blip();
+        },
+        600 + i * REPLY_EVERY_MS + 1400,
+      );
+    });
+    const back = 600 + lines.length * REPLY_EVERY_MS + 600;
+    setTimeout(() => {
+      cross(0, 1.4);
+      setMetres(20);
+      setStep("back");
+      post(
+        { from: "anon", text: "…17 Harrow St. Look at it. Listen." },
+        { text: "Find My · View live, then find her flat by ear", until: (c) => "look_live" in c },
+      );
+    }, back);
+  };
+
+  if (step === "live") return <Facade />;
+
   const located = since < 5 ? "Now" : `${since} seconds ago`;
+  const here = step === "here" || step === "lost" || step === "reply";
+  const where = here ? "This Mac" : "17 Harrow St";
+  const far = metres === 0 ? "with you" : `${metres} m`;
 
   return (
     <div className={styles.locate}>
@@ -148,45 +198,70 @@ export default function Locate() {
               <span className={styles.what}>
                 <b>{d.name}</b>
                 <small>
-                  {d.where} · {d.id === "iphone" ? located : d.when}
+                  {d.id === "iphone" ? `${where} · ${located}` : `${d.where} · ${d.when}`}
                 </small>
               </span>
-              {d.far && <small className={styles.far}>{d.far}</small>}
+              {d.id === "iphone" && <small className={`${styles.far} ${metres < 20 ? styles.close : ""}`}>{far}</small>}
             </li>
           ))}
         </ul>
 
         <div className={styles.card}>
           <b>E.V.&apos;s iPhone</b>
-          <small>17 Harrow St · flat unknown</small>
+          <small>{here ? "This Mac · 0 m" : "17 Harrow St · flat unknown"}</small>
           <small>
             {located} · accuracy 5 m · <span className={styles.battery}>12%</span>
           </small>
-          {pinged && <small>Sound played. No one picked it up.</small>}
-          {!picking ? (
+          {step === "map" && (
             <div className={styles.actions}>
-              <button className={styles.button} onClick={ping}>
+              <button className={`${styles.button} ${styles.primary} ${styles.wide}`} onClick={ping}>
                 Play Sound
               </button>
-              <button className={`${styles.button} ${styles.primary}`} onClick={() => setPicking(true)}>
-                View live
+            </div>
+          )}
+          {step === "coming" && <small className={styles.coming}>Playing sound… {far}</small>}
+          {step === "here" && (
+            <div className={styles.actions}>
+              <button className={`${styles.button} ${styles.danger} ${styles.wide}`} onClick={() => setStep("lost")}>
+                Mark As Lost
               </button>
             </div>
-          ) : (
-            <div className={styles.picker}>
-              <small>8 building cameras found. Which flat?</small>
-              <div className={styles.flats}>
-                {FLATS.map((f) => (
-                  <button
-                    key={f}
-                    className={`${styles.button} ${tried.includes(f) ? styles.dead : ""}`}
-                    onClick={() => pick(f)}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-              {tried.length > 0 && <small className={styles.noSignal}>{WRONG[tried.at(-1)!]}</small>}
+          )}
+          {step === "lost" && (
+            <form className={styles.lost} onSubmit={send}>
+              <small>Enter a message to show on the lock screen.</small>
+              <textarea
+                value={message}
+                autoFocus
+                rows={3}
+                maxLength={120}
+                onChange={(e) => {
+                  key();
+                  setMessage(e.target.value);
+                }}
+                aria-label="Message for the lock screen"
+              />
+              <button className={`${styles.button} ${styles.primary}`} disabled={!message.trim()}>
+                Send
+              </button>
+            </form>
+          )}
+          {(step === "reply" || step === "back") && (
+            <div className={styles.thread} aria-live="polite">
+              <p className={styles.mine}>{message.trim()}</p>
+              {replies.map((r) => (
+                <p key={r} className={styles.theirs}>
+                  {r}
+                </p>
+              ))}
+              {typing && <p className={styles.theirs}>…</p>}
+            </div>
+          )}
+          {step === "back" && (
+            <div className={styles.actions}>
+              <button className={`${styles.button} ${styles.primary} ${styles.wide}`} onClick={() => setStep("live")}>
+                View live
+              </button>
             </div>
           )}
         </div>
@@ -250,6 +325,7 @@ export default function Locate() {
             <text x={MAC.x} y={MAC.y + 22} className={styles.pinName}>This Mac</text>
 
             {/* the phone: accuracy circle and the device bubble on number 17 */}
+            <g ref={travel} transform="translate(0 0)">
             <g ref={pin}>
               <circle cx={PHONE.x} cy={PHONE.y} r="26" className={styles.accuracy} />
               <circle cx={PHONE.x} cy={PHONE.y} r="10" className={styles.pulse} />
@@ -260,6 +336,7 @@ export default function Locate() {
                   <Glyph kind="phone" />
                 </g>
               </g>
+            </g>
             </g>
           </g>
         </svg>

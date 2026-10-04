@@ -35,7 +35,10 @@ const AFTER_LINE_MS = 4600;
 const AFTER_SEE_MS = 8200;
 // then the way out that is not one (The Ring: pass it on), then the reminder pop-up
 const AFTER_PASS_MS = 11_500;
-const AFTER_REMIND_MS = 17_000;
+// the reminder never comes before the link is safe (owner playtest: "not now" switched
+// everything off before it could be copied): 3 s after passing it on, or 25 s after the button
+const REMIND_AFTER_PASS_MS = 3000;
+const REMIND_LATEST_MS = 25_000;
 // "not now": the sender's answer stays this long before everything switches off
 const LATER_HOLD_MS = 2600;
 // the switch-off, then how long the black holds before the privacy link shows
@@ -189,13 +192,20 @@ export default function Login() {
         subThud(1);
         staticSwell(0.6);
       }, AFTER_PASS_MS),
-      setTimeout(() => {
-        setAfter(5);
-        alertChime();
-      }, AFTER_REMIND_MS),
     ];
     return () => [...t, ...typed].forEach(clearTimeout);
   }, [step]);
+  useEffect(() => {
+    if (after !== 4) return;
+    const t = setTimeout(
+      () => {
+        setAfter(5);
+        alertChime();
+      },
+      passed === "yes" ? REMIND_AFTER_PASS_MS : REMIND_LATEST_MS,
+    );
+    return () => clearTimeout(t);
+  }, [after, passed]);
 
   // The reminder: "add" saves a real event and plays a music box winding down; "not now" gets
   // one line back. Either way, on the last note, everything switches off.
@@ -245,11 +255,47 @@ export default function Login() {
     return () => clearInterval(t);
   }, [after]);
 
+  // The pass-it-on button and, when sharing and the clipboard both refuse, the link itself
+  // to copy by hand. Used on the after-screen and, if the case was not passed on, kept on
+  // the black after the switch-off.
+  const passBlock = (
+    <div className={styles.passBlock}>
+      <button className={styles.passOn} onClick={passOn} disabled={!token || passed !== "no"}>
+        {token === undefined
+          ? "filing…"
+          : token === null
+            ? "registry offline"
+            : passed === "yes"
+              ? "link copied · send it to someone · case 0420 is theirs"
+              : passed === "failed"
+                ? "copy it yourself:"
+                : "pass it on · case 0420"}
+      </button>
+      {passed === "failed" && token && (
+        <input
+          className={styles.passLink}
+          readOnly
+          value={passOnLink(token)}
+          aria-label="your pass-it-on link"
+          onFocus={(e) => e.currentTarget.select()}
+          autoFocus
+        />
+      )}
+    </div>
+  );
+
   // each screen gets its own element: the switch-off leaves a squash on the one before
   if (step === "off") return <div key="off" className={styles.black} />;
   if (step === "dead")
     return (
       <div key="dead" className={`${styles.black} ${styles.dead}`}>
+        {/* not passed on: the case stays unassigned, and quietly says so */}
+        {privacy && token && passed !== "yes" && (
+          <div className={styles.unassigned}>
+            <p>case 0420 is still unassigned.</p>
+            {passBlock}
+          </div>
+        )}
         {privacy && (
           <a className={styles.privacy} href="/privacy" target="_blank" rel="noopener">
             privacy
@@ -270,33 +316,11 @@ export default function Login() {
             <span>unknown sender</span>
             <p>see you tomorrow at {clock(state.openedAt)}.</p>
             {after >= 4 && <p className={styles.afterOpen}>…unless someone takes your place.</p>}
-            {after >= 4 && (
-              <button className={styles.passOn} onClick={passOn} disabled={!token || passed !== "no"}>
-                {token === undefined
-                  ? "filing…"
-                  : token === null
-                    ? "registry offline"
-                    : passed === "yes"
-                      ? "sent · case 0420 is theirs"
-                      : passed === "failed"
-                        ? "copy it yourself:"
-                        : "pass it on · case 0420"}
-              </button>
-            )}
-            {/* sharing and the clipboard both refused: the link itself, selected, to copy by hand */}
-            {passed === "failed" && token && (
-              <input
-                className={styles.passLink}
-                readOnly
-                value={passOnLink(token)}
-                aria-label="your pass-it-on link"
-                onFocus={(e) => e.currentTarget.select()}
-                autoFocus
-              />
-            )}
             {ending === "later" && <p className={styles.afterOpen}>we&apos;ll remind you.</p>}
           </div>
         )}
+        {/* the way out that is not one, in the middle of the screen where nobody misses it */}
+        {after >= 4 && !ending && passBlock}
         {after >= 5 && !ending && <ReminderPrompt at={reminderStart(state.openedAt)} onAnswer={answer} />}
       </div>
     );

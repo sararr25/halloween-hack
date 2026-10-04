@@ -1,0 +1,40 @@
+/* Find My · View live: 17 Harrow St at night through binoculars (Facade.tsx) */
+.facade { position: relative; height: calc(100% + 40px); margin: -20px -22px; background: #020306; overflow: hidden; cursor: none; }
+.view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sky { fill: #05070c; }
+.wall { fill: #1b1714; }
+.cornice { fill: #2a2622; }
+.brick { stroke: rgba(0, 0, 0, 0.35); stroke-width: 1; }
+.door { fill: #0b0c10; stroke: #2a2622; stroke-width: 3; }
+.window { cursor: none; }
+.frame { fill: #d9d4c7; opacity: 0.55; }
+.dark { fill: #07090e; }
+.lit { fill: #8a7c58; opacity: 0.55; }
+.lit4a { fill: #d9cfa8; animation: tube 0.7s steps(1) both; }
+.bar { stroke: #c9c3b3; stroke-width: 2.4; opacity: 0.6; }
+.tv { fill: #6f8bd6; opacity: 0.7; animation: tv 0.9s steps(3) infinite; }
+.shape { fill: #0b0b0d; }
+.back { opacity: 0.92; }
+/* turned round: something that knows about you is outlined in the one neon */
+.facing { filter: drop-shadow(0 0 2px rgba(0, 240, 255, 0.9)); }
+.dim { fill: #010204; opacity: 0.94; pointer-events: none; }
+.rims { fill: none; stroke: rgba(0, 0, 0, 0.9); stroke-width: 10; pointer-events: none; }
+.rims circle { filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.9)); }
+
+.head {
+  position: absolute; top: 12px; left: 14px; margin: 0; font-family: var(--font-mono), monospace;
+  font-size: 11.5px; letter-spacing: 0.08em; color: rgba(238, 240, 244, 0.65); pointer-events: none;
+}
+.live { color: #ff3b30; animation: blink 1.4s steps(2) infinite; }
+.caption {
+  position: absolute; left: 50%; bottom: 18px; translate: -50% 0; margin: 0; padding: 6px 12px; border-radius: 6px;
+  font-family: var(--font-mono), monospace; font-size: 13px; letter-spacing: 0.04em; color: var(--text);
+  background: rgba(2, 3, 6, 0.8); pointer-events: none; white-space: nowrap; animation: typeIn 0.8s steps(30) both;
+}
+.caption[data-found="true"] { color: var(--neon); text-shadow: 0 0 10px rgba(0, 240, 255, 0.6); }
+
+@keyframes tube { 0% { opacity: 1; } 15% { opacity: 0.1; } 30% { opacity: 0.9; } 45% { opacity: 0.05; } 70%, 100% { opacity: 1; } }
+@keyframes tv { 0% { opacity: 0.5; } 33% { opacity: 0.8; } 66% { opacity: 0.6; } }
+@keyframes blink { 50% { opacity: 0.2; } }
+@keyframes typeIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .lit4a, .tv, .live, .caption { animation: none; } }

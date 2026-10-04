@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useReducer, type ReactNode } from "react";
 
 // Story state machine — see docs/desktop.md. Client-side only: nothing leaves the browser.
 
@@ -38,8 +38,14 @@ type StoryState = {
    * `n` changes on every request so asking twice still works. */
   focus: Partial<Record<AppId, { item: string; n: number }>>;
   /** The latest hint, kept readable under the objective until the stage changes. */
-  hint: { text: string; open?: AppId; item?: string } | null;
+  hint: { text: string; open?: AppId; item?: string; until?: Until } | null;
+  /** The menubar objective: the short form of the last notice that gave one, set just after
+   * that notice (Desktop.tsx `post`). Never ahead of the notices. `until` says when it is done. */
+  objective: { text: string; until?: Until } | null;
 };
+
+/** A step is done once this is true (clues found, wrong codes typed). */
+export type Until = (clues: Record<string, number>, wrongCodes: number) => boolean;
 
 /** "anon" = the anonymous sender (help that is really guidance); "system" = the OS;
  * "mara" = a message from Mara arriving on E.V.'s laptop. */
@@ -69,7 +75,8 @@ type Action =
   | { type: "interrupt"; at: number }
   | { type: "calm"; calm: boolean }
   | { type: "clearNotices" }
-  | { type: "hint"; text: string; open?: AppId; item?: string }
+  | { type: "hint"; text: string; open?: AppId; item?: string; until?: Until }
+  | { type: "objective"; text: string; until?: Until }
   | { type: "blink" };
 
 function reducer(s: StoryState, a: Action): StoryState {
@@ -77,7 +84,7 @@ function reducer(s: StoryState, a: Action): StoryState {
     case "phase":
       return { ...s, phase: a.phase };
     case "stage":
-      return { ...s, stage: a.stage, hint: null };
+      return { ...s, stage: a.stage, hint: null, objective: null };
     case "open": {
       if (a.item) s = { ...s, focus: { ...s.focus, [a.id]: { item: a.item, n: (s.focus[a.id]?.n ?? 0) + 1 } } };
       if (s.windows.some((w) => w.id === a.id)) return reducer(s, { type: "focus", id: a.id });
@@ -113,7 +120,9 @@ function reducer(s: StoryState, a: Action): StoryState {
     case "clearNotices":
       return { ...s, notices: [] };
     case "hint":
-      return { ...s, hint: { text: a.text, open: a.open, item: a.item } };
+      return { ...s, hint: { text: a.text, open: a.open, item: a.item, until: a.until } };
+    case "objective":
+      return { ...s, objective: { text: a.text, until: a.until } };
     case "blink":
       return { ...s, blinks: s.blinks + 1 };
   }
@@ -147,6 +156,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     blinks: 0,
     focus: {},
     hint: null,
+    objective: null,
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase.
@@ -170,4 +180,25 @@ export function useStory() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useStory must be used inside <StoryProvider>");
   return ctx;
+}
+
+/** How long after a notice its short form reaches the menubar (it is read on the right first). */
+export const OBJECTIVE_AFTER_MS = 1500;
+
+/**
+ * Posts a notice and, once it has had time to be read, its short form as the objective
+ * (owner playtest: the menubar must never be ahead of the notices on the right).
+ */
+export function usePost() {
+  const { dispatch } = useStory();
+  return useCallback(
+    (
+      notice: { from: Notice["from"]; text: string; open?: AppId; item?: string },
+      objective?: { text: string; until?: Until },
+    ) => {
+      dispatch({ type: "notify", ...notice });
+      if (objective) setTimeout(() => dispatch({ type: "objective", ...objective }), OBJECTIVE_AFTER_MS);
+    },
+    [dispatch],
+  );
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { recordVoice, ring } from "@/lib/audio/call";
+import { ringBell } from "@/lib/audio/dread";
 import { spokenPace, startCaption } from "@/lib/audio/captions";
 import { playCallLine, type CallLine } from "@/lib/audio/voices";
 import { glitchNow } from "@/lib/story/glitch";
@@ -17,12 +18,16 @@ import styles from "./call.module.css";
 // really listens: a few seconds of the player's microphone are recorded (memory only,
 // lib/audio/call.ts) while a meter shows it. Then Mara hears a voice that is not Ev's, and
 // the line dies mid-word. Declined or left ringing, she gives up and writes instead.
+// Declined once, she calls straight back, and this time the laptop rings like the phone in
+// The Ring (owner's easter egg). Declined again, or left ringing: she writes instead.
 // When the call is over, `call_done` lets the interlude go on to Find My (Desktop.tsx).
 export const CALL_EVENT = "recovery:call";
 const RING_MS = 22_000;
 // each time she asks, the laptop listens this long; she asks up to TRIES times
 const LISTEN_MS = 6000;
 const TRIES = 3;
+// after the first decline: her message, then the second call
+const CALL_AGAIN_MS = 5000;
 
 type Step = "ringing" | "talking" | "listening" | "reply" | "ended";
 
@@ -40,6 +45,7 @@ export default function IncomingCall() {
   const [saying, setSaying] = useState<{ line: CallLine; id: string } | null>(null);
   const stopRing = useRef<(() => void) | null>(null);
   const alive = useRef(true);
+  const [again, setAgain] = useState(false);
   const mic = state.session.mic === "granted";
 
   const finish = (after: "answered" | "declined" | "missed") => {
@@ -60,6 +66,22 @@ export default function IncomingCall() {
       });
       dispatch({ type: "clue", id: "call_done" });
     }, after === "answered" ? 1600 : 400);
+  };
+
+  // the first decline is not the end: she writes, and calls back with the other ring
+  const decline = () => {
+    if (again) return finish("declined");
+    stopRing.current?.();
+    stopRing.current = null;
+    dispatch({ type: "notify", from: "mara", text: "don't you dare hang up on me. pick up." });
+    setStep("ended");
+    gsap.to(panel.current, { opacity: 0, y: -8, duration: 0.3, ease: "power2.in" });
+    setTimeout(() => {
+      if (!alive.current) return;
+      setAgain(true);
+      setStep("ringing");
+      stopRing.current = ringBell();
+    }, CALL_AGAIN_MS);
   };
 
   // the interlude starts the call
@@ -129,7 +151,7 @@ export default function IncomingCall() {
   if (!step) return null;
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const status: Record<Step, string> = {
-    ringing: "mobile · incoming call",
+    ringing: again ? "mobile · calling again" : "mobile · incoming call",
     talking: clock,
     listening: clock,
     reply: clock,
@@ -153,7 +175,7 @@ export default function IncomingCall() {
 
       {step === "ringing" && (
         <span className={styles.actions}>
-          <button className={styles.decline} onClick={() => finish("declined")}>
+          <button className={styles.decline} onClick={decline}>
             Decline
           </button>
           <button className={styles.accept} onClick={answer}>
