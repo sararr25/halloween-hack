@@ -69,7 +69,7 @@ const PATH: Record<1 | 2, Step[]> = {
     {
       done: (c) => "photo_0418" in c,
       objective: "Photos · open IMG_0418, the photo she sent Theo",
-      text: "…the photo she sent Theo. IMG_0418.",
+      text: "…the photo she sent Theo. Photos, IMG_0418. Look at the street.",
       open: "photos",
       item: "IMG_0418",
     },
@@ -113,10 +113,11 @@ const PATH: Record<1 | 2, Step[]> = {
 };
 const RECOVERY_HINT_AFTER = 3;
 const stepOf = (stage: 1 | 2, clues: Clues, wrong: number) => PATH[stage].find((p) => !p.done(clues, wrong));
-// first hint after this long without progress, then the next one after HINT_AGAIN
-// (long enough to wander: the path is meant to be found by reading; never under 60 s)
-const HINT_FIRST = 120_000;
-const HINT_AGAIN = 75_000;
+// first hint after this long without progress, then the next one after HINT_AGAIN.
+// Stage 1 is quicker (owner playtest, round 8: nothing pointed at the photos at the start);
+// stage 2 is meant to be found by reading, never under 60 s.
+const HINT_FIRST: Record<1 | 2, number> = { 1: 45_000, 2: 120_000 };
+const HINT_AGAIN: Record<1 | 2, number> = { 1: 50_000, 2: 75_000 };
 
 /**
  * Turns clues into story beats: the stage changes only on key clues (photo figure → 2,
@@ -162,7 +163,7 @@ function useDirector() {
 
   useEffect(() => {
     const first = PATH[1][0];
-    say("welcome", "anon", "She kept everything. Notes, calls, photos. Start with what she wrote down.", 2500, "notes", "lights", {
+    say("welcome", "anon", "She kept everything. Notes, chats, photos. Start with what she wrote down, it leads to a photo.", 2500, "notes", "lights", {
       text: first.objective,
       until: first.done,
     });
@@ -262,10 +263,10 @@ function useDirector() {
       t = setTimeout(() => {
         hint(stage);
         hints.current += 1;
-        next(HINT_AGAIN);
+        next(HINT_AGAIN[stage]);
       }, ms);
     };
-    next(hints.current ? HINT_AGAIN : HINT_FIRST);
+    next(hints.current ? HINT_AGAIN[stage] : HINT_FIRST[stage]);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, Object.keys(clues).length, wrongCodes]);
@@ -462,14 +463,26 @@ function HintLine() {
 
 /** One click opens (people expect a web page to answer a single click). */
 function Icon({ app }: { app: AppDef }) {
-  const { dispatch } = useStory();
+  const { state, dispatch } = useStory();
+  const { stage, clues, hint, wrongCodes } = state;
+  // the app the latest hint points at glows until its step is done; Photos gets a badge once
+  // Theo's chat is read and IMG_0418 is still unopened (owner playtest, round 8)
+  const pointed = hint?.open === app.id && !(hint.until?.(clues, wrongCodes) ?? false);
+  const badge = stage === 1 && app.id === "photos" && "chat_theo" in clues && !("photo_0418" in clues);
   return (
     <button
       data-icon={app.id}
-      className={`${styles.icon} ${app.id === "backup" ? styles.neon : ""} ${app.place === "file" ? styles.file : ""}`}
+      className={`${styles.icon} ${app.id === "backup" ? styles.neon : ""} ${app.place === "file" ? styles.file : ""} ${pointed ? styles.pointed : ""}`}
       onClick={() => dispatch({ type: "open", id: app.id })}
     >
-      <span className={`${styles.glyph} ${styles.glass}`}>{app.glyph}</span>
+      <span className={`${styles.glyph} ${styles.glass}`}>
+        {app.glyph}
+        {badge && (
+          <b className={styles.badge} aria-label="1 new">
+            1
+          </b>
+        )}
+      </span>
       <span>{app.title}</span>
     </button>
   );

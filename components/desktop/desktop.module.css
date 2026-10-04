@@ -79,6 +79,19 @@
   transition: border-color 120ms, box-shadow 120ms;
 }
 .icon:hover .glyph { border-color: var(--accent); box-shadow: 0 0 24px -6px var(--accent); }
+/* the app a hint points at: a slow glow, quieter than backup_you's neon */
+.pointed .glyph { animation: pointed 2.6s ease-in-out infinite; }
+@keyframes pointed {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(216, 220, 229, 0); }
+  50% { box-shadow: 0 0 22px -4px rgba(216, 220, 229, 0.55); border-color: rgba(216, 220, 229, 0.6); }
+}
+.glyph { position: relative; }
+.badge {
+  position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  display: grid; place-items: center; font: 600 11px var(--font-sans), sans-serif; color: #fff;
+  background: #ff3b30; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+@media (prefers-reduced-motion: reduce) { .pointed .glyph { animation: none; box-shadow: 0 0 22px -4px rgba(216, 220, 229, 0.55); } }
 
 /* The only neon in stage 2: backup_you breathes */
 .neon .glyph { color: var(--neon); border-color: var(--neon); animation: breathe 4s ease-in-out infinite; }

@@ -46,9 +46,6 @@ export default function Privacy() {
         data in your browser.
       </p>
 
-      <h2>The calendar reminder</h2>
-      <p>&ldquo;Add reminder&rdquo; downloads a calendar file made in your browser. It is not sent anywhere.</p>
-
       <h2>How long</h2>
       <p>Registry entries are deleted automatically 12 months after the session.</p>
 

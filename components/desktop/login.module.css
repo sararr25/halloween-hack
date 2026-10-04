@@ -135,6 +135,10 @@
 .remindActions button:hover { background: rgba(255, 255, 255, 0.14); }
 .remindActions .remindAdd { background: #0a84ff; color: #fff; }
 .remindActions .remindAdd:hover { background: #2a94ff; }
+.remindSet {
+  grid-column: 1 / -1; margin: 0; padding: 8px 0 2px; text-align: center;
+  font: 500 12px var(--font-mono), monospace; letter-spacing: 0.08em; color: var(--muted);
+}
 @keyframes dropIn { from { opacity: 0; translate: -50% -14px; } }
 
 /* after everything is off: one small way to read what was kept */

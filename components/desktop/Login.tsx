@@ -8,7 +8,7 @@ import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { downloadCaseFile } from "@/lib/story/casefile";
 import { grabFrame } from "@/lib/story/frames";
 import { fileOperator, passOnLink, readInvite } from "@/lib/story/registry";
-import { downloadReminder, reminderStart } from "@/lib/story/reminder";
+import { reminderStart } from "@/lib/story/reminder";
 import { crtOff } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
@@ -152,7 +152,7 @@ export default function Login() {
     if (!token) return;
     const url = passOnLink(token);
     try {
-      if (navigator.share) await navigator.share({ title: "case 0420", text: "it's yours now.", url });
+      if (navigator.share) await navigator.share({ title: "case 0420", url });
       else await navigator.clipboard.writeText(url);
       setPassed("yes");
       creepyMessage();
@@ -207,12 +207,12 @@ export default function Login() {
     return () => clearTimeout(t);
   }, [after, passed]);
 
-  // The reminder: "add" saves a real event and plays a music box winding down; "not now" gets
-  // one line back. Either way, on the last note, everything switches off.
+  // The reminder: "add" is only in the story (owner: no downloads), the alert turns into
+  // "reminder set" under a music box winding down; "not now" gets one line back. Either way,
+  // on the last note, everything switches off.
   const afterEl = useRef<HTMLDivElement>(null);
   const [ending, setEnding] = useState<"remind" | "later" | null>(null);
   const answer = (remind: boolean) => {
-    if (remind) downloadReminder(state.openedAt, name.trim());
     stopBed.current?.();
     setEnding(remind ? "remind" : "later");
   };
@@ -321,7 +321,9 @@ export default function Login() {
         )}
         {/* the way out that is not one, in the middle of the screen where nobody misses it */}
         {after >= 4 && !ending && passBlock}
-        {after >= 5 && !ending && <ReminderPrompt at={reminderStart(state.openedAt)} onAnswer={answer} />}
+        {after >= 5 && ending !== "later" && (
+          <ReminderPrompt at={reminderStart(state.openedAt)} set={ending === "remind"} onAnswer={answer} />
+        )}
       </div>
     );
   if (step === "credits")
@@ -383,7 +385,7 @@ export default function Login() {
 }
 
 /** A calendar alert, as the system would show it: case 0419, tomorrow, the same minute. */
-function ReminderPrompt({ at, onAnswer }: { at: number; onAnswer: (remind: boolean) => void }) {
+function ReminderPrompt({ at, set, onAnswer }: { at: number; set: boolean; onAnswer: (remind: boolean) => void }) {
   const d = new Date(at);
   const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
   return (
@@ -396,12 +398,18 @@ function ReminderPrompt({ at, onAnswer }: { at: number; onAnswer: (remind: boole
         <p id="remind-title">case 0419</p>
         <small>tomorrow · {clock(at)} · 17 Harrow St</small>
       </div>
-      <div className={styles.remindActions}>
-        <button onClick={() => onAnswer(false)}>not now</button>
-        <button className={styles.remindAdd} onClick={() => onAnswer(true)} autoFocus>
-          add reminder
-        </button>
-      </div>
+      {set ? (
+        <p className={styles.remindSet} role="status">
+          reminder set · tomorrow · {clock(at)}
+        </p>
+      ) : (
+        <div className={styles.remindActions}>
+          <button onClick={() => onAnswer(false)}>not now</button>
+          <button className={styles.remindAdd} onClick={() => onAnswer(true)} autoFocus>
+            add reminder
+          </button>
+        </div>
+      )}
     </div>
   );
 }
