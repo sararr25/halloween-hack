@@ -32,10 +32,13 @@ const LIFT_TOP = 0.15;
 const LIFT_HOLD_MS = 600;
 const ROOM_MS = 3000;
 const FEED_MS = 8000;
-// The Across artboard and its lit window, in scene units (keep in sync with window_across.wgsl).
+// The Across artboard (it covers the screen), and inside it the photo of the terrace, which
+// across.luau covers the artboard with; the lit window in photo px (keep in sync with
+// across.luau and window_across.wgsl).
 const ART = { w: 1280, h: 800 };
-const LIT = { x: 640, y: 380 };
-const WIN = { w: 96, h: 124 };
+const PHOTO = { w: 1536, h: 1024 };
+const LIT = { x: 914, y: 362 };
+const WIN = { w: 60, h: 124 };
 // The figure is the owner's raise-hand animation (assets/raising-hand-animation.mp4), cut
 // into transparent frames on the canvas of the old silhouette (public/figure/raise):
 // RAISE frames scrubbed by `hand` (up with the player, down again the same way), then HOLD
@@ -151,10 +154,14 @@ export default function Reveal() {
       const sc = Math.max(vw / ART.w, vh / ART.h);
       const ox = (vw - ART.w * sc) / 2;
       const oy = (vh - ART.h * sc) / 2;
+      // inside the artboard: the photo covers it, and the camera pushes in on the lit window
+      const cover = Math.max(ART.w / PHOTO.w, ART.h / PHOTO.h);
       const z = 1 + 4.2 * v.zoom * v.zoom;
-      const x0 = LIT.x + (LIT.x - WIN.w / 2 - LIT.x) * z;
-      const y0 = LIT.y + (LIT.y - WIN.h / 2 - LIT.y) * z;
-      el.style.transform = `translate(${ox + x0 * sc}px, ${oy + y0 * sc}px) scale(${z * sc})`;
+      const cx = ART.w / 2 + (LIT.x - PHOTO.w / 2) * cover;
+      const cy = ART.h / 2 + (LIT.y - PHOTO.h / 2) * cover;
+      const x0 = cx - (WIN.w / 2) * cover * z;
+      const y0 = cy - (WIN.h / 2) * cover * z;
+      el.style.transform = `translate(${ox + x0 * sc}px, ${oy + y0 * sc}px) scale(${cover * z * sc})`;
       el.style.opacity = String(Math.min(v.light, 1 - v.corruption));
       const b = body.current;
       const now = performance.now() / 1000;

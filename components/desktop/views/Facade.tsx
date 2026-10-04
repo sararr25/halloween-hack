@@ -9,59 +9,74 @@ import { glitchNow } from "@/lib/story/glitch";
 import { usePost, useStory } from "@/lib/story/store";
 import styles from "./facade.module.css";
 
-// Find My's "View live", Rear Window style (docs/plan-round8.md A4). The front of 17 Harrow St
-// at night, seen through binoculars, drawn and animated in Rive (rive/facade, built by
-// scripts/gen-facade-rml.py): sixteen windows, two per flat, a building that lives on timers
-// (lights, a TV, a cat, someone walking through, the stair light). This file is the game:
-//  - the binoculars follow a raised hand, else the head; the mouse only without a camera.
-//    Moving blurs them; held still for a moment they come into focus, and only a focused
-//    look counts.
-//  - E.V.'s phone (4A, the inner window) pings now and then, quietly, sometimes not at all,
-//    louder and more centred the closer the lenses are. Each ping lights its window faintly
-//    for an instant, so it is seen only by someone already looking there. The battery runs
+// Find My's "View live", Rear Window style (docs/plan-round8.md, round 9). The real photo of
+// the terrace across (the IMG_0413 view, rive/photo/plate_*.jpg) seen through binoculars,
+// drawn by Rive (rive/facade: facade.luau draws the photo magnified, binoculars.wgsl the light
+// in the windows on their timers, the shapes behind the curtains, rain, the lenses, grain).
+// This file is the game; every position is in photo pixels (1536 x 1024):
+//  - the binoculars follow the head only (owner, round 9: no hands; turning right looks
+//    right); the mouse only without a camera. Moving blurs them; held still they come into
+//    focus, and only a focused look counts.
+//  - E.V.'s phone (4A, the window above the lamp) pings now and then, quietly, sometimes not
+//    at all, louder and more centred the closer the view is. Each ping lights its window
+//    faintly for an instant, seen only by someone already looking there. The battery runs
 //    down; at 1 % the phone dies, silence, then an old bell rings once and it is back.
-//  - The watcher stands with its back to the street in 2B. Focus on it and it turns round.
-//    Look away and it is gone, and stands somewhere else, each time closer to 4A.
-//  - A missed ping is not silence: the whisper from the headphone check (Gate.tsx) comes back,
-//    quieter, from the side where 4A is.
-//  - Holding a focused look on 4A's inner window for 2.5 s: its light stutters on, a raised
-//    hand, and the figure copies the player's head for a few seconds; then the reveal
-//    starts (look_live). No click shortcut.
+//  - The watcher stands with its back to the street behind a curtain. Focus on it and it
+//    turns round. Look away and it is gone, and stands somewhere else, each time closer.
+//  - A missed ping is not silence: the whisper from the headphone check (Gate.tsx) comes
+//    back, quieter, from the side where 4A is.
+//  - Holding a focused look on 4A for 2.5 s: its light stutters on, a raised hand, and the
+//    figure copies the player's head for a few seconds; then the reveal starts (look_live).
 
-const W = 800;
-const H = 520;
-const WIN = { w: 84, h: 70 };
-const COLS = [150, 268, 448, 566];
-const FLOORS: Record<number, number> = { 4: 58, 3: 156, 2: 254, 1: 352 };
-type Win = { key: string; x: number; y: number };
-const WINDOWS: Win[] = [4, 3, 2, 1].flatMap((floor) => COLS.map((x, i) => ({ key: `${floor}${i + 1}`, x, y: FLOORS[floor] })));
+// the glass of every window in the photo, as in binoculars.wgsl (keep in sync)
+type Win = { key: string; x0: number; y0: number; x1: number; y1: number };
+const WINDOWS: Win[] = [
+  { key: "U1", x0: 35, y0: 300, x1: 95, y1: 424 },
+  { key: "U2", x0: 184, y0: 300, x1: 246, y1: 424 },
+  { key: "U3", x0: 366, y0: 300, x1: 430, y1: 424 },
+  { key: "U4", x0: 584, y0: 300, x1: 646, y1: 424 },
+  { key: "U5", x0: 735, y0: 300, x1: 797, y1: 424 },
+  { key: "U6", x0: 884, y0: 300, x1: 944, y1: 424 },
+  { key: "U7", x0: 1062, y0: 300, x1: 1124, y1: 424 },
+  { key: "U8", x0: 1208, y0: 300, x1: 1270, y1: 424 },
+  { key: "U9", x0: 1356, y0: 300, x1: 1418, y1: 424 },
+  { key: "G1", x0: 5, y0: 512, x1: 60, y1: 640 },
+  { key: "G2", x0: 360, y0: 512, x1: 418, y1: 640 },
+  { key: "G3", x0: 595, y0: 512, x1: 655, y1: 640 },
+  { key: "G4", x0: 880, y0: 515, x1: 940, y1: 605 },
+  { key: "G5", x0: 1088, y0: 512, x1: 1148, y1: 640 },
+];
 const byKey = (k: string) => WINDOWS.find((w) => w.key === k)!;
-const TARGET = byKey("42");
-const centre = (w: Win) => ({ x: w.x + WIN.w / 2, y: w.y + WIN.h / 2 });
+const TARGET = byKey("U6");
+const centre = (w: Win) => ({ x: (w.x0 + w.x1) / 2, y: (w.y0 + w.y1) / 2 });
 // what a focused look shows in each window; none of them mentions the phone
 const NIGHTS: Record<string, string> = {
-  "41": "4A · dark. Curtains open.",
-  "42": "4A · dark. Something on the floor, by the bed.",
-  "43": "4B · a man asleep in front of the TV",
-  "44": "4B · the bathroom light, on a timer",
-  "31": "3A · a cat on the sofa, looking straight at you",
-  "32": "3A · nothing. Then a light, for a second.",
-  "33": "3B · a couple, not talking",
-  "34": "3B · the other room",
-  "21": "2A · someone walking through, again and again",
-  "22": "2A · a kitchen, the lamp still swinging",
-  "23": "2B · someone standing very still",
-  "24": "2B · a child's star projector, nobody in the bed",
-  "11": "1A · the stairwell. The timer light.",
-  "12": "1A · the stairs go up.",
-  "13": "1B · dark",
-  "14": "1B · a woman reading. She looks up. No.",
+  U1: "no. 11 · upstairs · a lamp left on for someone",
+  U2: "no. 11 · someone walking through, again and again",
+  U3: "no. 13 · upstairs · the light comes and goes",
+  U4: "no. 15 · upstairs · dark. Curtains half open.",
+  U5: "no. 15 · a bulb that will not settle",
+  U6: "17 · flat 4A · dark. Something on the floor, by the bed.",
+  U7: "no. 19 · upstairs · curtains drawn, lit from inside",
+  U8: "no. 19 · a man asleep in front of the TV",
+  U9: "no. 21 · a woman reading. She looks up. No.",
+  G1: "no. 11 · downstairs · dark",
+  G2: "no. 13 · downstairs · a cat on the sill, looking straight at you",
+  G3: "no. 15 · downstairs · nobody home",
+  G4: "17 · the hallway. The timer light.",
+  G5: "no. 19 · downstairs · a kitchen, the radio on",
 };
 // where the watcher stands, in order: each time it is seen it moves closer to 4A
-const WATCH_PATH = ["23", "32", "41"];
-const LENS_HIT = 18;
-// focus: speed (artboard px/s) that blurs fully, and how still counts as focused
-const BLUR_SPEED = 420;
+const WATCH_PATH = ["U3", "U5", "U7"];
+// how far around a window a look still counts, in photo px
+const LOOK_HIT = 14;
+// the view can travel this far (photo px): the binoculars show about 520 x 350 px of it
+const LOOK = { x0: 262, x1: 1274, y0: 176, y1: 848 };
+// head to view: turning 18° (headX = 1) sweeps half the street; nodding 12° a storey and a half
+const HEAD_RANGE = { x: 560, y: 330 };
+const LOOK_HOME = { x: 768, y: 470 };
+// focus: speed (photo px/s) that blurs fully, and how still counts as focused
+const BLUR_SPEED = 180;
 const FOCUS_BELOW = 0.14;
 const CAPTION_MS = 700;
 const TURN_MS = 450;
@@ -81,8 +96,12 @@ const DIES_AT = 85_000;
 const BACK_AT = 93_000;
 const NUDGES: [number, string, string][] = [
   [40_000, "…listen. it rings where she is.", "17 Harrow St · follow the ringing, hold still to focus"],
-  [80_000, "…top floor. Her flat is on the left. The inner window.", "17 Harrow St · top floor, left, the inner window"],
+  [80_000, "…upstairs. The window above the lamp.", "17 Harrow St · upstairs, above the lamp"],
 ];
+const clampLook = (p: { x: number; y: number }) => ({
+  x: Math.max(LOOK.x0, Math.min(LOOK.x1, p.x)),
+  y: Math.max(LOOK.y0, Math.min(LOOK.y1, p.y)),
+});
 
 export default function Facade() {
   const { dispatch } = useStory();
@@ -91,49 +110,45 @@ export default function Facade() {
   const host = useRef<HTMLDivElement>(null);
   useMountedRive(host, facadeRive);
 
-  const target = useRef({ x: W / 2, y: H - 80 });
-  const lens = useRef({ x: W / 2, y: H - 80 });
+  const target = useRef({ ...LOOK_HOME });
+  const look = useRef({ ...LOOK_HOME });
   const blur = useRef(0);
   const glow = useRef(0);
   const [over, setOver] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [caption, setCaption] = useState<string | null>(null);
-  const [steer, setSteer] = useState<"hand" | "head">("head");
   const [phone, setPhone] = useState<{ battery: number; state: "ringing" | "offline" | "back" }>({ battery: 4, state: "ringing" });
   const [found, setFound] = useState(false);
   const foundRef = useRef(false);
+  // performance.now() when 4A was found; Rive gets the seconds since (its tube stutter)
+  const foundAt = useRef(0);
   const watch = useRef({ at: 0, turned: false });
 
   // the watcher where it stands now, back to the street
   const placeWatcher = () => {
     const w = byKey(WATCH_PATH[watch.current.at]);
     const r = facadeRive();
-    r.set("figX", w.x + WIN.w / 2);
-    r.set("figY", w.y + WIN.h);
+    r.set("figX", centre(w).x);
     r.set("turned", 0);
     r.set("figOn", 1);
   };
   useEffect(() => {
     const r = facadeRive();
-    r.set("found", 0);
+    r.set("found", -1);
     r.set("blur", 0);
     r.set("glow", 0);
     placeWatcher();
      
   }, []);
 
-  // the input moves a target; the lenses follow it, a little heavy, every frame
-  const fromClient = (cx: number, cy: number) => {
-    const el = host.current;
-    if (!el) return null;
-    const b = el.getBoundingClientRect();
-    const s = Math.max(b.width / W, b.height / H); // Fit.Cover
-    return { x: (cx - b.left - (b.width - W * s) / 2) / s, y: (cy - b.top - (b.height - H * s) / 2) / s };
-  };
+  // the input moves a target; the view follows it, a little heavy, every frame.
+  // Without a camera the mouse plays the head: across the box is across the street.
   const move = (e: React.PointerEvent) => {
     if (tracker.state.source === "camera") return;
-    const p = fromClient(e.clientX, e.clientY);
-    if (p) target.current = p;
+    const b = e.currentTarget.getBoundingClientRect();
+    const fx = (e.clientX - b.left) / b.width;
+    const fy = (e.clientY - b.top) / b.height;
+    target.current = clampLook({ x: LOOK.x0 + fx * (LOOK.x1 - LOOK.x0), y: LOOK.y0 + fy * (LOOK.y1 - LOOK.y0) });
   };
   usePresenceEvent("change", (s) => {
     // found: the figure in 4A copies the head (camera), or the mouse playing the head
@@ -144,10 +159,8 @@ export default function Facade() {
       return;
     }
     if (s.source !== "camera") return;
-    target.current = s.hand
-      ? { x: W / 2 + s.hand.x * (W / 2), y: H / 2 + s.hand.y * (H / 2) }
-      : { x: W / 2 - s.headX * 300, y: H / 2 + s.headY * 220 };
-    setSteer(s.hand ? "hand" : "head");
+    // the head only; headX is already mirrored, so turning right looks right
+    target.current = clampLook({ x: LOOK_HOME.x + s.headX * HEAD_RANGE.x, y: LOOK_HOME.y + s.headY * HEAD_RANGE.y });
   });
 
   useEffect(() => {
@@ -159,21 +172,22 @@ export default function Facade() {
       const r = facadeRive();
       if (!foundRef.current) {
         const k = 1 - Math.pow(0.002, dt); // frame-rate independent ease
-        const nx = lens.current.x + (target.current.x - lens.current.x) * k;
-        const ny = lens.current.y + (target.current.y - lens.current.y) * k;
-        const speed = Math.hypot(nx - lens.current.x, ny - lens.current.y) / Math.max(dt, 0.001);
-        lens.current = { x: Math.max(0, Math.min(W, nx)), y: Math.max(0, Math.min(H, ny)) };
+        const nx = look.current.x + (target.current.x - look.current.x) * k;
+        const ny = look.current.y + (target.current.y - look.current.y) * k;
+        const speed = Math.hypot(nx - look.current.x, ny - look.current.y) / Math.max(dt, 0.001);
+        look.current = { x: nx, y: ny };
         const want = Math.min(1, speed / BLUR_SPEED);
         // blurs at once when moving, comes into focus slowly when still
         blur.current += (want - blur.current) * (want > blur.current ? 0.5 : 1 - Math.pow(0.08, dt));
-        r.set("lensX", lens.current.x);
-        r.set("lensY", lens.current.y);
+        r.set("lookX", look.current.x);
+        r.set("lookY", look.current.y);
         r.set("blur", blur.current);
-        const { x, y } = lens.current;
-        const hit = WINDOWS.find((w) => x > w.x - LENS_HIT && x < w.x + WIN.w + LENS_HIT && y > w.y - LENS_HIT && y < w.y + WIN.h + LENS_HIT);
+        const { x, y } = look.current;
+        const hit = WINDOWS.find((w) => x > w.x0 - LOOK_HIT && x < w.x1 + LOOK_HIT && y > w.y0 - LOOK_HIT && y < w.y1 + LOOK_HIT);
         setOver(hit?.key ?? null);
         setFocused(blur.current < FOCUS_BELOW);
       }
+      if (foundAt.current > 0) r.set("found", (now - foundAt.current) / 1000);
       if (glow.current > 0) {
         glow.current = Math.max(0, glow.current - dt * 0.9);
         r.set("glow", glow.current);
@@ -207,10 +221,10 @@ export default function Facade() {
           const elapsed = Date.now() - start;
           const dead = elapsed > DIES_AT && elapsed < BACK_AT + 3500;
           const c = centre(TARGET);
-          const pan = (c.x - lens.current.x) / 260;
+          const pan = (c.x - look.current.x) / 300;
           if (!dead && Math.random() > PING_MISS) {
-            const d = Math.hypot(lens.current.x - c.x, lens.current.y - c.y);
-            const near = Math.max(0, 1 - d / 520);
+            const d = Math.hypot(look.current.x - c.x, look.current.y - c.y);
+            const near = Math.max(0, 1 - d / 700);
             pingAt(0.1 + 0.75 * near * near, Math.max(-1, Math.min(1, pan)));
             glow.current = 1;
           } else if (!dead) sideWhisper(pan, 0.55);
@@ -237,7 +251,8 @@ export default function Facade() {
     r.set("blur", 0);
     r.set("headX", tracker.state.headX);
     r.set("headY", tracker.state.headY);
-    r.set("found", 1);
+    foundAt.current = performance.now();
+    r.set("found", 0);
     // the light in 4A: a tube that will not start, then does (timed with the Rive stutter)
     [100, 360, 620].forEach((ms) => setTimeout(lightSwitch, ms));
     setTimeout(breath, 1100);
@@ -301,11 +316,7 @@ export default function Facade() {
       <div ref={host} className={styles.view} />
       <p className={styles.head}>
         <span className={styles.live}>● LIVE</span> 17 HARROW ST ·{" "}
-        {!camera
-          ? "move the mouse to look, hold still to focus"
-          : steer === "hand"
-            ? "your hand moves the binoculars · hold still to focus"
-            : "raise your hand to move the binoculars, or turn your head"}
+        {camera ? "turn your head to look, hold still to focus" : "move the mouse to look, hold still to focus"}
       </p>
       <p className={styles.phone} data-state={phone.state}>
         E.V.&apos;s iPhone · {status}

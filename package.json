@@ -9,7 +9,7 @@
     "lint": "eslint",
     "postinstall": "node scripts/sync-assets.mjs",
     "rive:build": "rive rive/presence --once && cp rive/presence/build/presence.riv public/rive/presence.riv",
-    "rive:facade": "python3 scripts/gen-facade-rml.py && rive rive/facade --once && cp rive/facade/build/facade.riv public/rive/facade.riv",
+    "rive:facade": "rive rive/facade --publish && cp rive/facade/build/facade.riv public/rive/facade.riv",
     "rive:casefile": "python3 scripts/gen-casefile-rml.py && rive rive/casefile --once && cp rive/casefile/build/casefile.riv public/rive/casefile.riv",
     "rive:call": "rive rive/call --once && cp rive/call/build/call.riv public/rive/call.riv",
     "rive:findmy": "rive rive/findmy --once && cp rive/findmy/build/findmy.riv public/rive/findmy.riv",

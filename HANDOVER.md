@@ -1,5 +1,11 @@
 # Handover
 
+> **2026-10-04 · round 9 (owner feedback), live.**
+> - **Binoculars, head only:** no more hand steering (`Facade.tsx`); turning right looks right (the sign was inverted). The mouse only without a camera.
+> - **The facade is the real photo now** (`rive/facade`: `facade.luau` + `binoculars.wgsl`, signed with `pnpm rive:facade`, needs `rive login`): the IMG_0413 plate (`rive/photo/plate_*.jpg`) magnified inside two lenses; windows lit on timers with curtains and sash bars kept, TV flicker, soft shapes behind curtains, a cat, rain, lens fall-off, chromatic fringe, glint, dust, a faint cyan reticle, grain; defocus = soft plate + ghost + haze while moving. Windows are measured in photo px (`WINDOWS` in Facade.tsx = `win()` in the shader). 4A = the window above the lamp (884-944 × 300-424). Watcher path U3 → U5 → U7.
+> - **S9 is the real photo too** (`rive/story/across.luau` + `window_across.wgsl`, `pnpm rive:publish:story`): the plate drawn as an image mesh that bends with the head (near street moves more than the facade, 2.5D parallax), 4A's light with its reflection trembling on the wet road, torn strips and colour bands under corruption, rain, vignette, grain. Scene units are photo px; `Reveal.tsx` (ART/PHOTO/LIT/WIN) and `reveal.module.css` keep the figure layer on the 60 × 124 window.
+> - Both files carry the free-plan Rive mark: they are prewarmed (the facade at the interlude, S9 fades in late as before).
+
 > **2026-10-04 · round 8 (owner feedback), live.** Plan, answers and status in `docs/plan-round8.md`.
 > - **Gate first** (`Gate.tsx`): camera + microphone asked the moment the link opens; a refusal is asked once more ("are you sure… no data leaves your computer"), a second no plays on with the mouse and S1/S9 remember it. Then headphones (a whisper left, then right, `sideWhisper`) and full screen. S1 no longer prompts; the DM lost its "click to wake".
 > - **Stage 1 hints:** first after 45 s, then every 50 s; the welcome says the notes lead to a photo; Photos gets a red badge once Theo's chat is read; the app a hint points at glows.

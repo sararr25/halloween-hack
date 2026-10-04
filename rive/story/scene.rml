@@ -112,4 +112,6 @@
 
     <ScriptAsset file="scan.luau" name="scan" id="0:80"/>
     <ScriptAsset file="across.luau" name="across" id="1:80"/>
+    <!-- S9 draws the real photo of the terrace (round 9), the same plate as IMG_0418 -->
+    <ImageAsset file="../photo/plate_sharp.jpg" name="plate_sharp" id="1:90"/>
 </Rive>

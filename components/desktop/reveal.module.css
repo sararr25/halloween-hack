@@ -7,23 +7,23 @@
 .scene[data-black="true"] { animation: none; opacity: 0; }
 @keyframes sceneIn { to { opacity: 1; } }
 
-/* The figure layer, over the lit window. Sizes are scene units (the window is 96 x 124);
-   Reveal.tsx moves and scales the whole box with the camera. */
+/* The figure layer, over the lit window. Sizes are photo px (its glass is 60 x 124, the
+   window above the lamp in plate_sharp.jpg); Reveal.tsx moves and scales the box with the camera. */
 .window {
-  position: absolute; left: 0; top: 0; width: 96px; height: 124px;
+  position: absolute; left: 0; top: 0; width: 60px; height: 124px;
   transform-origin: 0 0; overflow: hidden; pointer-events: none; opacity: 0;
 }
 .window[data-black="true"] { display: none; }
-/* the head centre sits at the window's (48, 55), where the shader put the old bust */
+/* someone standing in the room: the head about a third of the way down the sash */
 .figure {
-  position: absolute; left: 2px; top: 20.5px; width: 92px; height: 115px;
+  position: absolute; left: 1px; top: 26px; width: 58px; height: 72.5px;
   transform-origin: 50% 85%; opacity: 0; /* breathes from the chest */
   filter: blur(0.35px) contrast(1.05); /* seen through the glass and the sheer curtain */
 }
 .sprite { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* the sheer curtain over the left half, catching the light, and the window bars */
 .curtain {
-  position: absolute; left: 0; top: 0; width: 44px; height: 100%; opacity: 0.3;
+  position: absolute; left: 0; top: 0; width: 24px; height: 100%; opacity: 0.3;
   background: repeating-linear-gradient(90deg, rgba(216, 220, 229, 0.3) 0 3px, rgba(216, 220, 229, 0.12) 3px 7px);
   -webkit-mask-image: linear-gradient(to right, #000 70%, transparent);
   mask-image: linear-gradient(to right, #000 70%, transparent);
@@ -31,8 +31,8 @@
 .bars {
   position: absolute; inset: 0; opacity: 0.9;
   background:
-    linear-gradient(rgb(8, 9, 11), rgb(8, 9, 11)) 46.8px 0 / 2.4px 100% no-repeat,
-    linear-gradient(rgb(8, 9, 11), rgb(8, 9, 11)) 0 42.8px / 100% 2.4px no-repeat;
+    linear-gradient(rgb(8, 9, 11), rgb(8, 9, 11)) 28.8px 0 / 2.4px 100% no-repeat,
+    linear-gradient(rgb(8, 9, 11), rgb(8, 9, 11)) 0 58.8px / 100% 2.4px no-repeat;
 }
 
 .line {

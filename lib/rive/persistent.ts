@@ -131,13 +131,13 @@ export const acrossRive = () =>
     label: "a lit window across the street at night, someone standing in it",
   });
 
-/** Find My's View live: 17 Harrow St through binoculars (rive/facade, flat view model "Facade"). */
+/** Find My's View live: the real photo of 17 Harrow St through binoculars (rive/facade, scripted). */
 export const facadeRive = () =>
   persistentRive("facade", {
     src: "/rive/facade.riv",
     artboard: "Facade",
     stateMachine: "Facade",
-    prefix: "",
+    prefix: "facade",
     fit: Fit.Cover,
     label: "17 Harrow Street at night, through binoculars",
   });
