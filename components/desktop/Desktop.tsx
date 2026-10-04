@@ -17,6 +17,7 @@ import FullscreenToggle from "./FullscreenToggle";
 import SoundToggle from "./SoundToggle";
 import Window, { fadeClose } from "./Window";
 import { prewarmLens } from "./views/PhotoLens";
+import { callRive, facadeRive, findmyRive, prewarmRive } from "@/lib/rive/persistent";
 import styles from "./desktop.module.css";
 
 function Clock() {
@@ -495,6 +496,11 @@ export default function Desktop() {
   useInterlude();
   useReveal();
   useEffect(prewarmLens, []);
+  // the Rive scenes of the second half load ahead of time (the call, Find My, the facade)
+  useEffect(() => {
+    if (!state.calm) return;
+    [callRive, findmyRive, facadeRive].forEach(prewarmRive);
+  }, [state.calm]);
 
   // Esc closes the window in front, like any desktop; not once the reveal has begun
   const front = useRef<AppId | null>(null);

@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { blip, creepyMessage, key } from "@/lib/audio/sfx";
 import { breath, pingAt } from "@/lib/audio/dread";
 import { usePresenceEvent } from "@/lib/presence/context";
+import { findmyRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
 import { usePost, useStory } from "@/lib/story/store";
 import Facade from "./Facade";
@@ -33,6 +34,8 @@ const house = (n: number) => {
   return { x, y: odd ? ROAD.y - 36 : ROAD.y + ROAD.h + 2, cx: x + (LOT - 1) / 2 };
 };
 const PHONE = { x: house(17).cx, y: house(17).y + 16 };
+// the map's viewBox; rive/findmy's artboard is the same box, so the two line up
+const VIEW = { x: 100, y: 80, w: 470, h: 366 };
 const MAC = { x: house(16).cx, y: house(16).y + 18 };
 
 // the blocks around, as plain footprints (x, y, w, h)
@@ -83,9 +86,11 @@ const GUIDE: Record<Exclude<Step, "live">, [string, string]> = {
 export default function Locate() {
   const { dispatch } = useStory();
   const post = usePost();
-  const pin = useRef<SVGGElement>(null);
-  const travel = useRef<SVGGElement>(null);
-  const view = useRef<SVGGElement>(null);
+  // the map is SVG; what lives on it (the phone, its pulse, its pin crossing the road, This
+  // Mac) is a Rive layer drawn over it at the same scale (rive/findmy)
+  const living = useRef<HTMLDivElement>(null);
+  useMountedRive(living, findmyRive);
+  const view = useRef<HTMLDivElement>(null);
   const [since, setSince] = useState(0);
   const [step, setStep] = useState<Step>("map");
   const [metres, setMetres] = useState(20);
@@ -98,13 +103,21 @@ export default function Locate() {
     return () => clearInterval(t);
   }, []);
 
-  // the map flies in on the phone, as the real one does when a device is found
+  // the map (and the layer on it) flies in on the phone, as the real one does when a device is found
   useEffect(() => {
+    const r = findmyRive();
+    r.set("cross", 0);
+    r.set("mode", 0);
     const g = view.current;
     if (!g || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // where the phone sits in the box: the viewBox is centred and scaled to cover it
+    const b = g.getBoundingClientRect();
+    const k = Math.max(b.width / VIEW.w, b.height / VIEW.h);
+    const ox = b.width / 2 + (PHONE.x - VIEW.x - VIEW.w / 2) * k;
+    const oy = b.height / 2 + (PHONE.y - VIEW.y - VIEW.h / 2) * k;
     const t = gsap.fromTo(
       g,
-      { scale: 0.55, x: 140, y: 60, svgOrigin: `${PHONE.x} ${PHONE.y}` },
+      { scale: 0.55, x: 140, y: 60, transformOrigin: `${ox}px ${oy}px` },
       { scale: 1, x: 0, y: 0, duration: 1.6, ease: "power3.inOut" },
     );
     return () => void t.kill();
@@ -119,15 +132,29 @@ export default function Locate() {
       duration: 0.8,
       ease: "power2.out",
       overwrite: true,
-      onUpdate: () => pin.current?.setAttribute("transform", `translate(${pos.current.x} ${pos.current.y})`),
+      onUpdate: () => {
+        const r = findmyRive();
+        r.set("dx", pos.current.x);
+        r.set("dy", pos.current.y);
+      },
     });
   });
 
   // the pin crossing the road: 0 = at no. 17, 1 = on This Mac
+  const crossing = useRef({ k: 0 });
   const cross = (k: number, seconds: number) => {
-    const to = { x: (MAC.x - PHONE.x) * k, y: (MAC.y - PHONE.y) * k };
-    gsap.to(travel.current, { attr: { transform: `translate(${to.x} ${to.y})` }, duration: seconds, ease: "power2.inOut" });
+    gsap.to(crossing.current, {
+      k,
+      duration: seconds,
+      ease: "power2.inOut",
+      overwrite: true,
+      onUpdate: () => findmyRive().set("cross", crossing.current.k),
+    });
   };
+  // the phone's pulse: located, coming (faster), with you (red, shaking)
+  useEffect(() => {
+    findmyRive().set("mode", step === "coming" ? 1 : step === "here" || step === "lost" || step === "reply" ? 2 : 0);
+  }, [step]);
 
   // 1 · Play Sound: it is behind you, and coming
   const ping = () => {
@@ -281,14 +308,15 @@ export default function Locate() {
       </aside>
 
       <div className={styles.mapWrap}>
+        <div ref={view} className={styles.mapFly}>
         <svg
           className={styles.map}
-          viewBox="100 80 470 366"
+          viewBox={`${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`}
           preserveAspectRatio="xMidYMid slice"
           aria-label="Map: Harrow Street. This Mac is at number 16. E.V.'s iPhone is across the road, at number 17."
         >
           <rect x="-400" y="-300" width="1440" height="1080" className={styles.land} />
-          <g ref={view}>
+          <g>
             <rect x="-400" y="-300" width="1440" height="1080" className={styles.land} />
             {/* the canal to the south, the gardens to the north-east */}
             <path d="M-400 452 C 120 438, 360 470, 1040 446 L 1040 780 L -400 780 Z" className={styles.water} />
@@ -332,27 +360,12 @@ export default function Locate() {
             <circle cx="214" cy={ROAD.y - 5} r="3" className={styles.poi} />
             <text x="220" y={ROAD.y - 2.5} className={styles.poiName}>bus stop</text>
 
-            {/* this Mac: the blue dot, at her flat */}
-            <circle cx={MAC.x} cy={MAC.y} r="9" className={styles.meHalo} />
-            <circle cx={MAC.x} cy={MAC.y} r="4.5" className={styles.me} />
+            {/* this Mac and E.V.'s phone live in the Rive layer above; only the label stays here */}
             <text x={MAC.x} y={MAC.y + 22} className={styles.pinName}>This Mac</text>
-
-            {/* the phone: accuracy circle and the device bubble on number 17 */}
-            <g ref={travel} transform="translate(0 0)">
-            <g ref={pin}>
-              <circle cx={PHONE.x} cy={PHONE.y} r="26" className={styles.accuracy} />
-              <circle cx={PHONE.x} cy={PHONE.y} r="10" className={styles.pulse} />
-              <g transform={`translate(${PHONE.x} ${PHONE.y - 24})`}>
-                <path d="M0 17 L-5 9 L5 9 Z" className={styles.bubble} />
-                <circle r="13" className={styles.bubble} />
-                <g className={styles.bubbleGlyph}>
-                  <Glyph kind="phone" />
-                </g>
-              </g>
-            </g>
-            </g>
           </g>
         </svg>
+        <div ref={living} className={styles.living} />
+        </div>
         <span className={styles.controls} aria-hidden="true">
           <i>+</i>
           <i>−</i>

@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { blip, glitchSound, key, subThud, tubeOff, unlockAudio } from "@/lib/audio/sfx";
 import { dread, jumpStinger, ringNotify, slam } from "@/lib/audio/dread";
-import { casefileRive, useMountedRive } from "@/lib/rive/persistent";
+import { casefileRive, prewarmRive, useMountedRive } from "@/lib/rive/persistent";
 import { inviterOf } from "@/lib/story/registry";
 import styles from "./invite.module.css";
 
@@ -64,6 +64,8 @@ type Step = "lock" | "scare" | "thread";
 export default function InviteDM({ token, onDone }: { token: string; onDone: (played: boolean) => void }) {
   const [from, setFrom] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("lock");
+  // the case file loads while the lock screen rings
+  useEffect(() => prewarmRive(casefileRive), []);
   const done = useRef(onDone);
   useEffect(() => {
     done.current = onDone;

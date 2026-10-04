@@ -84,6 +84,18 @@ function persistentRive(key: string, o: Options): PersistentRive {
   return inst;
 }
 
+/**
+ * Loads an instance and renders it off screen for a few seconds before it is needed, so
+ * nothing about loading (the file, a Rive mark) is ever seen when it appears.
+ */
+export function prewarmRive(inst: () => PersistentRive) {
+  const r = inst();
+  r.rive.startRendering();
+  setTimeout(() => {
+    if (!r.canvas.isConnected) r.rive.stopRendering();
+  }, 6000);
+}
+
 /** Shows a persistent instance inside `host` while the component is mounted. */
 export function useMountedRive(host: RefObject<HTMLElement | null>, inst: () => PersistentRive) {
   useEffect(() => {
@@ -150,4 +162,14 @@ export const callRive = () =>
     artboard: "CallFace",
     stateMachine: "CallFace",
     prefix: "",
+  });
+
+/** Find My's living layer over the map: the phone's pulse, its pin crossing the road, This Mac (rive/findmy). */
+export const findmyRive = () =>
+  persistentRive("findmy", {
+    src: "/rive/findmy.riv",
+    artboard: "FindMy",
+    stateMachine: "FindMy",
+    prefix: "",
+    fit: Fit.Cover,
   });
