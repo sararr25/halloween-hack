@@ -393,6 +393,7 @@ export const NOTES: Note[] = [
     body: ["If you read this before I do:", "it isn't the window. It was never the window.", "It's the screen."],
   },
   {
+    // stage 2 starts here (Desktop.tsx PATH): it sends the player to the phone, not the mail
     id: "code",
     title: "backup",
     days: 7,
@@ -401,13 +402,16 @@ export const NOTES: Note[] = [
     body: [
       "Set the backup code tonight. Four digits, like a clock.",
       "The time they come in. Not the light across. The other one, the one who opens this.",
-      "I don't know it yet. I set it anyway. It was already set.",
+      "No caller ID rang at 23:02 and said it. Static ate the numbers.",
+      "The phone wrote them down anyway. It always hears more than I do.",
     ],
   },
   {
+    // stage 1 starts here (Desktop.tsx PATH): it sends the player to Theo and to frame 6
     id: "lights",
     title: "lights across",
     days: 8,
+    key: true,
     body: [
       "mon 23:02",
       "tue 23:02",
@@ -415,6 +419,7 @@ export const NOTES: Note[] = [
       "thu 23:02",
       "Always two minutes after I switch mine on.",
       "Tonight I didn't switch mine on. It came on anyway.",
+      "I took one picture. Frame 6. I sent it to Theo, he's the only one who looks properly.",
     ],
   },
   {

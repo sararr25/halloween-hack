@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { blip, creepyMessage, glitchSound, tubeOff, unlockAudio } from "@/lib/audio/sfx";
+import { blip, glitchSound, key, tubeOff, unlockAudio } from "@/lib/audio/sfx";
+import { dread, jumpStinger, ringNotify, slam } from "@/lib/audio/dread";
+import { enterFullscreen } from "@/lib/fullscreen";
 import { inviterOf } from "@/lib/story/registry";
 import styles from "./invite.module.css";
 
@@ -11,27 +13,52 @@ gsap.registerPlugin(useGSAP);
 
 // The Ring, as a DM (docs/plan-round6.md, "pass it on"). Someone who finished passed the
 // case on; whoever opens their link is met, before anything else, by a message from them.
-//  1. Black. A lock-screen notification, "1 new message", buzzing now and then. Silent:
-//     browsers keep sound locked until a click, so the click that opens it is the one that
-//     unlocks the creepy tone.
-//  2. The thread: typing dots, then three bubbles, each torn in by an RGB split.
-//  3. "seen". The sender's name scrambles and for a moment reads E.V. (the loop), then the
-//     thread collapses like an old tube and the story starts as usual.
+//  0. Black, "click to wake the screen": browsers keep sound locked until a click, and
+//     everything after this needs sound.
+//  1. The lock screen. The notification rings like the phone in The Ring, in time with the
+//     buzz on screen, until it is opened.
+//  2. Opening it: a figure lunges out of a white flash (the one jump scare), then black.
+//  3. The thread, under a score in the spirit of The Shining. Two lines from the sender,
+//     then the screen is taken over by three full-screen lines (12 hours, find her, or
+//     you're next), then the sender again, small and close: sorry, forgive me, love you.
+//  4. "seen". A countdown from 12:00:00 runs in the header. The name scrambles into E.V.
+//     for a breath, the thread collapses like an old tube and the story starts as usual.
 // An unknown or broken link skips all of it.
 
-const BUBBLES = ["i opened it.", "now it's yours.", "case 0420"];
-const TYPING_MS = [1400, 1700, 2100];
+type Bubble = { kind: "bubble"; text: string; typing: number; style?: "case" };
+type Card = { kind: "card"; small?: string; big: string; hold: number };
+type Line = Bubble | Card;
+
+const script = (from: string): Line[] => [
+  { kind: "bubble", text: "it's me.", typing: 1300 },
+  { kind: "bubble", text: "don't close this. please. read all of it.", typing: 2000 },
+  { kind: "card", small: "you have", big: "12 hours", hold: 2600 },
+  { kind: "card", big: "to find her.", hold: 1900 },
+  { kind: "card", small: "or", big: "you're next.", hold: 2400 },
+  { kind: "bubble", text: "i'm sorry. i had to pass it to you.", typing: 2600 },
+  { kind: "bubble", text: "it was the only way to save myself.", typing: 2000 },
+  { kind: "bubble", text: "if you survive this, i hope one day you'll forgive me.", typing: 2900 },
+  { kind: "bubble", text: `love you. ${from}`, typing: 1900 },
+  { kind: "bubble", text: "case 0420", typing: 1100, style: "case" },
+];
+
 const SCRAMBLE = "▓▒░#%&@$ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const RING_EVERY_MS = 3400;
+const DEADLINE_MS = 12 * 3600 * 1000;
+// the figure is on screen this long, then black this long before the thread
+const SCARE_MS = 380;
+const SCARE_BLACK_MS = 900;
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+type Step = "wake" | "lock" | "scare" | "thread";
 
 export default function InviteDM({ token, onDone }: { token: string; onDone: () => void }) {
   const [from, setFrom] = useState<string | null>(null);
-  const [step, setStep] = useState<"notice" | "thread">("notice");
+  const [step, setStep] = useState<Step>("wake");
   const done = useRef(onDone);
   useEffect(() => {
     done.current = onDone;
   });
-  // stable, so a parent re-render cannot restart the thread's timeline
-  const finish = useCallback(() => done.current(), []);
 
   useEffect(() => {
     let live = true;
@@ -51,36 +78,70 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: () 
     };
   }, [token]);
 
+  // the score starts on the black after the scare and outlives the thread by a fade
+  const stopScore = useRef<((fade?: number) => void) | null>(null);
+  useEffect(() => () => stopScore.current?.(0.3), []);
+
+  // stable, so a parent re-render cannot restart a timeline
+  const scareDone = useCallback(() => {
+    stopScore.current = dread();
+    setStep("thread");
+  }, []);
+  const threadDone = useCallback(() => {
+    stopScore.current?.(2.5);
+    done.current();
+  }, []);
+
   if (!from) return <div className={styles.stage} />;
-  return step === "notice" ? (
-    <Notice
-      from={from}
-      onOpen={() => {
-        unlockAudio(); // the gesture that lets the tone play
-        creepyMessage();
-        setStep("thread");
-      }}
-    />
-  ) : (
-    <Thread from={from} onDone={finish} />
+  if (step === "wake")
+    return (
+      <Wake
+        onWake={() => {
+          unlockAudio(); // the gesture that lets every sound after this play
+          enterFullscreen();
+          setStep("lock");
+        }}
+      />
+    );
+  if (step === "lock") return <Notice from={from} onOpen={() => setStep("scare")} />;
+  if (step === "scare") return <Scare onDone={scareDone} />;
+  return <Thread from={from} onDone={threadDone} />;
+}
+
+/** A sleeping screen. The only thing on it says how to wake it. */
+function Wake({ onWake }: { onWake: () => void }) {
+  return (
+    <button className={`${styles.stage} ${styles.wake}`} onClick={onWake} autoFocus>
+      <span className={styles.wakeDot} aria-hidden="true" />
+      <span className={styles.wakeText}>click to wake the screen</span>
+      <span className={styles.wakeHint}>sound on · headphones</span>
+    </button>
   );
 }
 
 function Notice({ from, onOpen }: { from: string; onOpen: () => void }) {
   const el = useRef<HTMLButtonElement>(null);
-  useGSAP(() => {
-    if (!el.current) return;
-    // the entrance is CSS (invite.module.css .notice); GSAP only buzzes it
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // a phone buzzing on a table: a short tremor, then nothing, then again
-    gsap
-      .timeline({ repeat: -1, repeatDelay: 2.6, delay: 2.2 })
-      .to(el.current, { keyframes: { x: [0, -3, 3, -3, 3, -2, 2, 0] }, duration: 0.42, ease: "none" })
-      .to(el.current, { keyframes: { x: [0, -3, 3, -2, 2, 0] }, duration: 0.32, ease: "none" }, "+=0.18");
-  });
+  const [now] = useState(() => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+  // the ring and the buzz on one clock, so the sound and the tremor land together
+  useEffect(() => {
+    const ring = () => {
+      ringNotify();
+      if (!el.current || reduced()) return;
+      gsap
+        .timeline()
+        .to(el.current, { keyframes: { x: [0, -4, 4, -4, 4, -3, 3, 0] }, duration: 0.42, ease: "none" })
+        .to(el.current, { keyframes: { x: [0, -4, 4, -3, 3, 0] }, duration: 0.36, ease: "none" }, "+=0.14");
+    };
+    const first = setTimeout(ring, 1300);
+    const again = setInterval(ring, RING_EVERY_MS);
+    return () => {
+      clearTimeout(first);
+      clearInterval(again);
+    };
+  }, []);
   return (
     <div className={styles.stage}>
-      <p className={styles.clock}>{new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p>
+      <p className={styles.clock}>{now}</p>
       <button ref={el} className={styles.notice} onClick={onOpen} autoFocus>
         <span className={styles.app} aria-hidden="true">
           <i />
@@ -98,37 +159,119 @@ function Notice({ from, onOpen }: { from: string; onOpen: () => void }) {
   );
 }
 
+/** The one jump scare: a white flash, a figure lunging out of it, torn colour, then black. */
+function Scare({ onDone }: { onDone: () => void }) {
+  const root = useRef<HTMLDivElement>(null);
+  useGSAP(
+    () => {
+      jumpStinger();
+      // timers, not the tween, end it: a throttled tab must never be left on the figure
+      const hide = setTimeout(() => root.current && (root.current.style.visibility = "hidden"), SCARE_MS);
+      const next = setTimeout(onDone, SCARE_MS + SCARE_BLACK_MS);
+      const q = gsap.utils.selector(root);
+      const flash = q(`.${styles.scareFlash}`);
+      const tl = gsap.timeline();
+      if (reduced()) {
+        tl.set(flash, { opacity: 1 }).to(flash, { opacity: 0, duration: 0.3 });
+        return () => [hide, next].forEach(clearTimeout);
+      }
+      tl.fromTo(q(`.${styles.scareFigure}`), { scale: 0.55, y: 60 }, { scale: 1.9, y: -30, duration: 0.34, ease: "power4.in" }, 0)
+        .fromTo(
+          q(`.${styles.scareGhost}`),
+          { scale: 0.6, x: (i: number) => (i ? 26 : -26) },
+          { scale: 2, x: (i: number) => (i ? -40 : 40), duration: 0.34, ease: "power4.in" },
+          0,
+        )
+        .to(root.current, { keyframes: { x: [0, -18, 14, -10, 8, 0], y: [0, 10, -12, 6, -4, 0] }, duration: 0.34, ease: "none" }, 0)
+        .to(flash, { keyframes: { opacity: [1, 0.2, 1, 0, 0.8, 0] }, duration: 0.34, ease: "none" }, 0);
+      return () => [hide, next].forEach(clearTimeout);
+    },
+    { scope: root },
+  );
+  return (
+    <div className={styles.blackStage}>
+      <div ref={root} className={styles.scare} aria-hidden="true">
+        <div className={styles.scareFlash} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={`${styles.scareGhost} ${styles.ghostA}`} src="/figure/body.webp" alt="" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={`${styles.scareGhost} ${styles.ghostB}`} src="/figure/body.webp" alt="" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.scareFigure} src="/figure/body.webp" alt="" />
+      </div>
+    </div>
+  );
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+function Countdown({ from }: { from: number }) {
+  const [left, setLeft] = useState(DEADLINE_MS);
+  useEffect(() => {
+    const t = setInterval(() => setLeft(Math.max(0, DEADLINE_MS - (Date.now() - from))), 250);
+    return () => clearInterval(t);
+  }, [from]);
+  const s = Math.floor(left / 1000);
+  return (
+    <span className={styles.countdown} aria-label="time left">
+      {pad(Math.floor(s / 3600))}:{pad(Math.floor((s % 3600) / 60))}:{pad(s % 60)}
+    </span>
+  );
+}
+
 function Thread({ from, onDone }: { from: string; onDone: () => void }) {
   const root = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(0);
-  const [typing, setTyping] = useState(true);
+  const [lines] = useState(() => script(from));
+  const bubbles = lines.filter((l): l is Bubble => l.kind === "bubble");
+  const [shown, setShown] = useState(0); // bubbles on screen
+  const [typing, setTyping] = useState(false);
+  const [card, setCard] = useState<Card | null>(null);
+  const [clockFrom, setClockFrom] = useState<number | null>(null);
   const [seen, setSeen] = useState(false);
   const [name, setName] = useState(from);
   const [status, setStatus] = useState("online");
 
-  // the conversation, on timers: typing, a bubble, typing, a bubble...
+  // the conversation, on timers: typing, a bubble; or the screen taken over by a line
   useEffect(() => {
     const t: ReturnType<typeof setTimeout>[] = [];
     let scramble: ReturnType<typeof setInterval> | undefined;
-    let at = 400;
-    BUBBLES.forEach((_, i) => {
-      at += TYPING_MS[i];
-      t.push(
-        setTimeout(() => {
-          setShown(i + 1);
-          setTyping(i < BUBBLES.length - 1);
-          if (i > 0) blip();
-        }, at),
-      );
-      at += 500;
+    let at = 900;
+    let n = 0;
+    lines.forEach((line) => {
+      if (line.kind === "bubble") {
+        t.push(setTimeout(() => setTyping(true), at));
+        at += line.typing;
+        const i = ++n;
+        t.push(
+          setTimeout(() => {
+            setTyping(false);
+            setShown(i);
+            blip();
+          }, at),
+        );
+        at += 650;
+      } else {
+        const first = line.big === "12 hours";
+        t.push(
+          setTimeout(() => {
+            setTyping(false);
+            setCard(line);
+            slam(first ? 1 : 0.7);
+            // the countdown starts the moment it is said, and stays
+            if (first) setClockFrom(Date.now());
+          }, at),
+        );
+        at += line.hold;
+        t.push(setTimeout(() => setCard(null), at));
+        at += 500;
+      }
     });
-    at += 1100;
+    at += 1000;
     t.push(setTimeout(() => setSeen(true), at));
     // the name comes apart, reads E.V. for a breath, and comes back
-    at += 900;
+    at += 1300;
     t.push(
       setTimeout(() => {
-        glitchSound(0.5);
+        glitchSound(0.7);
         const stop = Date.now() + 700;
         scramble = setInterval(() => {
           if (Date.now() > stop) {
@@ -141,7 +284,7 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
         }, 45);
       }, at),
     );
-    at += 1700;
+    at += 2200;
     t.push(
       setTimeout(() => {
         setName(from);
@@ -149,7 +292,7 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
       }, at),
     );
     // then the thread switches off like an old screen
-    at += 1400;
+    at += 1600;
     t.push(
       setTimeout(() => {
         tubeOff();
@@ -157,19 +300,19 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
         gsap.to(root.current, { scaleX: 0, duration: 0.4, delay: 0.5, ease: "power2.in" });
       }, at),
     );
-    t.push(setTimeout(onDone, at + 1300));
+    t.push(setTimeout(onDone, at + 1400));
     return () => {
       t.forEach(clearTimeout);
       clearInterval(scramble);
     };
-  }, [from, onDone]);
+  }, [from, lines, onDone]);
 
   // each new bubble is torn in: an RGB split, a jolt sideways, a blur that clears
   useGSAP(
     () => {
       const b = root.current?.querySelector(`[data-bubble="${shown - 1}"]`);
       if (!b) return;
-      if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (reduced()) {
         gsap.from(b, { opacity: 0, duration: 0.2 });
         return;
       }
@@ -200,8 +343,9 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
   );
 
   return (
-    <div className={styles.stage}>
-      <div ref={root} className={styles.thread}>
+    <div className={`${styles.stage} ${styles.dread}`}>
+      <div className={styles.grain} aria-hidden="true" />
+      <div ref={root} className={styles.thread} data-dim={!!card}>
         <header className={styles.head}>
           <span className={styles.avatar} aria-hidden="true">
             {(name[0] ?? "?").toUpperCase()}
@@ -210,11 +354,12 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
             <b data-ev={name === "E.V."}>{name}</b>
             <small>{status}</small>
           </span>
+          {clockFrom && <Countdown from={clockFrom} />}
         </header>
         <div className={styles.messages} aria-live="polite">
-          {BUBBLES.slice(0, shown).map((text, i) => (
-            <p key={i} data-bubble={i} className={i === BUBBLES.length - 1 ? styles.caseBubble : styles.bubble}>
-              {text}
+          {bubbles.slice(0, shown).map((b, i) => (
+            <p key={i} data-bubble={i} className={b.style === "case" ? styles.caseBubble : styles.bubble}>
+              {b.text}
             </p>
           ))}
           {typing && (
@@ -227,6 +372,33 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
           {seen && <small className={styles.seen}>seen just now</small>}
         </div>
       </div>
+      {card && <FullLine key={card.big} card={card} />}
+    </div>
+  );
+}
+
+/**
+ * A line that takes the whole screen: each word slams in, the screen shakes, it flickers.
+ * CSS keyframes, not tweens (invite.module.css .card): they run on time, so a throttled
+ * tab can never leave a word invisible.
+ */
+function FullLine({ card }: { card: Card }) {
+  // a keystroke for every letter of the small line, as if typed somewhere else
+  useEffect(() => {
+    if (!card.small) return;
+    const typed = Array.from(card.small, (_, i) => setTimeout(key, i * 45));
+    return () => typed.forEach(clearTimeout);
+  }, [card.small]);
+  return (
+    <div className={styles.card} role="alert">
+      {card.small && <p className={styles.cardSmall}>{card.small}</p>}
+      <p className={styles.cardBig}>
+        {card.big.split(" ").map((w, i) => (
+          <span key={i} className={styles.cardWord} style={{ animationDelay: `${0.1 + i * 0.14}s` }}>
+            {w}
+          </span>
+        ))}
+      </p>
     </div>
   );
 }

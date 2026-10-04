@@ -85,8 +85,12 @@ export default function Locate() {
     glitchNow(0.5);
     const next = tried.includes(flat) ? tried : [...tried, flat];
     setTried(next);
-    if (next.length === 2) dispatch({ type: "notify", from: "anon", text: "…the one that's been empty for a year." });
-    if (next.length === 4) dispatch({ type: "notify", from: "anon", text: "…she asked Hale which flat. Read it.", open: "messages" });
+    // each wrong flat sends the player somewhere else she wrote it down: a note, a search, a chat
+    if (next.length === 2)
+      dispatch({ type: "notify", from: "anon", text: "…she listed five things she was sure of. One is a flat.", open: "notes", item: "sure" });
+    if (next.length === 4)
+      dispatch({ type: "notify", from: "anon", text: "…she searched for it the night she went.", open: "history" });
+    if (next.length === 6) dispatch({ type: "notify", from: "anon", text: "…she asked Hale which flat. Read it.", open: "messages", item: "hale" });
   };
 
   useEffect(() => {

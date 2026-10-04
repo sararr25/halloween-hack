@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CALLS } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
 import type { RecordingId } from "@/lib/audio/voices";
@@ -34,12 +34,20 @@ export default function Phone() {
   const calls = CALLS.filter((c) => !c.fromStage || state.stage >= c.fromStage);
   const [openId, setOpenId] = useState<string | null>(null);
   const call = calls.find((c) => c.id === openId);
+  // the hints follow what was opened (Desktop.tsx PATH)
+  useEffect(() => {
+    if (openId === "ev") dispatch({ type: "clue", id: "voicemail_ev" });
+    if (openId === "unknown") dispatch({ type: "clue", id: "voicemail_unknown" });
+  }, [openId, dispatch]);
+  const open = (id: string) => setOpenId(id);
 
-  const open = (id: string) => {
-    setOpenId(id);
-    if (id === "ev") dispatch({ type: "clue", id: "voicemail_ev" });
-    if (id === "unknown") dispatch({ type: "clue", id: "voicemail_unknown" });
-  };
+  // a hint or a note can point at one call
+  const asked = state.focus.phone;
+  const [seen, setSeen] = useState<number | undefined>(undefined);
+  if (asked && asked.n !== seen && calls.some((c) => c.id === asked.item)) {
+    setSeen(asked.n);
+    setOpenId(asked.item);
+  }
 
   return (
     <Split
@@ -47,7 +55,8 @@ export default function Phone() {
         <Row
           key={c.id}
           active={c.id === openId}
-          unread={!!c.voicemail && c.kind === "missed" && c.id !== openId && c.days < 7}
+          // the calls that came in with the backup stand out too, old as they are
+          unread={!!c.voicemail && c.kind === "missed" && c.id !== openId && (c.days < 7 || c.fromStage !== undefined)}
           onClick={() => open(c.id)}
           title={<span className={c.kind === "missed" ? styles.missed : ""}>{c.who}</span>}
           meta={when(c.days, c.time)}

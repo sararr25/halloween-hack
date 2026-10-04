@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import gsap from "gsap";
-import { blip, creepyMessage, key, musicBox, tubeOff } from "@/lib/audio/sfx";
+import { creepyMessage, key, musicBox, shutter, staticSwell, subThud, tubeOff } from "@/lib/audio/sfx";
+import { afterBed, alertChime, recOn } from "@/lib/audio/dread";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { downloadCaseFile } from "@/lib/story/casefile";
 import { grabFrame } from "@/lib/story/frames";
@@ -119,6 +120,7 @@ export default function Login() {
   const [saving, setSaving] = useState(false);
   const download = async () => {
     const { openedAt, session, clues, wrongCodes, interruptions, blinks } = state;
+    shutter();
     setSaving(true);
     try {
       await downloadCaseFile({
@@ -158,23 +160,41 @@ export default function Login() {
     }
   };
 
+  // The after-screen has its own sound (owner playtest: it was silent once the file was
+  // saved): a clock ticking in an empty room under everything, and each beat its own sound.
+  // The clock stops the moment the reminder is answered: time is up.
+  const stopBed = useRef<((fade?: number) => void) | null>(null);
+  useEffect(() => () => stopBed.current?.(0.3), []);
+  const typeOut = (text: string) => Array.from(text, (_, i) => setTimeout(key, 80 + i * 38));
   const [after, setAfter] = useState(0); // 1 REC, 2 the open case, 3 the sender, 4 pass it on, 5 the reminder
   useEffect(() => {
     if (step !== "after") return;
+    stopBed.current = afterBed();
+    const typed: ReturnType<typeof setTimeout>[] = [];
     const t = [
-      setTimeout(() => setAfter(1), AFTER_REC_MS),
-      setTimeout(() => setAfter(2), AFTER_LINE_MS),
+      setTimeout(() => {
+        setAfter(1);
+        recOn();
+      }, AFTER_REC_MS),
+      setTimeout(() => {
+        setAfter(2);
+        typed.push(...typeOut("case 0418 · status: open"));
+      }, AFTER_LINE_MS),
       setTimeout(() => {
         setAfter(3);
-        blip();
+        creepyMessage();
       }, AFTER_SEE_MS),
-      setTimeout(() => setAfter(4), AFTER_PASS_MS),
+      setTimeout(() => {
+        setAfter(4);
+        subThud(1);
+        staticSwell(0.6);
+      }, AFTER_PASS_MS),
       setTimeout(() => {
         setAfter(5);
-        blip();
+        alertChime();
       }, AFTER_REMIND_MS),
     ];
-    return () => t.forEach(clearTimeout);
+    return () => [...t, ...typed].forEach(clearTimeout);
   }, [step]);
 
   // The reminder: "add" saves a real event and plays a music box winding down; "not now" gets
@@ -183,10 +203,12 @@ export default function Login() {
   const [ending, setEnding] = useState<"remind" | "later" | null>(null);
   const answer = (remind: boolean) => {
     if (remind) downloadReminder(state.openedAt, name.trim());
+    stopBed.current?.();
     setEnding(remind ? "remind" : "later");
   };
   useEffect(() => {
     if (!ending) return;
+    if (ending === "later") creepyMessage();
     const hold = ending === "remind" ? musicBox() : LATER_HOLD_MS;
     const t = [
       setTimeout(() => {

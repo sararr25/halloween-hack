@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { key } from "@/lib/audio/sfx";
@@ -12,6 +12,8 @@ import styles from "./views.module.css";
 
 gsap.registerPlugin(useGSAP);
 
+const CLUES: Record<string, string> = { dated: "note_dated", code: "note_code", lights: "note_lights", sure: "note_sure" };
+
 // S5 · Notes. E.V.'s voice is literary. The first note carries today's real date and
 // writes itself when opened, with one mistake corrected, as if by hand.
 export default function Notes() {
@@ -22,12 +24,25 @@ export default function Notes() {
   const [openId, setOpenId] = useState<string | null>(NOTES[0].id);
   const note = notes.find((n) => n.id === openId);
   const body = useRef<HTMLDivElement>(null);
+  const [read, setRead] = useState<Set<string>>(() => new Set());
 
   const open = (id: string) => {
     setOpenId(id);
-    if (id === "dated") dispatch({ type: "clue", id: "note_dated" });
-    if (id === "code") dispatch({ type: "clue", id: "note_code" });
+    setRead((r) => new Set(r).add(id));
   };
+  // the hints follow what was read (Desktop.tsx PATH, Locate.tsx)
+  useEffect(() => {
+    const clue = openId && CLUES[openId];
+    if (clue) dispatch({ type: "clue", id: clue });
+  }, [openId, dispatch]);
+
+  // a hint or a notice can point at one note
+  const asked = state.focus.notes;
+  const [seen, setSeen] = useState<number | undefined>(undefined);
+  if (asked && asked.n !== seen && notes.some((n) => n.id === asked.item)) {
+    setSeen(asked.n);
+    open(asked.item);
+  }
 
   // Blink → the line under the cursor flickers for 80 ms.
   usePresenceEvent("blink", () => {
@@ -98,6 +113,8 @@ export default function Notes() {
         <Row
           key={n.id}
           active={n.id === openId}
+          // the note that changed on its own tonight stands out until it is read
+          unread={n.fromStage !== undefined && !read.has(n.id) && n.id !== openId}
           onClick={() => open(n.id)}
           title={f(n.title)}
           meta={when(n.days)}

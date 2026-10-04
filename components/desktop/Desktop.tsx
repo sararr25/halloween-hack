@@ -41,23 +41,75 @@ const IDLE_NUDGE_MS = 100_000;
 // Hints follow one path through the story (owner playtest: a fixed list sent people to the
 // phone before the photo, and back and forth in stage 2). Each step knows when it is done;
 // the sender only ever points at the first step not done yet, and the hint opens the exact
-// chat, photo or mail. Nothing is said while the player is making progress.
-type Step = { done: (c: Record<string, number>, wrong: number) => boolean; text: string; open?: AppId; item?: string };
+// note, chat, photo or call. Nothing is said while the player is making progress.
+// The path crosses apps on purpose (owner playtest: everything led to the mail): each item
+// on it names the next place to look, so the player can follow it without any hint.
+//  stage 1  note "lights across" → Theo's chat → IMG_0418 → the figure in the street
+//  stage 2  note "backup" (changed tonight) → the No caller ID voicemail → the code
+// The objective in the menubar is the same step, in the system's words.
+type Clues = Record<string, number>;
+type Step = { done: (c: Clues, wrong: number) => boolean; objective: string; text: string; open?: AppId; item?: string };
 const PATH: Record<1 | 2, Step[]> = {
   1: [
-    { done: (c) => "chat_theo" in c, text: "…Theo asked her about a photo. Read their messages.", open: "messages", item: "theo" },
-    { done: (c) => "photo_0418" in c, text: "…the photo she sent Theo. IMG_0418.", open: "photos", item: "IMG_0418" },
-    { done: (c) => "photo_figure" in c, text: "…not the window. The street under it. Hold the lens on her.", open: "photos", item: "IMG_0418" },
+    {
+      done: (c) => "note_lights" in c || "chat_theo" in c || "photo_0418" in c,
+      objective: "find out what she saw across the road",
+      text: "…she wrote down every night the light came on. Her notes.",
+      open: "notes",
+      item: "lights",
+    },
+    {
+      done: (c) => "chat_theo" in c || "photo_0418" in c,
+      objective: "find who she sent frame 6 to",
+      text: "…she sent it to the only one who looks properly. Her brother.",
+      open: "messages",
+      item: "theo",
+    },
+    {
+      done: (c) => "photo_0418" in c,
+      objective: "find the photo she sent",
+      text: "…the photo she sent Theo. IMG_0418.",
+      open: "photos",
+      item: "IMG_0418",
+    },
+    {
+      done: (c) => "photo_figure" in c,
+      objective: "find what she saw in IMG_0418",
+      text: "…not the window. The street under it. Hold the lens on her.",
+      open: "photos",
+      item: "IMG_0418",
+    },
   ],
   2: [
-    { done: (c) => "heard_ev-forlater" in c, text: "…she left a voice memo, in a mail for later. Listen to it.", open: "mail", item: "for-later" },
-    { done: (_, wrong) => wrong > 0, text: "…look at when that mail arrived. Four digits, like a clock.", open: "mail", item: "for-later" },
-    { done: () => false, text: "…it's the minute you came in. The Recovery menu remembers it." },
+    {
+      done: (c, wrong) => "note_code" in c || "voicemail_unknown" in c || wrong > 0,
+      objective: "read the note that changed tonight",
+      text: "…one of her notes changed tonight. “backup”.",
+      open: "notes",
+      item: "code",
+    },
+    {
+      done: (c, wrong) => "voicemail_unknown" in c || wrong > 0,
+      objective: "find the call that said the numbers",
+      text: "…No caller ID, the night she went. Read what the phone wrote, not what you hear.",
+      open: "phone",
+      item: "unknown",
+    },
+    {
+      done: (_, wrong) => wrong > 0,
+      objective: "open backup_you · four digits",
+      text: "…the transcript heard what the static covered. Four digits, like a clock.",
+      open: "phone",
+      item: "unknown",
+    },
+    { done: () => false, objective: "open backup_you · four digits", text: "…it's the minute you came in. The Recovery menu remembers it." },
   ],
 };
+const stepOf = (stage: 1 | 2, clues: Clues, wrong: number) => PATH[stage].find((p) => !p.done(clues, wrong));
 // first hint after this long without progress, then the next one after HINT_AGAIN
-const HINT_FIRST = 75_000;
-const HINT_AGAIN = 60_000;
+// (long enough to wander: the path is meant to be found by reading)
+const HINT_FIRST = 120_000;
+const HINT_AGAIN = 70_000;
 
 /**
  * Turns clues into story beats: the stage changes only on key clues (photo figure → 2,
@@ -85,7 +137,7 @@ function useDirector() {
   const lastHint = useRef<string | null>(null);
   const hint = (st: 1 | 2) => {
     if (calm.current) return;
-    const step = PATH[st].find((p) => !p.done(clues, wrongCodes));
+    const step = stepOf(st, clues, wrongCodes);
     if (!step || lastHint.current === step.text) return;
     lastHint.current = step.text;
     dispatch({ type: "notify", from: "anon", text: step.text, open: step.open, item: step.item });
@@ -93,7 +145,7 @@ function useDirector() {
   };
 
   useEffect(() => {
-    say("welcome", "anon", "She kept everything. Start with the mail.", 2500, "mail");
+    say("welcome", "anon", "She kept everything. Notes, calls, photos. Start with what she wrote down.", 2500, "notes", "lights");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,9 +171,12 @@ function useDirector() {
   useEffect(() => {
     if (stage === 1 && "photo_figure" in clues) {
       dispatch({ type: "stage", stage: 2 });
-      // the clues for the code arrive with the backup, not before (no skipping ahead)
-      say("stage2", "system", "1 new mail · E.V. · for later · scheduled", 1500, "mail", "for-later");
+      // the clues for the code arrive with the backup, not before (no skipping ahead);
+      // the first one is a note that changed by itself, and it points at the phone
+      say("stage2", "system", "Notes · “backup” · edited just now", 1500, "notes", "code");
     }
+    // the mail she scheduled lands once the phone has been heard: a second voice, not the first
+    if (stage === 2 && "voicemail_unknown" in clues) say("forlater", "system", "1 new mail · E.V. · for later · scheduled", 9000, "mail", "for-later");
     if (stage === 2 && "backup_open" in clues) {
       dispatch({ type: "stage", stage: 3 });
       say("stage3", "system", `you spent ${duration(clues.backup_open)} getting here`, 900);
@@ -332,10 +387,7 @@ function objectiveOf(state: ReturnType<typeof useStory>["state"]) {
   if (calm) return "find where her phone is";
   if (stage === 3 && isOpen("session")) return "read it. close it when you're ready";
   if (stage === 3) return "open the file still being written";
-  if (stage === 2) return "heard_ev-forlater" in clues ? "open backup_you · four digits" : "read the mail that just arrived";
-  if ("photo_0418" in clues) return "find what she saw in IMG_0418";
-  if ("chat_window" in clues) return "find the photo she sent";
-  return "read her mail and messages";
+  return stepOf(stage === 2 ? 2 : 1, clues, state.wrongCodes)?.objective ?? "open backup_you · four digits";
 }
 
 function Objective() {
