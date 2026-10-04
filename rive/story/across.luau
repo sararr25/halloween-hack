@@ -6,16 +6,11 @@
 --    The lit window (4A) is the anchor, so the figure layer in Reveal.tsx stays glued to it.
 -- 2. window_across.wgsl layer 0, "screen": the light in 4A, its spill, its reflection on the
 --    wet road, the lamp's bloom.
--- 3. The figure in 4A (owner, round 10): the owner's backlit silhouette, made unisex
---    (short hair) and cut into pieces by scripts/make-figure.py: body, head, forearm with
---    the hand. Clipped to the glass, standing to below the sill, blurred while the camera is
---    far and sharp as it pushes in. The head copies the player's head; the forearm turns
---    about the elbow (which lifts when the hand is out of reach) so the hand is where the
---    player's is (armX, armY: the palm from the nose in face widths, mirrored); on the
---    other side it hangs. Then the window bars and the sheer curtain over it.
+-- 3. The figure in 4A is not drawn here: it is a rigged 3D person (lib/figure3d.ts) drawn by
+--    Reveal.tsx over this canvas, with the window's bars and curtain in front of it.
 -- 4. Under corruption, torn strips of the photo slide sideways.
 -- 5. window_across.wgsl layer 1: rain, vignette, grain, scanline tears.
--- The host writes across/headX, headY, zoom, light, corruption, figure, neon, armX, armY.
+-- The host writes across/headX, headY, zoom, light, corruption, figure, neon.
 type Across = {
     across: Input<Data.Across>?,
     plate: Image?,
@@ -33,16 +28,6 @@ type Across = {
     sampler: ImageSampler,
     time: number,
     size: Vector,
-    figBody: Image?,
-    figHead: Image?,
-    figArm: Image?,
-    figBodySoft: Image?,
-    figHeadSoft: Image?,
-    figArmSoft: Image?,
-    clip: Path,
-    bars: Path,
-    curtain: Path,
-    shade: Path,
 }
 
 local SCENE_W = 1536
@@ -54,26 +39,6 @@ local COLS = 32
 local ROWS = 22
 -- how far the nearest part of the street travels when the head is fully turned (photo px)
 local PARALLAX = 46
--- the glass of 4A (photo px); keep in sync with window_across.wgsl
-local GLASS = { x0 = 884, y0 = 300, x1 = 944, y1 = 424 }
--- The figure. Its pieces (scripts/make-figure.py) are drawn at 916 x 1145 and saved at half
--- that ("sharp") and an eighth, padded ("soft"); every number below is in those 916-scale
--- px, turned into photo px by FIG_K. The neck (457, 575) stands at NECK in the photo.
-local FIG_K = 0.0454
-local NECK = Vector.xy(912, 339)
-local PAD = 64 -- sharp px around a soft piece
-local BODY_AT = Vector.xy(434, 39) -- the neck, in the body piece
-local HEAD_AT = Vector.xy(295, 517) -- the neck, in the head piece
-local ARM_AT = Vector.xy(153, 671) -- the elbow, in the forearm piece
--- the right elbow from the neck, and the hand's centre from the elbow, as drawn
-local ELBOW = Vector.xy(369, 410)
-local HAND = Vector.xy(-36, -555)
--- the nose from the neck, and a face width: the unit of armX, armY
-local NOSE = Vector.xy(0, -175)
-local FACE_W = 300
--- how far the elbow may lift towards a hand out of reach (916-scale px)
-local ELBOW_LIFT = 120
-
 local function v(self: Across, name: string): number
     local a = self.across
     if a == nil then
@@ -85,9 +50,7 @@ local function v(self: Across, name: string): number
     if name == "light" then return a.light.value end
     if name == "corruption" then return a.corruption.value end
     if name == "figure" then return a.figure.value end
-    if name == "neon" then return a.neon.value end
-    if name == "armX" then return a.armX.value end
-    return a.armY.value
+    return a.neon.value
 end
 
 -- how near each part of the photo is, 0 (the facade, the roofs) .. 1 (the road at the bottom)
@@ -98,12 +61,6 @@ end
 
 function init(self: Across, context: Context): boolean
     self.plate = context:image("plate_sharp")
-    self.figBody = context:image("fig_body")
-    self.figHead = context:image("fig_head")
-    self.figArm = context:image("fig_arm")
-    self.figBodySoft = context:image("fig_body_soft")
-    self.figHeadSoft = context:image("fig_head_soft")
-    self.figArmSoft = context:image("fig_arm_soft")
     local shader = context:shader("window_across")
     self.light = context:gpuCanvas()
     self.top = context:gpuCanvas()
@@ -177,107 +134,6 @@ local function render(self: Across, canvas: GPUCanvas, ubo: GPUBuffer, group: GP
     pass:finish()
 end
 
-local function box(p: Path, x0: number, y0: number, x1: number, y1: number)
-    p:moveTo(Vector.xy(x0, y0))
-    p:lineTo(Vector.xy(x1, y0))
-    p:lineTo(Vector.xy(x1, y1))
-    p:lineTo(Vector.xy(x0, y1))
-    p:close()
-end
-
--- one piece, its anchor placed at `at` (a transform in 916-scale px), sharp over soft by `near`
-local function piece(self: Across, renderer: Renderer, at: Mat2D, sharp: Image?, soft: Image?, anchor: Vector, alpha: number, near: number)
-    local softA = math.clamp(2 - 2 * near, 0, 1) * alpha
-    local sharpA = math.clamp(2 * near, 0, 1) * alpha
-    if soft ~= nil and softA > 0.004 then
-        renderer:save()
-        renderer:transform(at * Mat2D.withScale(8, 8) * Mat2D.withTranslation(-(anchor.x / 2 + PAD) / 4, -(anchor.y / 2 + PAD) / 4))
-        renderer:drawImage(soft, self.sampler, "srcOver", softA)
-        renderer:restore()
-    end
-    if sharp ~= nil and sharpA > 0.004 then
-        renderer:save()
-        renderer:transform(at * Mat2D.withScale(2, 2) * Mat2D.withTranslation(-anchor.x / 2, -anchor.y / 2))
-        renderer:drawImage(sharp, self.sampler, "srcOver", sharpA)
-        renderer:restore()
-    end
-end
-
-local function figure(self: Across, renderer: Renderer, toScreen: Mat2D, alpha: number, near: number)
-    local hx = v(self, "headX")
-    local hy = v(self, "headY")
-    -- in photo px from here on (the glass clips), the pieces in 916-scale px from the neck.
-    -- The body leans a little into the turn and breathes, barely; the head goes where the
-    -- player's goes.
-    self.clip:reset()
-    self.bars:reset()
-    self.curtain:reset()
-    self.shade:reset()
-    renderer:save()
-    renderer:transform(toScreen)
-    box(self.clip, GLASS.x0, GLASS.y0, GLASS.x1, GLASS.y1)
-    renderer:clipPath(self.clip)
-    local breathe = math.sin(self.time * 1.6)
-    local body = Mat2D.withTranslation(NECK.x, NECK.y) * Mat2D.withScale(FIG_K, FIG_K) * Mat2D.withTranslation(hx * 30, breathe * 4)
-    local head = body * Mat2D.withTranslation(hx * 50, hy * 30) * Mat2D.withRotation(hx * 0.14)
-    piece(self, renderer, body, self.figBody, self.figBodySoft, BODY_AT, alpha, near)
-    piece(self, renderer, head, self.figHead, self.figHeadSoft, HEAD_AT, alpha, near)
-
-    -- the forearms: the hand goes where the player's is; the other one hangs at rest
-    local want = Vector.xy(v(self, "armX"), v(self, "armY"))
-    local reach = Vector.length(HAND)
-    for _, side in { -1, 1 } do
-        local mine = (want.x >= 0) == (side > 0)
-        local elbow = Vector.xy(ELBOW.x * side, ELBOW.y)
-        local target = if mine then NOSE + want * FACE_W else elbow + Vector.xy(0, reach)
-        local d = target - elbow
-        local dist = Vector.length(d)
-        -- out of reach: the upper arm lifts the elbow towards it, a little
-        if dist > reach then
-            elbow = elbow + Vector.normalized(d) * math.min(dist - reach, ELBOW_LIFT)
-            d = target - elbow
-            dist = Vector.length(d)
-        end
-        local dir = Vector.normalized(d)
-        -- pointing down it is part of the body; it shows as it comes up and out
-        local show = math.clamp((0.45 - dir.y) / 0.6, 0, 1)
-        if show > 0.004 then
-            -- the drawn forearm points along HAND (mirrored on the left): turn it onto dir,
-            -- a little shorter when the hand is nearer than the arm is long
-            local turn = math.atan2(dir.y, dir.x) - math.atan2(HAND.y, HAND.x * side)
-            local stretch = math.clamp(dist / reach, 0.82, 1.04)
-            local at = body * Mat2D.withTranslation(elbow.x, elbow.y) * Mat2D.withRotation(turn) * Mat2D.withScale(side, stretch)
-            piece(self, renderer, at, self.figArm, self.figArmSoft, ARM_AT, alpha * show, near)
-        end
-    end
-
-    -- the bulb is high: the bottom of the room, and of whoever stands in it, falls dark
-    box(self.shade, GLASS.x0, 360, GLASS.x1, GLASS.y1)
-    renderer:drawPath(self.shade, Paint.with({
-        style = "fill",
-        gradient = Gradient.linear(Vector.xy(0, 360), Vector.xy(0, GLASS.y1), {
-            { position = 0, color = Color.rgba(4, 5, 7, 0) },
-            { position = 1, color = Color.rgba(4, 5, 7, math.floor(200 * alpha)) },
-        }),
-    }))
-
-    -- in front: the sheer curtain on the left, catching the light, and the bars
-    box(self.curtain, GLASS.x0, GLASS.y0, GLASS.x0 + 24, GLASS.y1)
-    local light = v(self, "light")
-    renderer:drawPath(self.curtain, Paint.with({
-        style = "fill",
-        gradient = Gradient.linear(Vector.xy(GLASS.x0, 0), Vector.xy(GLASS.x0 + 24, 0), {
-            { position = 0, color = Color.rgba(216, 220, 229, math.floor(46 * light)) },
-            { position = 0.7, color = Color.rgba(216, 220, 229, math.floor(30 * light)) },
-            { position = 1, color = Color.rgba(216, 220, 229, 0) },
-        }),
-    }))
-    box(self.bars, GLASS.x0 + 28.8, GLASS.y0, GLASS.x0 + 31.2, GLASS.y1)
-    box(self.bars, GLASS.x0, GLASS.y0 + 58.8, GLASS.x1, GLASS.y0 + 61.2)
-    renderer:drawPath(self.bars, Paint.with({ color = Color.rgba(8, 9, 11, 230), style = "fill" }))
-    renderer:restore()
-end
-
 function draw(self: Across, renderer: Renderer)
     local plate = self.plate
     if plate == nil or self.size.x <= 0 then
@@ -320,16 +176,7 @@ function draw(self: Across, renderer: Renderer)
         renderer:drawImage((light :: GPUCanvas).image, self.sampler, "screen", 1)
     end
 
-    -- 3 · the figure: soft while the camera is far, sharp as it reaches the window
-    local alpha = v(self, "figure") * math.min(v(self, "light"), 1 - v(self, "corruption"))
-    if alpha > 0.005 then
-        local near = math.clamp((zoom - 0.25) / 0.7, 0, 1)
-        near = near * near * (3 - 2 * near)
-        local toScreen = Mat2D.withTranslation(cx, cy) * Mat2D.withScale(s, s) * Mat2D.withTranslation(-LIT_X + drift, -LIT_Y)
-        figure(self, renderer, toScreen, alpha, near)
-    end
-
-    -- 4 · corruption: strips of the photo torn sideways, a different few every tenth of a second
+    -- 3 · corruption: strips of the photo torn sideways, a different few every tenth of a second
     local corruption = v(self, "corruption")
     if corruption > 0.01 then
         local tick = math.floor(self.time * 10)
@@ -354,7 +201,7 @@ function draw(self: Across, renderer: Renderer)
         end
     end
 
-    -- 5 · rain, vignette, grain
+    -- 4 · rain, vignette, grain
     if ready then
         render(self, top :: GPUCanvas, self.topUbo :: GPUBuffer, self.topGroup :: GPUBindGroup, 1)
         renderer:drawImage((top :: GPUCanvas).image, self.sampler, "srcOver", 1)
@@ -379,16 +226,6 @@ return function(context: Context): Layout<Across>
         sampler = ImageSampler("clamp", "clamp", "bilinear"),
         time = 0,
         size = Vector.xy(0, 0),
-        figBody = nil,
-        figHead = nil,
-        figArm = nil,
-        figBodySoft = nil,
-        figHeadSoft = nil,
-        figArmSoft = nil,
-        clip = Path.new(),
-        bars = Path.new(),
-        curtain = Path.new(),
-        shade = Path.new(),
         init = init,
         resize = resize,
         advance = advance,

@@ -15,10 +15,8 @@
           zoom          0..1 push-in on the lit window
           light         0..1 the window lighting up
           corruption    0..1 blocks and smears at the end
-          figure        0..1 the figure's presence
+          figure        0..1 the figure's presence (drawn by Reveal.tsx, lib/figure3d.ts)
           neon          0..1 cyan in the light
-          armX, armY    the figure's hand, in face widths from its nose (mirrored); the
-                        player's palm with the camera, else raised or at rest by the host
     -->
 
     <!-- ============================== Scan ============================== -->
@@ -91,8 +89,6 @@
         <ViewModelPropertyNumber name="corruption" id="1:56"/>
         <ViewModelPropertyNumber name="figure" id="1:57"/>
         <ViewModelPropertyNumber name="neon" id="1:58"/>
-        <ViewModelPropertyNumber name="armX" id="1:60"/>
-        <ViewModelPropertyNumber name="armY" id="1:61"/>
         <ViewModelInstance exports="true" name="Default" id="1:51">
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:52"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:53"/>
@@ -101,8 +97,6 @@
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:56"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:57"/>
             <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="1:58"/>
-            <ViewModelInstanceNumber propertyValue="1.2" viewModelPropertyId="1:60"/>
-            <ViewModelInstanceNumber propertyValue="4.5" viewModelPropertyId="1:61"/>
         </ViewModelInstance>
     </ViewModel>
 
@@ -117,10 +111,4 @@
     <ScriptAsset file="across.luau" name="across" id="1:80"/>
     <!-- S9 draws the real photo of the terrace (round 9), the same plate as IMG_0418 -->
     <ImageAsset file="../photo/plate_sharp.jpg" name="plate_sharp" id="1:90"/>
-    <ImageAsset file="fig_body.png" name="fig_body" id="1:91"/>
-    <ImageAsset file="fig_head.png" name="fig_head" id="1:92"/>
-    <ImageAsset file="fig_arm.png" name="fig_arm" id="1:93"/>
-    <ImageAsset file="fig_body_soft.png" name="fig_body_soft" id="1:94"/>
-    <ImageAsset file="fig_head_soft.png" name="fig_head_soft" id="1:95"/>
-    <ImageAsset file="fig_arm_soft.png" name="fig_arm_soft" id="1:96"/>
 </Rive>

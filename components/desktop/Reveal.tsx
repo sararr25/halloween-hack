@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { glitchSound, key, lightSwitch, playRoom, recordRoom, staticSwell, subThud, tapeWarble } from "@/lib/audio/sfx";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { acrossRive, useMountedRive } from "@/lib/rive/persistent";
+import { Figure3D } from "@/lib/figure3d";
 import { callVoice } from "@/lib/audio/call";
 import LiveFeed from "./LiveFeed";
 import { useStory } from "@/lib/story/store";
@@ -15,7 +16,8 @@ import styles from "./reveal.module.css";
 //  1. What the session recorded, in the second person, one line at a time (click or a key
 //     moves on). Behind it the window across lights up with the stutter of an old tube.
 //     A shape stands in it from the start, soft as the camera is far, sharper as it pushes in
-//     (rive/story across.luau draws it; owner, round 10).
+//     (owner, round 10: a rigged 3D person, lib/figure3d.ts, over the Rive window, with the
+//     window's bars and sheer curtain in front of it).
 //  2. The figure comes forward and copies the player's head 1:1, no lag. "don't move."
 //     makes them try, and see it.
 //  3. "raise your hand." (E.V.'s voice note). With the camera the figure's arm goes where
@@ -34,10 +36,19 @@ const LIFT_TOP = 0.15;
 const LIFT_HOLD_MS = 600;
 const ROOM_MS = 3000;
 const FEED_MS = 8000;
-// The figure's hand, in face widths from its nose (mirrored like the head; see armX, armY
-// in across.luau): hanging at rest, and raised beside the head when it raises it alone
-const ARM_REST = { x: 1.12, y: 4.2 };
-const ARM_UP = { x: 1.1, y: 0.1 };
+// The Across artboard (it covers the screen), and inside it the photo of the terrace, which
+// across.luau covers the artboard with; the lit window's glass in photo px (keep in sync with
+// across.luau and window_across.wgsl).
+const ART = { w: 1280, h: 800 };
+const PHOTO = { w: 1536, h: 1024 };
+const LIT = { x: 914, y: 362 };
+const WIN = { w: 60, h: 124 };
+// The figure's hand when it raises it by itself, in face widths from its nose (mirrored like
+// the head): beside the head, a little above the eyes. It comes up from this far below.
+const ARM_UP = { x: 1.8, y: -0.3 };
+const ARM_RISE = 3.2;
+// how soft the figure is with the camera far away, as a share of the glass's width
+const SOFT = 0.035;
 // with the camera, the player's hand this far above their nose counts as raised
 const RAISED_Y = -0.2;
 
@@ -58,6 +69,8 @@ export default function Reveal() {
   const scripted = useRef(false);
 
   useMountedRive(host, acrossRive);
+  const figureCanvas = useRef<HTMLCanvasElement>(null);
+  const glassBox = useRef<HTMLDivElement>(null);
 
   // Once the figure is there it is the user: no smoothing, no delay.
   const head = useRef({ x: 0, y: 0 });
@@ -122,29 +135,45 @@ export default function Reveal() {
     a.set("neon", 0.6);
     a.set("headX", 0);
     a.set("headY", 0);
-    a.set("armX", ARM_REST.x);
-    a.set("armY", ARM_REST.y);
 
-    // every frame: the figure's head and hand (rive/story across.luau draws it). Its hand
-    // goes where the player's is (camera), else it is raised or lowered by `hand`.
+    // the figure in the window (lib/figure3d.ts), drawn every frame inside the glass, which
+    // follows the camera's push-in (the same maths as window_across.wgsl and across.luau)
+    const cv = figureCanvas.current!;
+    const fig = new Figure3D(cv);
+    void fig.load();
     let raf = 0;
-    const arm = { ...ARM_REST };
     const pose = () => {
       raf = requestAnimationFrame(pose);
-      if (!following.current) return;
-      a.set("headX", head.current.x);
-      a.set("headY", head.current.y);
-      const live = scripted.current ? null : tracker.state.arm;
-      const want = live ?? {
-        x: ARM_REST.x + (ARM_UP.x - ARM_REST.x) * v.hand,
-        y: ARM_REST.y + (ARM_UP.y - ARM_REST.y) * v.hand,
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const sc = Math.max(vw / ART.w, vh / ART.h);
+      const cover = Math.max(ART.w / PHOTO.w, ART.h / PHOTO.h);
+      const z = 1 + 4.2 * v.zoom * v.zoom;
+      const k = cover * z * sc;
+      const glass = {
+        x: (vw - ART.w * sc) / 2 + (ART.w / 2 + (LIT.x - PHOTO.w / 2) * cover) * sc - (WIN.w / 2) * k,
+        y: (vh - ART.h * sc) / 2 + (ART.h / 2 + (LIT.y - PHOTO.h / 2) * cover) * sc - (WIN.h / 2) * k,
+        w: WIN.w * k,
+        h: WIN.h * k,
       };
-      // the player's hand is copied as it is, no lag; a hand lost from view drops gently
-      const k = live || v.hand > 0 ? 1 : 0.12;
-      arm.x += (want.x - arm.x) * k;
-      arm.y += (want.y - arm.y) * k;
-      a.set("armX", arm.x);
-      a.set("armY", arm.y);
+      const box = glassBox.current;
+      if (box) {
+        box.style.transform = `translate(${glass.x}px, ${glass.y}px) scale(${k})`;
+        box.style.opacity = String(Math.min(v.light, 1 - v.corruption));
+      }
+      // far: soft; near: sharp. Seen through the glass, never pure black.
+      const near = Math.min(1, Math.max(0, (v.zoom - 0.25) / 0.7));
+      cv.style.filter = `blur(${(SOFT * glass.w * (1 - near) * (1 - near)).toFixed(2)}px)`;
+      cv.style.opacity = String(v.figure * Math.min(v.light, 1 - v.corruption));
+
+      if (following.current) {
+        a.set("headX", head.current.x);
+        a.set("headY", head.current.y);
+      }
+      // its hand goes where the player's is (camera), else it is raised by `hand`
+      const live = following.current && !scripted.current ? tracker.state.arm : null;
+      const arm = live ?? (v.hand > 0.02 ? { x: ARM_UP.x, y: ARM_UP.y + (1 - v.hand) * ARM_RISE } : null);
+      fig.render(glass, { headX: following.current ? head.current.x : 0, headY: following.current ? head.current.y : 0, arm });
       if (live && live.y < RAISED_Y) palm.current?.();
     };
     raf = requestAnimationFrame(pose);
@@ -289,6 +318,7 @@ export default function Reveal() {
       timers.forEach(clearTimeout);
       tweens.forEach((t) => t.kill());
       cancelAnimationFrame(raf);
+      fig.dispose();
       following.current = false;
     };
     // runs once for the whole scene
@@ -298,6 +328,14 @@ export default function Reveal() {
   return (
     <div className={styles.reveal}>
       <div ref={host} className={styles.scene} data-black={black || feed !== "off"} />
+      <canvas ref={figureCanvas} className={styles.figure} data-black={black || feed !== "off"} aria-hidden="true" />
+      {/* in front of the figure: the window's sheer curtain, its bars, the dark low in the
+          room. Sizes are photo px of the glass (60 x 124); `pose` scales the box. */}
+      <div ref={glassBox} className={styles.glass} data-black={black || feed !== "off"} aria-hidden="true">
+        <i className={styles.shade} />
+        <i className={styles.curtain} />
+        <i className={styles.bars} />
+      </div>
       {feed !== "off" && !black && (
         <div className={styles.feedWrap} data-cut={feed === "cut"}>
           <LiveFeed />
