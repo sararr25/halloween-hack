@@ -6,12 +6,13 @@
 --    The lit window (4A) is the anchor, so the figure layer in Reveal.tsx stays glued to it.
 -- 2. window_across.wgsl layer 0, "screen": the light in 4A, its spill, its reflection on the
 --    wet road, the lamp's bloom.
--- 3. The figure in 4A, drawn here as vector paths (owner, round 10): a black silhouette
---    clipped to the glass, standing to below the sill, feathered while the camera is far
---    and sharper the closer it pushes in. Its head copies the player's head; its arms are
---    two bones each, and the hand goes where the player's hand is (armX, armY: the palm
---    measured from the nose in face widths, mirrored), the elbow worked out from it. Then
---    the window bars and the sheer curtain over it.
+-- 3. The figure in 4A (owner, round 10): the owner's backlit silhouette, made unisex
+--    (short hair) and cut into pieces by scripts/make-figure.py: body, head, forearm with
+--    the hand. Clipped to the glass, standing to below the sill, blurred while the camera is
+--    far and sharp as it pushes in. The head copies the player's head; the forearm turns
+--    about the elbow (which lifts when the hand is out of reach) so the hand is where the
+--    player's is (armX, armY: the palm from the nose in face widths, mirrored); on the
+--    other side it hangs. Then the window bars and the sheer curtain over it.
 -- 4. Under corruption, torn strips of the photo slide sideways.
 -- 5. window_across.wgsl layer 1: rain, vignette, grain, scanline tears.
 -- The host writes across/headX, headY, zoom, light, corruption, figure, neon, armX, armY.
@@ -32,15 +33,16 @@ type Across = {
     sampler: ImageSampler,
     time: number,
     size: Vector,
-    body: Path,
-    hair: Path,
-    strands: Path,
-    arm: Path,
-    hand: Path,
-    fingers: Path,
+    figBody: Image?,
+    figHead: Image?,
+    figArm: Image?,
+    figBodySoft: Image?,
+    figHeadSoft: Image?,
+    figArmSoft: Image?,
     clip: Path,
     bars: Path,
     curtain: Path,
+    shade: Path,
 }
 
 local SCENE_W = 1536
@@ -54,16 +56,23 @@ local ROWS = 22
 local PARALLAX = 46
 -- the glass of 4A (photo px); keep in sync with window_across.wgsl
 local GLASS = { x0 = 884, y0 = 300, x1 = 944, y1 = 424 }
--- the figure, in photo px from the centre of its head: a person standing a step back from
--- the window, seen to below the sill. HEAD_W is one face width, the unit of armX, armY.
-local HEAD = Vector.xy(912, 333)
-local HEAD_W = 15
-local SHOULDER = Vector.xy(15, 23)
-local UPPER = 19
-local FORE = 17
--- where a hand hangs at rest, in face widths from the nose (mirrored for the left arm)
-local REST = Vector.xy(1.12, 4.2)
-local INK = Color.rgb(7, 8, 11)
+-- The figure. Its pieces (scripts/make-figure.py) are drawn at 916 x 1145 and saved at half
+-- that ("sharp") and an eighth, padded ("soft"); every number below is in those 916-scale
+-- px, turned into photo px by FIG_K. The neck (457, 575) stands at NECK in the photo.
+local FIG_K = 0.0454
+local NECK = Vector.xy(912, 339)
+local PAD = 64 -- sharp px around a soft piece
+local BODY_AT = Vector.xy(434, 39) -- the neck, in the body piece
+local HEAD_AT = Vector.xy(295, 517) -- the neck, in the head piece
+local ARM_AT = Vector.xy(153, 671) -- the elbow, in the forearm piece
+-- the right elbow from the neck, and the hand's centre from the elbow, as drawn
+local ELBOW = Vector.xy(369, 410)
+local HAND = Vector.xy(-36, -555)
+-- the nose from the neck, and a face width: the unit of armX, armY
+local NOSE = Vector.xy(0, -175)
+local FACE_W = 300
+-- how far the elbow may lift towards a hand out of reach (916-scale px)
+local ELBOW_LIFT = 120
 
 local function v(self: Across, name: string): number
     local a = self.across
@@ -89,6 +98,12 @@ end
 
 function init(self: Across, context: Context): boolean
     self.plate = context:image("plate_sharp")
+    self.figBody = context:image("fig_body")
+    self.figHead = context:image("fig_head")
+    self.figArm = context:image("fig_arm")
+    self.figBodySoft = context:image("fig_body_soft")
+    self.figHeadSoft = context:image("fig_head_soft")
+    self.figArmSoft = context:image("fig_arm_soft")
     local shader = context:shader("window_across")
     self.light = context:gpuCanvas()
     self.top = context:gpuCanvas()
@@ -162,19 +177,6 @@ local function render(self: Across, canvas: GPUCanvas, ubo: GPUBuffer, group: GP
     pass:finish()
 end
 
-local function ellipse(p: Path, c: Vector, rx: number, ry: number, m: Mat2D)
-    local k = 0.5523
-    local function pt(x: number, y: number): Vector
-        return m * Vector.xy(c.x + x, c.y + y)
-    end
-    p:moveTo(pt(rx, 0))
-    p:cubicTo(pt(rx, ry * k), pt(rx * k, ry), pt(0, ry))
-    p:cubicTo(pt(-rx * k, ry), pt(-rx, ry * k), pt(-rx, 0))
-    p:cubicTo(pt(-rx, -ry * k), pt(-rx * k, -ry), pt(0, -ry))
-    p:cubicTo(pt(rx * k, -ry), pt(rx, -ry * k), pt(rx, 0))
-    p:close()
-end
-
 local function box(p: Path, x0: number, y0: number, x1: number, y1: number)
     p:moveTo(Vector.xy(x0, y0))
     p:lineTo(Vector.xy(x1, y0))
@@ -183,135 +185,83 @@ local function box(p: Path, x0: number, y0: number, x1: number, y1: number)
     p:close()
 end
 
--- two bones from the shoulder to a hand at `want`; the elbow bends outward, away from the
--- body (side = -1 left, 1 right). Returns the elbow and where the wrist ends up.
-local function reach(sh: Vector, want: Vector, side: number): (Vector, Vector)
-    local d = want - sh
-    local len = math.clamp(Vector.length(d), 4, UPPER + FORE - 0.01)
-    local dir = Vector.normalized(d)
-    local wrist = sh + dir * len
-    local cosA = math.clamp((UPPER * UPPER + len * len - FORE * FORE) / (2 * UPPER * len), -1, 1)
-    local a = math.acos(cosA)
-    local base = math.atan2(dir.y, dir.x)
-    local e1 = sh + Vector.xy(math.cos(base + a), math.sin(base + a)) * UPPER
-    local e2 = sh + Vector.xy(math.cos(base - a), math.sin(base - a)) * UPPER
-    local elbow = if e1.x * side > e2.x * side then e1 else e2
-    return elbow, wrist
-end
-
--- one arm: the sleeve as a thick stroke through the elbow, then an open hand at the wrist,
--- fingers along the forearm, the thumb towards the body
-local function armTo(self: Across, sh: Vector, want: Vector, side: number)
-    local elbow, wrist = reach(sh, want, side)
-    self.arm:moveTo(sh)
-    self.arm:lineTo(elbow)
-    self.arm:lineTo(wrist)
-    local along = Vector.normalized(wrist - elbow)
-    local across = Vector.xy(-along.y, along.x)
-    local palm = wrist + along * 2.6
-    local turn = Mat2D.withTranslation(palm.x, palm.y) * Mat2D.withRotation(math.atan2(along.y, along.x) - math.pi / 2)
-    ellipse(self.hand, Vector.xy(0, 0), 2.5, 3.2, turn)
-    for i = 0, 3 do
-        local off = (i - 1.5) * 1.35
-        local spread = (i - 1.5) * 0.09
-        local root = palm + along * 2.4 + across * off
-        local tip = root + (along + across * spread) * (4.6 - math.abs(i - 1.4) * 0.7)
-        self.fingers:moveTo(root)
-        self.fingers:lineTo(tip)
+-- one piece, its anchor placed at `at` (a transform in 916-scale px), sharp over soft by `near`
+local function piece(self: Across, renderer: Renderer, at: Mat2D, sharp: Image?, soft: Image?, anchor: Vector, alpha: number, near: number)
+    local softA = math.clamp(2 - 2 * near, 0, 1) * alpha
+    local sharpA = math.clamp(2 * near, 0, 1) * alpha
+    if soft ~= nil and softA > 0.004 then
+        renderer:save()
+        renderer:transform(at * Mat2D.withScale(8, 8) * Mat2D.withTranslation(-(anchor.x / 2 + PAD) / 4, -(anchor.y / 2 + PAD) / 4))
+        renderer:drawImage(soft, self.sampler, "srcOver", softA)
+        renderer:restore()
     end
-    local inward = if (across.x * side) < 0 then across else across * -1
-    local root = palm + inward * 1.8 + along * 0.4
-    self.fingers:moveTo(root)
-    self.fingers:lineTo(root + (inward * 0.8 + along * 0.6) * 4)
+    if sharp ~= nil and sharpA > 0.004 then
+        renderer:save()
+        renderer:transform(at * Mat2D.withScale(2, 2) * Mat2D.withTranslation(-anchor.x / 2, -anchor.y / 2))
+        renderer:drawImage(sharp, self.sampler, "srcOver", sharpA)
+        renderer:restore()
+    end
 end
 
-local function figure(self: Across, renderer: Renderer, toScreen: Mat2D, alpha: number, feather: number)
+local function figure(self: Across, renderer: Renderer, toScreen: Mat2D, alpha: number, near: number)
     local hx = v(self, "headX")
     local hy = v(self, "headY")
-    -- the body leans a little into the turn and breathes, barely; the head goes where the
-    -- player's goes
-    local breathe = math.sin(self.time * 1.6) * 0.35
-    local bodyAt = Mat2D.withTranslation(HEAD.x + hx * 1.5, HEAD.y + breathe * 0.3)
-    local headAt = bodyAt
-        * Mat2D.withTranslation(hx * 3.5, 8 + hy * 2.2)
-        * Mat2D.withRotation(hx * 0.16)
-        * Mat2D.withTranslation(0, -8)
-
-    for _, p in { self.body, self.hair, self.strands, self.arm, self.hand, self.fingers, self.clip, self.bars, self.curtain } do
-        p:reset()
-    end
-
-    -- the torso, from the neck to well below the sill. Fills only show when wound
-    -- clockwise on screen, so these symmetric outlines are written left to right and
-    -- flipped (x -> -x) as they are placed.
-    local function b(x: number, y: number): Vector
-        return bodyAt * Vector.xy(-x, y + (if y > 14 then breathe else 0))
-    end
-    self.body:moveTo(b(-3.3, 7))
-    self.body:lineTo(b(-3.6, 13.5))
-    self.body:cubicTo(b(-6.5, 16.5), b(-13, 17.5), b(-16.5, 21))
-    self.body:cubicTo(b(-18.2, 24), b(-16.8, 32), b(-15.8, 42))
-    self.body:cubicTo(b(-14.6, 54), b(-13.2, 62), b(-13.8, 72))
-    self.body:cubicTo(b(-14.4, 84), b(-16, 96), b(-16, 130))
-    self.body:lineTo(b(16, 130))
-    self.body:cubicTo(b(16, 96), b(14.4, 84), b(13.8, 72))
-    self.body:cubicTo(b(13.2, 62), b(14.6, 54), b(15.8, 42))
-    self.body:cubicTo(b(16.8, 32), b(18.2, 24), b(16.5, 21))
-    self.body:cubicTo(b(13, 17.5), b(6.5, 16.5), b(3.6, 13.5))
-    self.body:lineTo(b(3.3, 7))
-    self.body:close()
-    -- the head, a little narrower at the jaw
-    ellipse(self.body, Vector.xy(0, 0), 7, 9.4, headAt)
-    -- hair: past the shoulders, parted, a few loose strands
-    local function h(x: number, y: number): Vector
-        return headAt * Vector.xy(-x, y)
-    end
-    self.hair:moveTo(h(0, -10.6))
-    self.hair:cubicTo(h(-7.5, -11.2), h(-10.4, -5), h(-10, 3))
-    self.hair:cubicTo(h(-9.8, 10), h(-11.2, 15), h(-9.6, 21))
-    self.hair:lineTo(h(-7.2, 17))
-    self.hair:cubicTo(h(-7.4, 11), h(-7.6, 5), h(-6.4, -1))
-    self.hair:cubicTo(h(-5, -6), h(-2, -7.5), h(0.5, -8.5))
-    self.hair:cubicTo(h(3, -7.5), h(5.6, -6), h(6.6, -1))
-    self.hair:cubicTo(h(7.6, 5), h(7.4, 11), h(7.4, 17))
-    self.hair:lineTo(h(9.8, 20.5))
-    self.hair:cubicTo(h(11.2, 15), h(9.8, 10), h(10, 3))
-    self.hair:cubicTo(h(10.4, -5), h(7.5, -11.2), h(0, -10.6))
-    self.hair:close()
-    for i, x in { -10.2, -9, 9.4, 10.6, -4, 4.4 } do
-        local fall = if math.abs(x) < 6 then 6 else 19 + (i % 2) * 3
-        local sway = math.sin(self.time * 0.9 + i) * 0.4
-        self.strands:moveTo(h(x * 0.92, if math.abs(x) < 6 then -8 else 2))
-        self.strands:quadTo(h(x * 1.08 + sway, fall * 0.6), h(x * 1.02 + sway * 2, fall))
-    end
-
-    -- the arms: shoulder to the hand, wherever the player's is
-    local nose = headAt * Vector.xy(0, 1.5)
-    local want = Vector.xy(v(self, "armX"), v(self, "armY"))
-    for _, side in { -1, 1 } do
-        local sh = bodyAt * Vector.xy(SHOULDER.x * side, SHOULDER.y + breathe)
-        -- the hand on the player's side follows them; the other hangs at rest
-        local mine = (want.x >= 0) == (side > 0)
-        local target = if mine then want else Vector.xy(REST.x * side, REST.y)
-        local hand = nose + Vector.xy(target.x, target.y) * HEAD_W
-        armTo(self, sh, hand, side)
-    end
-
-    -- clipped to the glass; seen through it, so never pure black and never quite sharp
-    box(self.clip, GLASS.x0, GLASS.y0, GLASS.x1, GLASS.y1)
+    -- in photo px from here on (the glass clips), the pieces in 916-scale px from the neck.
+    -- The body leans a little into the turn and breathes, barely; the head goes where the
+    -- player's goes.
+    self.clip:reset()
+    self.bars:reset()
+    self.curtain:reset()
+    self.shade:reset()
     renderer:save()
     renderer:transform(toScreen)
+    box(self.clip, GLASS.x0, GLASS.y0, GLASS.x1, GLASS.y1)
     renderer:clipPath(self.clip)
-    local ink = Color.opacity(INK, alpha) :: Color
-    local fill = Paint.with({ color = ink, style = "fill", feather = feather })
-    renderer:drawPath(self.body, fill)
-    renderer:drawPath(self.hair, fill)
-    renderer:drawPath(self.hand, fill)
-    renderer:drawPath(self.arm, Paint.with({ color = ink, style = "stroke", thickness = 7.2, cap = "round", join = "round", feather = feather }))
-    renderer:drawPath(self.fingers, Paint.with({ color = ink, style = "stroke", thickness = 1.25, cap = "round", feather = feather }))
-    renderer:drawPath(self.strands, Paint.with({ color = Color.opacity(INK, alpha * 0.8) :: Color, style = "stroke", thickness = 0.45, cap = "round", feather = feather }))
+    local breathe = math.sin(self.time * 1.6)
+    local body = Mat2D.withTranslation(NECK.x, NECK.y) * Mat2D.withScale(FIG_K, FIG_K) * Mat2D.withTranslation(hx * 30, breathe * 4)
+    local head = body * Mat2D.withTranslation(hx * 50, hy * 30) * Mat2D.withRotation(hx * 0.14)
+    piece(self, renderer, body, self.figBody, self.figBodySoft, BODY_AT, alpha, near)
+    piece(self, renderer, head, self.figHead, self.figHeadSoft, HEAD_AT, alpha, near)
 
-    -- in front of her: the sheer curtain on the left, catching the light, and the bars
+    -- the forearms: the hand goes where the player's is; the other one hangs at rest
+    local want = Vector.xy(v(self, "armX"), v(self, "armY"))
+    local reach = Vector.length(HAND)
+    for _, side in { -1, 1 } do
+        local mine = (want.x >= 0) == (side > 0)
+        local elbow = Vector.xy(ELBOW.x * side, ELBOW.y)
+        local target = if mine then NOSE + want * FACE_W else elbow + Vector.xy(0, reach)
+        local d = target - elbow
+        local dist = Vector.length(d)
+        -- out of reach: the upper arm lifts the elbow towards it, a little
+        if dist > reach then
+            elbow = elbow + Vector.normalized(d) * math.min(dist - reach, ELBOW_LIFT)
+            d = target - elbow
+            dist = Vector.length(d)
+        end
+        local dir = Vector.normalized(d)
+        -- pointing down it is part of the body; it shows as it comes up and out
+        local show = math.clamp((0.45 - dir.y) / 0.6, 0, 1)
+        if show > 0.004 then
+            -- the drawn forearm points along HAND (mirrored on the left): turn it onto dir,
+            -- a little shorter when the hand is nearer than the arm is long
+            local turn = math.atan2(dir.y, dir.x) - math.atan2(HAND.y, HAND.x * side)
+            local stretch = math.clamp(dist / reach, 0.82, 1.04)
+            local at = body * Mat2D.withTranslation(elbow.x, elbow.y) * Mat2D.withRotation(turn) * Mat2D.withScale(side, stretch)
+            piece(self, renderer, at, self.figArm, self.figArmSoft, ARM_AT, alpha * show, near)
+        end
+    end
+
+    -- the bulb is high: the bottom of the room, and of whoever stands in it, falls dark
+    box(self.shade, GLASS.x0, 360, GLASS.x1, GLASS.y1)
+    renderer:drawPath(self.shade, Paint.with({
+        style = "fill",
+        gradient = Gradient.linear(Vector.xy(0, 360), Vector.xy(0, GLASS.y1), {
+            { position = 0, color = Color.rgba(4, 5, 7, 0) },
+            { position = 1, color = Color.rgba(4, 5, 7, math.floor(200 * alpha)) },
+        }),
+    }))
+
+    -- in front: the sheer curtain on the left, catching the light, and the bars
     box(self.curtain, GLASS.x0, GLASS.y0, GLASS.x0 + 24, GLASS.y1)
     local light = v(self, "light")
     renderer:drawPath(self.curtain, Paint.with({
@@ -376,7 +326,7 @@ function draw(self: Across, renderer: Renderer)
         local near = math.clamp((zoom - 0.25) / 0.7, 0, 1)
         near = near * near * (3 - 2 * near)
         local toScreen = Mat2D.withTranslation(cx, cy) * Mat2D.withScale(s, s) * Mat2D.withTranslation(-LIT_X + drift, -LIT_Y)
-        figure(self, renderer, toScreen, alpha, 9 * (1 - near) * (1 - near) + 0.35)
+        figure(self, renderer, toScreen, alpha, near)
     end
 
     -- 4 · corruption: strips of the photo torn sideways, a different few every tenth of a second
@@ -429,15 +379,16 @@ return function(context: Context): Layout<Across>
         sampler = ImageSampler("clamp", "clamp", "bilinear"),
         time = 0,
         size = Vector.xy(0, 0),
-        body = Path.new(),
-        hair = Path.new(),
-        strands = Path.new(),
-        arm = Path.new(),
-        hand = Path.new(),
-        fingers = Path.new(),
+        figBody = nil,
+        figHead = nil,
+        figArm = nil,
+        figBodySoft = nil,
+        figHeadSoft = nil,
+        figArmSoft = nil,
         clip = Path.new(),
         bars = Path.new(),
         curtain = Path.new(),
+        shade = Path.new(),
         init = init,
         resize = resize,
         advance = advance,

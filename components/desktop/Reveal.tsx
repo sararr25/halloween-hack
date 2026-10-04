@@ -37,7 +37,7 @@ const FEED_MS = 8000;
 // The figure's hand, in face widths from its nose (mirrored like the head; see armX, armY
 // in across.luau): hanging at rest, and raised beside the head when it raises it alone
 const ARM_REST = { x: 1.12, y: 4.2 };
-const ARM_UP = { x: 1.6, y: -0.6 };
+const ARM_UP = { x: 1.1, y: 0.1 };
 // with the camera, the player's hand this far above their nose counts as raised
 const RAISED_Y = -0.2;
 
