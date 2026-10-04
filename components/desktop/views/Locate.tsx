@@ -97,6 +97,12 @@ export default function Locate() {
   const [message, setMessage] = useState("");
   const [replies, setReplies] = useState<string[]>([]);
   const [typing, setTyping] = useState(false);
+  // the thread scrolls inside the card; keep the newest reply in view
+  const thread = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const t = thread.current;
+    if (t) t.scrollTop = t.scrollHeight;
+  }, [replies, typing, step]);
 
   useEffect(() => {
     const t = setInterval(() => setSince((s) => s + 1), 1000);
@@ -287,7 +293,7 @@ export default function Locate() {
             </form>
           )}
           {(step === "reply" || step === "back") && (
-            <div className={styles.thread} aria-live="polite">
+            <div ref={thread} className={styles.thread} aria-live="polite">
               <p className={styles.mine}>{message.trim()}</p>
               {replies.map((r) => (
                 <p key={r} className={styles.theirs}>

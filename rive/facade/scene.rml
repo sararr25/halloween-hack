@@ -66,5 +66,4 @@
     <ImageAsset file="../photo/plate_soft.jpg" name="plate_soft" id="0:91"/>
     <ImageAsset file="figure_back.png" name="figure_back" id="0:92"/>
     <ImageAsset file="figure_front.png" name="figure_front" id="0:93"/>
-    <ImageAsset file="figure_hand.png" name="figure_hand" id="0:94"/>
 </Rive>

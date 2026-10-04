@@ -42,10 +42,12 @@ async function init() {
 }
 
 function detect(bitmap, ts, wantHands, wantPoints) {
-  const out = { type: "result", ts, m: null, blink: null, gesture: null, hand: null, points: null, aspect: bitmap.width / bitmap.height };
+  const out = { type: "result", ts, m: null, blink: null, gesture: null, hand: null, nose: null, points: null, aspect: bitmap.width / bitmap.height };
   const r = face.detectForVideo(bitmap, ts);
   // the face mesh as plain numbers (x, y, z per landmark), only when the story asks for it
   const lm = r.faceLandmarks?.[0];
+  // the nose tip and the face's width (cheek to cheek): where the hand is is measured from them
+  if (lm) out.nose = [lm[1].x, lm[1].y, Math.abs(lm[454].x - lm[234].x)];
   if (wantPoints && lm) {
     out.points = new Float32Array(lm.length * 3);
     lm.forEach((p, i) => out.points.set([p.x, p.y, p.z], i * 3));

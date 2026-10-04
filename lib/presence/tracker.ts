@@ -15,6 +15,9 @@ export type PresenceState = {
   gesture: Gesture;
   /** palm centre of a raised hand, -1..1 mirrored like the head (camera only), null when none */
   hand: { x: number; y: number } | null;
+  /** the same palm measured from the nose, in face widths, mirrored (x > 0 screen right,
+   * y > 0 below the nose); camera only, null without a hand or a face */
+  arm: { x: number; y: number } | null;
   /** diagnostics for the debug overlay */
   debug: { hands: string; rawGesture: string };
 };
@@ -61,6 +64,8 @@ type WorkerResult = {
   gesture: { name: string; score: number } | null;
   /** palm centre, normalized image coords, only on frames where hands were analysed */
   hand?: [number, number] | null;
+  /** nose tip x, y and the face's width, normalized image coords; null without a face */
+  nose: [number, number, number] | null;
   /** face mesh landmarks x, y, z (normalized image coords), only when asked for */
   points: Float32Array | null;
   /** width / height of the analysed frame */
@@ -82,6 +87,7 @@ export class PresenceTracker {
     faceLost: false,
     gesture: "none",
     hand: null,
+    arm: null,
     debug: { hands: "-", rawGesture: "-" },
   };
 
@@ -96,6 +102,7 @@ export class PresenceTracker {
   private basePitch = 0;
   private lastFaceAt = 0;
   private lastHandAt = 0;
+  private lastNose: [number, number, number] | null = null;
   private awaySince = 0;
   private blinking = false;
   private gestureCandidate: Gesture = "none";
@@ -306,6 +313,7 @@ export class PresenceTracker {
 
     // the hand, smoothed like the head; hands are analysed every other frame, so a frame
     // without that analysis (hand undefined) keeps the last value
+    if (r.nose) this.lastNose = r.nose;
     if (r.hand !== undefined) {
       if (r.hand) {
         const tx = clamp(-(r.hand[0] * 2 - 1) * HAND_GAIN);
@@ -313,7 +321,18 @@ export class PresenceTracker {
         const h = this.state.hand;
         this.state.hand = h ? { x: h.x + (tx - h.x) * HAND_EMA, y: h.y + (ty - h.y) * HAND_EMA } : { x: tx, y: ty };
         this.lastHandAt = now;
-      } else if (this.state.hand && now - this.lastHandAt > HAND_LOST_MS) this.state.hand = null;
+        const n = this.lastNose;
+        if (n && n[2] > 0) {
+          // x in image widths, y in image heights: both turned into face widths
+          const ax = -(r.hand[0] - n[0]) / n[2];
+          const ay = (r.hand[1] - n[1]) / (n[2] * r.aspect);
+          const a = this.state.arm;
+          this.state.arm = a ? { x: a.x + (ax - a.x) * HAND_EMA, y: a.y + (ay - a.y) * HAND_EMA } : { x: ax, y: ay };
+        }
+      } else if (this.state.hand && now - this.lastHandAt > HAND_LOST_MS) {
+        this.state.hand = null;
+        this.state.arm = null;
+      }
     }
 
     // a gesture counts once it is held

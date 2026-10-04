@@ -2,14 +2,14 @@
    map of Harrow St on the right, E.V.'s phone across the road from this Mac */
 
 .locate {
-  display: grid; grid-template-columns: 230px 1fr; height: calc(100% + 40px);
+  display: grid; grid-template-columns: 230px 1fr; grid-template-rows: minmax(0, 1fr); height: calc(100% + 40px);
   margin: -20px -22px; /* the map goes edge to edge, like the app */
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 }
 
 /* ── sidebar ── */
 .side {
-  display: flex; flex-direction: column; gap: 10px; padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 10px; min-height: 0;
   background: rgba(22, 24, 29, 0.92); border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
 .tabs {
@@ -18,7 +18,7 @@
 }
 .tabs span { padding: 3px 0; border-radius: 5px; }
 .tabOn { background: rgba(255, 255, 255, 0.16); color: #f2f2f4; }
-.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.list { flex: none; list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .list li { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; padding: 7px 6px; border-radius: 8px; }
 .selected { background: rgba(10, 132, 255, 0.85); }
 .selected small, .selected .far { color: rgba(255, 255, 255, 0.85); }
@@ -29,8 +29,10 @@
 .what b { font-size: 12.5px; font-weight: 600; color: #f2f2f4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .what small, .far { font-size: 11px; color: #9a9ca1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* the card never grows past the sidebar: the thread scrolls inside it, so the action button
+   under it (View live) is always in view */
 .card {
-  margin-top: auto; display: grid; gap: 3px; padding: 12px; border-radius: 10px;
+  margin-top: auto; min-height: 0; display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 10px;
   background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.07);
 }
 .card b { font-size: 14px; font-weight: 600; color: #f2f2f4; }
@@ -122,7 +124,9 @@
   color: #f2f2f4; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .lost button:disabled { opacity: 0.4; }
-.thread { display: grid; gap: 5px; margin-top: 10px; }
+.card > * { flex: none; }
+.card > .thread { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.thread { display: grid; align-content: start; gap: 5px; margin-top: 10px; }
 .thread p { margin: 0; max-width: 88%; padding: 6px 9px; border-radius: 12px; font-size: 12px; line-height: 1.3; }
 .mine { justify-self: end; background: #0a84ff; color: #fff; }
 .theirs { justify-self: start; background: rgba(255, 255, 255, 0.1); color: #f2f2f4; animation: blinkIn 0.3s ease-out both; }

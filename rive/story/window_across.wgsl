@@ -3,7 +3,7 @@
 //   layer 0 ("screen"): the light in 4A (the window above the lamp), its spill on the brick,
 //            its reflection trembling on the wet road, the lamp's bloom
 //   layer 1 (over): rain, the vignette, grain, and under corruption torn colour bands.
-// The figure in the window is the photographic layer in Reveal.tsx, glued to LIT and HALF.
+// The figure in the window is drawn by across.luau as vector paths, over layer 0.
 
 struct Uniforms {
     time: f32,
@@ -14,9 +14,9 @@ struct Uniforms {
     zoom: f32,        // 0..1 push-in on the lit window
     light: f32,       // 0..1 the lit window
     corruption: f32,  // 0..1 torn strips and colour bands
-    figure: f32,      // unused since round 9 (the figure is Reveal.tsx's layer)
+    figure: f32,      // unused here (across.luau draws the figure)
     neon: f32,        // 0..1 cyan in the light
-    hand: f32,        // unused since round 9
+    hand: f32,        // unused (always 0)
     layer: f32,       // 0 light, 1 over
     pad0: f32,
     pad1: f32,

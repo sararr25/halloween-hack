@@ -1,5 +1,13 @@
 # Handover
 
+> **2026-10-04 · round 10 (owner feedback).**
+> - **Find My:** after Mark As Lost the reply thread scrolls inside the card, so View live is always on screen without scrolling the window (`locate.module.css`).
+> - **Binoculars, 4A found:** no cut-out with a raised hand any more; someone stands in the light as a black, feathered shape drawn as paths in `rive/facade/facade.luau` (`shapeIn`), swaying with the head. `figure_hand.png` is no longer used.
+> - **S9 figure in Rive:** the DOM sprite (the raise-hand video frames) is gone; `rive/story/across.luau` draws a vector silhouette standing to below the sill, feathered while the camera is far and sharp as it pushes in (zoom now reaches 1 at "raise your hand."). Its arms are two-bone IK: with the camera the hand goes where the player's palm is (`PresenceState.arm`: palm from the nose in face widths, from the nose tip and face width added to `presence-worker.js`), live; without it, or when nobody raises a hand in time, it is raised by `hand` as before. New view model numbers `armX`, `armY`; `hand` removed. `headX`/`headY` are now written in S9, so the street's head parallax in `across.luau` works too. `public/figure/` is no longer used.
+> - **Photos:** IMG_0374's caption (the curly-haired friend) says Emma, not Mara.
+> - Fills drawn from Luau only show when wound clockwise on screen: the silhouettes are written left to right and flipped.
+> - **Not verified here:** the arm copying a real hand (needs the webcam). Mouse path checked in the in-app browser.
+
 > **2026-10-04 · round 9 (owner feedback), live.**
 > - **Binoculars, head only:** no more hand steering (`Facade.tsx`); turning right looks right (the sign was inverted). The mouse only without a camera.
 > - **The facade is the real photo now** (`rive/facade`: `facade.luau` + `binoculars.wgsl`, signed with `pnpm rive:facade`, needs `rive login`): the IMG_0413 plate (`rive/photo/plate_*.jpg`) magnified inside two lenses; windows lit on timers with curtains and sash bars kept, TV flicker, soft shapes behind curtains, a cat, rain, lens fall-off, chromatic fringe, glint, dust, a faint cyan reticle, grain; defocus = soft plate + ghost + haze while moving. Windows are measured in photo px (`WINDOWS` in Facade.tsx = `win()` in the shader). 4A = the window above the lamp (884-944 × 300-424). Watcher path U3 → U5 → U7.

@@ -275,7 +275,7 @@ export const PHOTOS: Photo[] = [
   { id: "IMG_0390", caption: "rooftop, Mara, two fingers up. “the only sign that opens anything”", days: 17 },
   { id: "IMG_0385", caption: "flowers, Saturday market", days: 19 },
   { id: "IMG_0380", caption: "Theo's dog, refusing the bath", days: 22 },
-  { id: "IMG_0374", caption: "Mara, laughing at something I said", days: 24 },
+  { id: "IMG_0374", caption: "Emma, laughing at something I said", days: 24 },
   { id: "IMG_0371", caption: "kitchen, morning light", days: 26 },
 ];
 

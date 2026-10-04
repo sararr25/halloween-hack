@@ -60,7 +60,7 @@ same image; in the house across the street one window on the second floor is now
 small tidy London flat kitchen in soft grey morning light, steam rising from a single mug on the counter, thin white curtains moving slightly, a few houseplants on the windowsill, a film camera left on the table, quiet and ordinary
 ```
 
-### IMG_0374 · Mara, laughing at something I said
+### IMG_0374 · Emma, laughing at something I said
 
 ```
 woman in her early thirties with curly dark hair laughing hard, caught mid-laugh and turning her face away from the camera, in a dim old London pub, pint glasses on the table, background soft and dark, warmth between two friends

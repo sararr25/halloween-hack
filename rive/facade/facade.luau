@@ -4,8 +4,10 @@
 -- one over it as the binoculars come into focus, and a ghost of it while they move.
 -- binoculars.wgsl layer 0 puts the light in the windows ("screen"); then, once revealed, the
 -- watcher (a cut-out facing you; until then only a shape in the shader) or, once 4A is
--- found, the figure with its hand raised, copying the player's head; then layer 1: shapes
--- behind curtains, rain, the lenses, grain.
+-- found, someone standing in it: only a black, blurred shape at this distance, drawn here
+-- as paths, swaying with the player's head (owner, round 10: no wave, no detail; the
+-- figure is only seen clearly in S9); then layer 1: shapes behind curtains, rain, the
+-- lenses, grain.
 -- The host writes facade/lookX, lookY (plate px), blur, glow, figX, figOn, turned, found
 -- (seconds since found, -1 before), headX, headY.
 type Facade = {
@@ -14,7 +16,8 @@ type Facade = {
     sharp: Image?,
     back: Image?,
     front: Image?,
-    hand: Image?,
+    shape: Path,
+    glass: Path,
     light: GPUCanvas?,
     top: GPUCanvas?,
     pipeline: GPUPipeline?,
@@ -61,7 +64,6 @@ function init(self: Facade, context: Context): boolean
     self.sharp = context:image("plate_sharp")
     self.back = context:image("figure_back")
     self.front = context:image("figure_front")
-    self.hand = context:image("figure_hand")
     local shader = context:shader("binoculars")
     self.light = context:gpuCanvas()
     self.top = context:gpuCanvas()
@@ -146,6 +148,57 @@ local function rect(x0: number, y0: number, x1: number, y1: number): Path
     return p
 end
 
+-- someone standing a step back from 4A's glass, seen to below the sill: head, hair to the
+-- shoulders, the arms hanging; black and feathered, the way binoculars see a backlit shape.
+-- Fills only show when wound clockwise on screen, so the outline is written left to right
+-- and flipped (x -> -x) as it is placed.
+local function shapeIn(self: Facade, renderer: Renderer, x: number, hx: number, hy: number, alpha: number)
+    local p = self.shape
+    p:reset()
+    local breathe = math.sin(self.time * 1.6) * 0.35
+    local body = Mat2D.withTranslation(x - 2 + hx * 1.5, 333 + breathe * 0.3)
+    local head = body * Mat2D.withTranslation(hx * 3.5, 8 + hy * 2.2) * Mat2D.withRotation(hx * 0.16) * Mat2D.withTranslation(0, -8)
+    local function b(px: number, py: number): Vector
+        return body * Vector.xy(-px, py)
+    end
+    local function h(px: number, py: number): Vector
+        return head * Vector.xy(-px, py)
+    end
+    p:moveTo(b(-3.3, 7))
+    p:lineTo(b(-3.6, 13.5))
+    p:cubicTo(b(-6.5, 16.5), b(-14, 17.5), b(-18, 21.5))
+    p:cubicTo(b(-20.5, 26), b(-19.5, 40), b(-18.5, 60))
+    p:lineTo(b(-18, 130))
+    p:lineTo(b(18, 130))
+    p:lineTo(b(18.5, 60))
+    p:cubicTo(b(19.5, 40), b(20.5, 26), b(18, 21.5))
+    p:cubicTo(b(14, 17.5), b(6.5, 16.5), b(3.6, 13.5))
+    p:lineTo(b(3.3, 7))
+    p:close()
+    -- the head with the hair round it, falling past the shoulders
+    p:moveTo(h(0, -10.8))
+    p:cubicTo(h(-7.8, -11.4), h(-10.6, -5), h(-10.2, 3))
+    p:cubicTo(h(-10, 10), h(-11.4, 15), h(-9.8, 21))
+    p:lineTo(h(-5, 17))
+    p:cubicTo(h(-3.5, 12), h(-3, 10), h(0, 9.6))
+    p:cubicTo(h(3, 10), h(3.5, 12), h(5, 17))
+    p:lineTo(h(9.8, 21))
+    p:cubicTo(h(11.4, 15), h(10, 10), h(10.2, 3))
+    p:cubicTo(h(10.6, -5), h(7.8, -11.4), h(0, -10.8))
+    p:close()
+    local g = self.glass
+    g:reset()
+    g:moveTo(Vector.xy(x - WIN_HALF, WIN_TOP))
+    g:lineTo(Vector.xy(x + WIN_HALF, WIN_TOP))
+    g:lineTo(Vector.xy(x + WIN_HALF, WIN_BOTTOM))
+    g:lineTo(Vector.xy(x - WIN_HALF, WIN_BOTTOM))
+    g:close()
+    renderer:save()
+    renderer:clipPath(g)
+    renderer:drawPath(p, Paint.with({ color = Color.rgba(6, 7, 9, math.floor(255 * alpha)), style = "fill", feather = 5.5 }))
+    renderer:restore()
+end
+
 -- a cut-out standing behind the window centred on x, clipped to its glass
 local function figureAt(self: Facade, renderer: Renderer, image: Image, x: number, sx: number, dx: number, dy: number, tilt: number, opacity: number, scale: number)
     renderer:save()
@@ -215,15 +268,9 @@ function draw(self: Facade, renderer: Renderer)
     renderer:transform(plate)
     local found = v(self, "found", -1)
     if found >= 0 then
-        -- 4A: the figure with its hand raised, copying the player's head
-        local hand = self.hand
-        if hand ~= nil then
-            local a = math.clamp((found - 0.9) / 0.5, 0, 1)
-            local hx = v(self, "headX", 0)
-            local hy = v(self, "headY", 0)
-            -- smaller and a little left, so the raised hand stays inside the glass
-            figureAt(self, renderer, hand, TARGET_X, 1, -9 + hx * 7, hy * 4, hx * 0.16, a * 0.95, FIG_SCALE * 0.78)
-        end
+        -- 4A: someone in the light, only a shape; it sways when the player moves
+        local a = math.clamp((found - 0.9) / 0.8, 0, 1)
+        shapeIn(self, renderer, TARGET_X, v(self, "headX", 0), v(self, "headY", 0), a * 0.92)
     else
         local on = v(self, "figOn", 0)
         local t = self.turn
@@ -249,7 +296,8 @@ return function(context: Context): Layout<Facade>
         sharp = nil,
         back = nil,
         front = nil,
-        hand = nil,
+        shape = Path.new(),
+        glass = Path.new(),
         light = nil,
         top = nil,
         pipeline = nil,

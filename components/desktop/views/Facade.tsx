@@ -26,8 +26,10 @@ import styles from "./facade.module.css";
 //    is gone, and paces somewhere else, each time closer.
 //  - A missed ping is not silence: the whisper from the headphone check (Gate.tsx) comes
 //    back, quieter, from the side where 4A is.
-//  - Holding a focused look on 4A for 2.5 s: its light stutters on, a raised hand, and the
-//    figure copies the player's head for a few seconds; then the reveal starts (look_live).
+//  - Holding a focused look on 4A for 2.5 s: its light stutters on and someone is standing
+//    in it, only a black, blurred shape at this distance (no wave: the figure is seen clearly
+//    only in S9), swaying with the player's head for a few seconds; then the reveal starts
+//    (look_live).
 
 // the glass of every window in the photo, as in binoculars.wgsl (keep in sync)
 type Win = { key: string; x0: number; y0: number; x1: number; y1: number };
@@ -93,7 +95,7 @@ const CAPTION_MS = 700;
 const TURN_MS = 1200;
 const LEAVE_MS = 1500;
 const FIND_MS = 2500;
-// after the light comes on, how long the hand is seen before the reveal starts
+// after the light comes on, how long the shape is seen before the reveal starts
 const FOUND_HOLD_MS = 4800;
 // the phone: a ping every 4-6 s, one in five missed; the battery and when it dies
 const PING_MS: [number, number] = [4000, 6000];
@@ -162,7 +164,7 @@ export default function Facade() {
     target.current = clampLook({ x: LOOK.x0 + fx * (LOOK.x1 - LOOK.x0), y: LOOK.y0 + fy * (LOOK.y1 - LOOK.y0) });
   };
   usePresenceEvent("change", (s) => {
-    // found: the figure in 4A copies the head (camera), or the mouse playing the head
+    // found: the shape in 4A sways with the head (camera), or the mouse playing the head
     if (foundRef.current) {
       const r = facadeRive();
       r.set("headX", s.headX);

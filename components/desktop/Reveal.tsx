@@ -14,11 +14,13 @@ import styles from "./reveal.module.css";
 // S9 · Reveal, about a minute, in beats that wait for the player.
 //  1. What the session recorded, in the second person, one line at a time (click or a key
 //     moves on). Behind it the window across lights up with the stutter of an old tube.
-//  2. Someone steps into the light and copies the player's head 1:1, no lag. "don't move."
+//     A shape stands in it from the start, soft as the camera is far, sharper as it pushes in
+//     (rive/story across.luau draws it; owner, round 10).
+//  2. The figure comes forward and copies the player's head 1:1, no lag. "don't move."
 //     makes them try, and see it.
-//  3. "raise your hand." (E.V.'s voice note). With the camera, an open palm makes the figure
-//     raise its hand *with* the player. Nothing raised in time, or no camera: it raises it
-//     anyway, on its own.
+//  3. "raise your hand." (E.V.'s voice note). With the camera the figure's arm goes where
+//     the player's hand goes, live, the elbow worked out from it. Nothing raised in time, or
+//     no camera: it raises it anyway, on its own.
 //  4. Silence while the room is recorded (microphone granted in S1, memory only), then it
 //     is played back: "that was your room."
 //  5. The window corrupts into the live camera of flat 4A: the player. Then black, login.
@@ -32,21 +34,12 @@ const LIFT_TOP = 0.15;
 const LIFT_HOLD_MS = 600;
 const ROOM_MS = 3000;
 const FEED_MS = 8000;
-// The Across artboard (it covers the screen), and inside it the photo of the terrace, which
-// across.luau covers the artboard with; the lit window in photo px (keep in sync with
-// across.luau and window_across.wgsl).
-const ART = { w: 1280, h: 800 };
-const PHOTO = { w: 1536, h: 1024 };
-const LIT = { x: 914, y: 362 };
-const WIN = { w: 60, h: 124 };
-// The figure is the owner's raise-hand animation (assets/raising-hand-animation.mp4), cut
-// into transparent frames on the canvas of the old silhouette (public/figure/raise):
-// RAISE frames scrubbed by `hand` (up with the player, down again the same way), then HOLD
-// frames of the hand held up, swaying, played back and forth while it stays up.
-const RAISE = 33;
-const HOLD = 24;
-const HOLD_FPS = 12;
-const FRAME = { w: 458, h: 573 };
+// The figure's hand, in face widths from its nose (mirrored like the head; see armX, armY
+// in across.luau): hanging at rest, and raised beside the head when it raises it alone
+const ARM_REST = { x: 1.12, y: 4.2 };
+const ARM_UP = { x: 1.6, y: -0.6 };
+// with the camera, the player's hand this far above their nose counts as raised
+const RAISED_Y = -0.2;
 
 export default function Reveal() {
   const { state, dispatch } = useStory();
@@ -60,6 +53,9 @@ export default function Reveal() {
   const advance = useRef<(() => void) | null>(null);
   const palm = useRef<(() => void) | null>(null);
   const lift = useRef<(() => void) | null>(null);
+  // the figure raising its hand by itself (no hand in time, or the mouse): the player's own
+  // hand is not followed meanwhile
+  const scripted = useRef(false);
 
   useMountedRive(host, acrossRive);
 
@@ -69,17 +65,6 @@ export default function Reveal() {
     if (!following.current) return;
     head.current = { x: s.headX, y: s.headY };
   });
-  const win = useRef<HTMLDivElement>(null);
-  const body = useRef<HTMLDivElement>(null);
-  const sprite = useRef<HTMLCanvasElement>(null);
-  const frames = useRef<HTMLImageElement[]>([]);
-  useEffect(() => {
-    frames.current = Array.from({ length: RAISE + HOLD }, (_, i) => {
-      const img = new Image();
-      img.src = `/figure/raise/${String(i).padStart(2, "0")}.webp`;
-      return img;
-    });
-  }, []);
   usePresenceEvent("gesture", (g) => {
     if (g === "palm") palm.current?.();
   });
@@ -131,70 +116,38 @@ export default function Reveal() {
     const a = acrossRive();
     const v = { zoom: 0, light: 0, figure: 0, corruption: 0, hand: 0 };
     // a fixed list: GSAP adds its own bookkeeping key to the tweened object
-    const KEYS = ["zoom", "light", "corruption"] as const;
+    const KEYS = ["zoom", "light", "figure", "corruption"] as const;
     const write = () => KEYS.forEach((k) => a.set(k, v[k]));
     write();
     a.set("neon", 0.6);
-    // the shader's own bust stays off: the figure is the photographic layer below (Figure)
-    a.set("figure", 0);
-    a.set("hand", 0);
+    a.set("headX", 0);
+    a.set("headY", 0);
+    a.set("armX", ARM_REST.x);
+    a.set("armY", ARM_REST.y);
 
-    // Keep the figure layer glued to the lit window as the camera pushes in. Same maths as
-    // window_across.wgsl: the artboard (1280 x 800) covers the screen, the zoom scales the
-    // scene around the lit window.
+    // every frame: the figure's head and hand (rive/story across.luau draws it). Its hand
+    // goes where the player's is (camera), else it is raised or lowered by `hand`.
     let raf = 0;
-    let holdFrom = -1;
-    let drawn = -1;
-    const place = () => {
-      raf = requestAnimationFrame(place);
-      const el = win.current;
-      if (!el) return;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const sc = Math.max(vw / ART.w, vh / ART.h);
-      const ox = (vw - ART.w * sc) / 2;
-      const oy = (vh - ART.h * sc) / 2;
-      // inside the artboard: the photo covers it, and the camera pushes in on the lit window
-      const cover = Math.max(ART.w / PHOTO.w, ART.h / PHOTO.h);
-      const z = 1 + 4.2 * v.zoom * v.zoom;
-      const cx = ART.w / 2 + (LIT.x - PHOTO.w / 2) * cover;
-      const cy = ART.h / 2 + (LIT.y - PHOTO.h / 2) * cover;
-      const x0 = cx - (WIN.w / 2) * cover * z;
-      const y0 = cy - (WIN.h / 2) * cover * z;
-      el.style.transform = `translate(${ox + x0 * sc}px, ${oy + y0 * sc}px) scale(${cover * z * sc})`;
-      el.style.opacity = String(Math.min(v.light, 1 - v.corruption));
-      const b = body.current;
-      const now = performance.now() / 1000;
-      if (b) {
-        const { x, y } = head.current;
-        // the head sits where the player's is; the body leans a little into the turn, and
-        // breathes, barely
-        const breath = 1 + 0.007 * Math.sin(now * 1.6);
-        b.style.transform = `translate(${x * 20}px, ${y * 9}px) rotate(${x * 3}deg) scale(1, ${breath})`;
-        b.style.opacity = String(v.figure);
-      }
-      const cv = sprite.current;
-      const ctx = cv?.getContext("2d");
-      if (ctx) {
-        let i: number;
-        if (v.hand < 0.999) {
-          holdFrom = -1;
-          i = Math.round(v.hand * (RAISE - 1));
-        } else {
-          if (holdFrom < 0) holdFrom = now;
-          // back and forth through the held frames, starting from the top of the raise
-          const k = Math.floor((now - holdFrom) * HOLD_FPS) % (2 * HOLD - 2);
-          i = RAISE + (k < HOLD ? k : 2 * HOLD - 2 - k);
-        }
-        const img = frames.current[i];
-        if (i !== drawn && img?.complete && img.naturalWidth) {
-          drawn = i;
-          ctx.clearRect(0, 0, FRAME.w, FRAME.h);
-          ctx.drawImage(img, 0, 0, FRAME.w, FRAME.h);
-        }
-      }
+    const arm = { ...ARM_REST };
+    const pose = () => {
+      raf = requestAnimationFrame(pose);
+      if (!following.current) return;
+      a.set("headX", head.current.x);
+      a.set("headY", head.current.y);
+      const live = scripted.current ? null : tracker.state.arm;
+      const want = live ?? {
+        x: ARM_REST.x + (ARM_UP.x - ARM_REST.x) * v.hand,
+        y: ARM_REST.y + (ARM_UP.y - ARM_REST.y) * v.hand,
+      };
+      // the player's hand is copied as it is, no lag; a hand lost from view drops gently
+      const k = live || v.hand > 0 ? 1 : 0.12;
+      arm.x += (want.x - arm.x) * k;
+      arm.y += (want.y - arm.y) * k;
+      a.set("armX", arm.x);
+      a.set("armY", arm.y);
+      if (live && live.y < RAISED_Y) palm.current?.();
     };
-    raf = requestAnimationFrame(place);
+    raf = requestAnimationFrame(pose);
     const tweens: gsap.core.Tween[] = [];
     const to = (vars: Partial<typeof v>, dur: number, ease = "power1.inOut") =>
       tweens.push(gsap.to(v, { ...vars, duration: dur, ease, onUpdate: write }));
@@ -227,6 +180,8 @@ export default function Reveal() {
       setTimeout(() => {
         lightSwitch();
         tweens.push(gsap.to(v, { keyframes: { light: [0.6, 0.1, 0.9, 0.3, 1] }, duration: 0.7, ease: "none", onUpdate: write }));
+        // someone is already standing in it: only a shape at this distance
+        to({ figure: 0.8 }, 3, "power1.in");
         to({ zoom: 0.55 }, 14);
       }, 2400),
     );
@@ -258,20 +213,26 @@ export default function Reveal() {
 
       // 3 · the hand
       const camera = tracker.state.source === "camera";
+      // close enough now to see it clearly
+      to({ zoom: 1 }, 4, "power2.inOut");
       say("raise your hand.", { order: true, hint: camera ? undefined : "move the mouse up." });
       const raised = await until(camera ? palm : lift, HAND_WAIT_MS);
       if (!alive) return;
       if (raised) {
-        to({ hand: 1 }, 0.3, "power3.out"); // with the player, not after
+        // with the camera the arm already moves with the player's; the mouse raises it
+        if (!camera) to({ hand: 1 }, 0.3, "power3.out"); // with the player, not after
         say(null);
         await sleep(3200);
       } else {
+        scripted.current = true;
         to({ hand: 1 }, 1.6, "power2.inOut"); // on its own
         await sleep(1200);
         say(camera ? "it raised its hand. you didn't." : "it didn't wait for you.");
         await sleep(3400);
       }
+      // down again; with the camera it goes back to following the player's hand
       to({ hand: 0 }, 1.2, "power2.inOut");
+      timers.push(setTimeout(() => (scripted.current = false), 1300));
       say(null);
       await sleep(1400);
 
@@ -337,16 +298,6 @@ export default function Reveal() {
   return (
     <div className={styles.reveal}>
       <div ref={host} className={styles.scene} data-black={black || feed !== "off"} />
-      {/* the figure behind the lit window: a photographic silhouette (public/figure, from
-          the owner's drawings) with the curtain and the window bars in front of it.
-          Everything inside is in scene units; `place` scales it with the camera. */}
-      <div ref={win} className={styles.window} data-black={black || feed !== "off"} aria-hidden="true">
-        <div ref={body} className={styles.figure}>
-          <canvas ref={sprite} className={styles.sprite} width={FRAME.w} height={FRAME.h} />
-        </div>
-        <i className={styles.curtain} />
-        <i className={styles.bars} />
-      </div>
       {feed !== "off" && !black && (
         <div className={styles.feedWrap} data-cut={feed === "cut"}>
           <LiveFeed />
