@@ -142,3 +142,12 @@ export const casefileRive = () => {
     label: "case 0420, assigned to you",
   });
 };
+
+/** Mara's face in the incoming call: ripples, the bell's jolt, the player's voice, the line dying (rive/call). */
+export const callRive = () =>
+  persistentRive("call", {
+    src: "/rive/call.riv",
+    artboard: "CallFace",
+    stateMachine: "CallFace",
+    prefix: "",
+  });

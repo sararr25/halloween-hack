@@ -11,6 +11,7 @@
     "rive:build": "rive rive/presence --once && cp rive/presence/build/presence.riv public/rive/presence.riv",
     "rive:facade": "python3 scripts/gen-facade-rml.py && rive rive/facade --once && cp rive/facade/build/facade.riv public/rive/facade.riv",
     "rive:casefile": "python3 scripts/gen-casefile-rml.py && rive rive/casefile --once && cp rive/casefile/build/casefile.riv public/rive/casefile.riv",
+    "rive:call": "rive rive/call --once && cp rive/call/build/call.riv public/rive/call.riv",
     "rive:publish": "rive rive/effects --publish && cp rive/effects/build/effects.riv public/rive/effects.riv && rive rive/photo --publish && cp rive/photo/build/photo.riv public/rive/photo.riv && pnpm rive:publish:story",
     "rive:publish:story": "rive rive/story --publish && cp rive/story/build/story.riv public/rive/story.riv"
   },

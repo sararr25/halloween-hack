@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
 import gsap from "gsap";
 import { recordVoice, ring } from "@/lib/audio/call";
 import { ringBell } from "@/lib/audio/dread";
 import { spokenPace, startCaption } from "@/lib/audio/captions";
 import { playCallLine, type CallLine } from "@/lib/audio/voices";
+import { callRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
 import VOICES from "@/lib/story/voices.json";
 import { useStory } from "@/lib/story/store";
@@ -88,6 +88,7 @@ export default function IncomingCall() {
   useEffect(() => {
     alive.current = true;
     const start = () => {
+      callRive().set("dead", 0);
       setStep("ringing");
       stopRing.current = ring();
     };
@@ -145,6 +146,7 @@ export default function IncomingCall() {
     await speak(heard ? "mara-call-2" : "mara-call-silent", 0, true);
     if (!alive.current) return;
     glitchNow(0.9);
+    callRive().set("dead", 1); // the line dies mid-word: her face tears and goes dark
     finish("answered");
   };
 
@@ -165,9 +167,7 @@ export default function IncomingCall() {
       role="dialog"
       aria-label="Incoming call from Mara"
     >
-      <span className={styles.face}>
-        <Image src="/avatars/mara.webp" alt="" width={96} height={96} />
-      </span>
+      <Face step={step} again={again} level={level} />
       <span className={styles.who}>
         <b>Mara</b>
         <small>{status[step]}</small>
@@ -200,5 +200,29 @@ export default function IncomingCall() {
         <Transcript key={saying.id} id={saying.id} className={styles.caption} text={said(saying.line)} />
       )}
     </div>
+  );
+}
+
+/**
+ * Mara's face, drawn by Rive (rive/call): ripples while it rings, a jolt with every strike of
+ * the old bell on the second call, the player's voice as a neon ring while the laptop
+ * listens. The canvas is larger than the 44 px slot so the ripples can spread past it.
+ */
+function Face({ step, again, level }: { step: Step; again: boolean; level: number }) {
+  const host = useRef<HTMLSpanElement>(null);
+  useMountedRive(host, callRive);
+  useEffect(() => {
+    const r = callRive();
+    r.set("ringing", step === "ringing" ? 1 : 0);
+    r.set("again", step === "ringing" && again ? 1 : 0);
+    if (step !== "listening") r.set("level", 0);
+  }, [step, again]);
+  useEffect(() => {
+    if (step === "listening") callRive().set("level", level);
+  }, [step, level]);
+  return (
+    <span className={styles.face} aria-hidden="true">
+      <span ref={host} className={styles.faceRive} />
+    </span>
   );
 }
