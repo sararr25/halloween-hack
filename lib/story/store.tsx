@@ -159,7 +159,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     objective: null,
   }));
 
-  // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase.
+  // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase, Alt+F opens Find My.
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     const key = (e: KeyboardEvent) => {
@@ -168,6 +168,10 @@ export function StoryProvider({ children }: { children: ReactNode }) {
       if (stage) dispatch({ type: "stage", stage });
       const phase = DEV_PHASES[e.code];
       if (phase) dispatch({ type: "phase", phase });
+      if (e.code === "KeyF") {
+        dispatch({ type: "phase", phase: "desktop" });
+        dispatch({ type: "open", id: "locate" });
+      }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);

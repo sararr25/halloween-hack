@@ -42,7 +42,7 @@ async function init() {
 }
 
 function detect(bitmap, ts, wantHands, wantPoints) {
-  const out = { type: "result", ts, m: null, blink: null, gesture: null, points: null, aspect: bitmap.width / bitmap.height };
+  const out = { type: "result", ts, m: null, blink: null, gesture: null, hand: null, points: null, aspect: bitmap.width / bitmap.height };
   const r = face.detectForVideo(bitmap, ts);
   // the face mesh as plain numbers (x, y, z per landmark), only when the story asks for it
   const lm = r.faceLandmarks?.[0];
@@ -58,8 +58,16 @@ function detect(bitmap, ts, wantHands, wantPoints) {
     out.blink = (score("eyeBlinkLeft") + score("eyeBlinkRight")) / 2;
   }
   if (hands && wantHands) {
-    const top = hands.recognizeForVideo(bitmap, ts).gestures?.[0]?.[0];
+    const g = hands.recognizeForVideo(bitmap, ts);
+    const top = g.gestures?.[0]?.[0];
     out.gesture = top ? { name: top.categoryName, score: top.score } : { name: "None", score: 1 };
+    // the palm centre (wrist + the four knuckles), normalized image coords: the hand can
+    // steer things (the binoculars in the facade, round 8)
+    const hl = g.landmarks?.[0];
+    if (hl) {
+      const palm = [0, 5, 9, 13, 17].map((i) => hl[i]);
+      out.hand = [palm.reduce((a, p) => a + p.x, 0) / 5, palm.reduce((a, p) => a + p.y, 0) / 5];
+    }
   }
   return out;
 }

@@ -13,6 +13,8 @@ export type PresenceState = {
   lookingAway: boolean;
   faceLost: boolean;
   gesture: Gesture;
+  /** palm centre of a raised hand, -1..1 mirrored like the head (camera only), null when none */
+  hand: { x: number; y: number } | null;
   /** diagnostics for the debug overlay */
   debug: { hands: string; rawGesture: string };
 };
@@ -35,6 +37,11 @@ const GESTURES: Record<string, Gesture> = {
 
 // Tuning
 const EMA = 0.3;
+// the hand: the middle 80 % of the frame covers the whole -1..1 range; it is lost after a
+// short gap so a hand dropped out of view lets the head take over again
+const HAND_GAIN = 1.25;
+const HAND_EMA = 0.35;
+const HAND_LOST_MS = 450;
 const YAW_RANGE = 18; // degrees mapped to headX = ±1
 const PITCH_RANGE = 12;
 const AWAY_YAW = 25; // |yaw| beyond this counts as looking away
@@ -52,6 +59,8 @@ type WorkerResult = {
   m: [number, number, number] | null; // facial transformation matrix entries 8, 9, 10
   blink: number | null;
   gesture: { name: string; score: number } | null;
+  /** palm centre, normalized image coords, only on frames where hands were analysed */
+  hand?: [number, number] | null;
   /** face mesh landmarks x, y, z (normalized image coords), only when asked for */
   points: Float32Array | null;
   /** width / height of the analysed frame */
@@ -72,6 +81,7 @@ export class PresenceTracker {
     lookingAway: false,
     faceLost: false,
     gesture: "none",
+    hand: null,
     debug: { hands: "-", rawGesture: "-" },
   };
 
@@ -85,6 +95,7 @@ export class PresenceTracker {
   private baseYaw = 0;
   private basePitch = 0;
   private lastFaceAt = 0;
+  private lastHandAt = 0;
   private awaySince = 0;
   private blinking = false;
   private gestureCandidate: Gesture = "none";
@@ -292,6 +303,18 @@ export class PresenceTracker {
 
     this.state.faceLost = now - this.lastFaceAt > LOST_AFTER_MS;
     this.state.lookingAway = this.awaySince > 0 && now - this.awaySince > AWAY_AFTER_MS;
+
+    // the hand, smoothed like the head; hands are analysed every other frame, so a frame
+    // without that analysis (hand undefined) keeps the last value
+    if (r.hand !== undefined) {
+      if (r.hand) {
+        const tx = clamp(-(r.hand[0] * 2 - 1) * HAND_GAIN);
+        const ty = clamp((r.hand[1] * 2 - 1) * HAND_GAIN);
+        const h = this.state.hand;
+        this.state.hand = h ? { x: h.x + (tx - h.x) * HAND_EMA, y: h.y + (ty - h.y) * HAND_EMA } : { x: tx, y: ty };
+        this.lastHandAt = now;
+      } else if (this.state.hand && now - this.lastHandAt > HAND_LOST_MS) this.state.hand = null;
+    }
 
     // a gesture counts once it is held
     if (r.gesture) {

@@ -126,3 +126,11 @@
 @keyframes blinkSoft { 50% { opacity: 0.45; } }
 @keyframes blinkIn { from { opacity: 0; translate: 0 4px; } }
 @media (prefers-reduced-motion: reduce) { .coming, .theirs { animation: none; } }
+
+/* the one thing to do now (round 8) */
+.guide {
+  margin: 0 0 6px; padding: 9px 11px; border-radius: 8px; display: grid; gap: 3px;
+  font: 400 12.5px / 1.45 var(--font-mono), monospace; color: var(--text);
+  background: rgba(0, 240, 255, 0.06); border: 1px solid rgba(0, 240, 255, 0.3);
+}
+.guide span { font-size: 10.5px; letter-spacing: 0.16em; color: var(--neon); }

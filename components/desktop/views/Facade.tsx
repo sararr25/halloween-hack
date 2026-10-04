@@ -61,7 +61,7 @@ export default function Facade() {
   const holes = useRef<SVGGElement>(null);
   const rims = useRef<SVGGElement>(null);
   const lens = useRef({ x: W / 2, y: H - 80 });
-  const lastPointer = useRef(0);
+  const [steer, setSteer] = useState<"hand" | "head">("head");
   const [over, setOver] = useState<string | null>(null);
   const [caption, setCaption] = useState<string | null>(null);
   const [turned, setTurned] = useState(false);
@@ -77,18 +77,22 @@ export default function Facade() {
     setOver(hit?.id ?? null);
   };
 
-  // the lens: the mouse, or the head when the mouse has been still and the camera is on
+  // the lens: the raised hand, else the head (owner, round 8: face or hands, not the mouse);
+  // the mouse only when there is no camera
   const move = (e: React.PointerEvent) => {
+    if (tracker.state.source === "camera") return;
     const m = svg.current?.getScreenCTM();
     if (!m) return;
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
     lens.current = { x: p.x, y: p.y };
-    lastPointer.current = Date.now();
     place();
   };
   usePresenceEvent("change", (s) => {
-    if (s.source !== "camera" || Date.now() - lastPointer.current < 1500 || foundRef.current) return;
-    lens.current = { x: W / 2 - s.headX * 300, y: H / 2 + s.headY * 220 };
+    if (s.source !== "camera" || foundRef.current) return;
+    lens.current = s.hand
+      ? { x: W / 2 + s.hand.x * (W / 2), y: H / 2 + s.hand.y * (H / 2) }
+      : { x: W / 2 - s.headX * 300, y: H / 2 + s.headY * 220 };
+    setSteer(s.hand ? "hand" : "head");
     place();
   });
   useEffect(place, []);
@@ -237,7 +241,8 @@ export default function Facade() {
       </svg>
 
       <p className={styles.head}>
-        <span className={styles.live}>● LIVE</span> 17 HARROW ST · BUILDING CAM · {camera ? "move your head" : "move the mouse"} to look
+        <span className={styles.live}>● LIVE</span> 17 HARROW ST ·{" "}
+        {!camera ? "move the mouse to look" : steer === "hand" ? "your hand moves the binoculars" : "raise your hand to move the binoculars, or turn your head"}
       </p>
       {caption && (
         <p key={caption} className={styles.caption} data-found={found}>

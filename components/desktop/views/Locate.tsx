@@ -70,6 +70,15 @@ const APPROACH_STEP_MS = 1700;
 const REPLY_EVERY_MS = 2300;
 
 type Step = "map" | "coming" | "here" | "lost" | "reply" | "back" | "live";
+// one instruction at a time, numbered (owner playtest, round 8: it was unclear what to do)
+const GUIDE: Record<Exclude<Step, "live">, [string, string]> = {
+  map: ["1 / 3", "Press Play Sound and listen. Where is it ringing?"],
+  coming: ["1 / 3", "Listen. It's moving."],
+  here: ["2 / 3", "It's here, with you. Mark the phone as lost."],
+  lost: ["2 / 3", "Write a message for whoever has it, then Send."],
+  reply: ["2 / 3", "Someone is answering."],
+  back: ["3 / 3", "Press View live and find her flat across the road."],
+};
 
 export default function Locate() {
   const { dispatch } = useStory();
@@ -207,6 +216,10 @@ export default function Locate() {
         </ul>
 
         <div className={styles.card}>
+          <p className={styles.guide} aria-live="polite">
+            <span>{GUIDE[step][0]}</span>
+            {GUIDE[step][1]}
+          </p>
           <b>E.V.&apos;s iPhone</b>
           <small>{here ? "This Mac · 0 m" : "17 Harrow St · flat unknown"}</small>
           <small>
