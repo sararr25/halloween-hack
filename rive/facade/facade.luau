@@ -2,9 +2,10 @@
 -- (plate_*.jpg, IMG_0413's view) is drawn by the 2D renderer, magnified around the look
 -- point (shaders cannot sample image assets on the web): the soft plate always, the sharp
 -- one over it as the binoculars come into focus, and a ghost of it while they move.
--- facade.wgsl layer 0 puts the light in the windows ("screen"); then the watcher (a cut-out
--- that turns round) or, once 4A is found, the figure with its hand raised, copying the
--- player's head; then layer 1: shapes behind curtains, rain, the lenses, grain.
+-- binoculars.wgsl layer 0 puts the light in the windows ("screen"); then, once revealed, the
+-- watcher (a cut-out facing you; until then only a shape in the shader) or, once 4A is
+-- found, the figure with its hand raised, copying the player's head; then layer 1: shapes
+-- behind curtains, rain, the lenses, grain.
 -- The host writes facade/lookX, lookY (plate px), blur, glow, figX, figOn, turned, found
 -- (seconds since found, -1 before), headX, headY.
 type Facade = {
@@ -99,9 +100,9 @@ end
 
 function advance(self: Facade, seconds: number): boolean
     self.time += seconds
-    -- the watcher turns round in half a second, and back the same way
+    -- the watcher is revealed over a second (the shape fades, the person comes through)
     local want = if v(self, "turned", 0) >= 0.5 then 1 else 0
-    local step = seconds * 2
+    local step = seconds * 1.1
     if self.turn < want then
         self.turn = math.min(want, self.turn + step)
     elseif self.turn > want then
@@ -124,6 +125,7 @@ local function render(self: Facade, canvas: GPUCanvas, ubo: GPUBuffer, group: GP
     buffer.writef32(d, 36, v(self, "figOn", 0))
     buffer.writef32(d, 40, v(self, "found", -1))
     buffer.writef32(d, 44, layer)
+    buffer.writef32(d, 48, self.turn)
     ubo:write(d)
     local pass = canvas:beginRenderPass({
         color = { { loadOp = "clear", storeOp = "store", clearColor = { 0, 0, 0, 0 } } },
@@ -224,13 +226,12 @@ function draw(self: Facade, renderer: Renderer)
         end
     else
         local on = v(self, "figOn", 0)
-        if on > 0.001 then
-            local t = self.turn
-            local image = if t < 0.5 then self.back else self.front
-            if image ~= nil then
-                local squash = math.max(0.04, math.abs(math.cos(t * math.pi)))
-                figureAt(self, renderer, image, v(self, "figX", 0), squash, 0, 0, 0, on * 0.85, FIG_SCALE)
-            end
+        local t = self.turn
+        local image = self.front
+        if on > 0.001 and t > 0.01 and image ~= nil then
+            -- revealed: the person comes through the curtain, facing you, with a small jolt
+            local jolt = if t < 0.35 then math.sin(t * 60) * 1.5 else 0
+            figureAt(self, renderer, image, v(self, "figX", 0), 1, jolt, 0, 0, on * t * 0.85, FIG_SCALE)
         end
     end
     renderer:restore()

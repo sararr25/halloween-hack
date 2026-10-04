@@ -21,8 +21,9 @@ import styles from "./facade.module.css";
 //    at all, louder and more centred the closer the view is. Each ping lights its window
 //    faintly for an instant, seen only by someone already looking there. The battery runs
 //    down; at 1 % the phone dies, silence, then an old bell rings once and it is back.
-//  - The watcher stands with its back to the street behind a curtain. Focus on it and it
-//    turns round. Look away and it is gone, and stands somewhere else, each time closer.
+//  - The watcher is just another shape pacing behind a curtain, like the neighbours. Hold a
+//    steady, focused look on it and it is revealed: a person, facing you. Look away and it
+//    is gone, and paces somewhere else, each time closer.
 //  - A missed ping is not silence: the whisper from the headphone check (Gate.tsx) comes
 //    back, quieter, from the side where 4A is.
 //  - Holding a focused look on 4A for 2.5 s: its light stutters on, a raised hand, and the
@@ -72,14 +73,24 @@ const WATCH_PATH = ["U3", "U5", "U7"];
 const LOOK_HIT = 14;
 // the view can travel this far (photo px): the binoculars show about 520 x 350 px of it
 const LOOK = { x0: 262, x1: 1274, y0: 176, y1: 848 };
-// head to view: turning 18° (headX = 1) sweeps half the street; nodding 12° a storey and a half
-const HEAD_RANGE = { x: 560, y: 330 };
+// head to view (owner, round 9: it took too much head): about 10° of turn crosses the whole
+// street, about 7° of nod a storey
+const HEAD_RANGE = { x: 1000, y: 560 };
+// the tracker trembles a little even when the head is still: changes smaller than this
+// (photo px) are ignored, and what passes is eased in
+const HEAD_DEADZONE = 14;
+const HEAD_EASE = 0.18;
 const LOOK_HOME = { x: 768, y: 470 };
-// focus: speed (photo px/s) that blurs fully, and how still counts as focused
-const BLUR_SPEED = 180;
-const FOCUS_BELOW = 0.14;
+// focus: speeds below SPEED_FLOOR (photo px/s) are the tracker's tremble and do not blur;
+// BLUR_SPEED blurs fully. Focus comes at FOCUS_IN and is only lost past FOCUS_OUT, so a
+// steady look stays sharp (owner, round 9: focus went while she was still)
+const SPEED_FLOOR = 40;
+const BLUR_SPEED = 420;
+const FOCUS_IN = 0.18;
+const FOCUS_OUT = 0.42;
 const CAPTION_MS = 700;
-const TURN_MS = 450;
+// the watcher is a shape like any other until a steady look rests on it this long
+const TURN_MS = 1200;
 const LEAVE_MS = 1500;
 const FIND_MS = 2500;
 // after the light comes on, how long the hand is seen before the reveal starts
@@ -160,7 +171,10 @@ export default function Facade() {
     }
     if (s.source !== "camera") return;
     // the head only; headX is already mirrored, so turning right looks right
-    target.current = clampLook({ x: LOOK_HOME.x + s.headX * HEAD_RANGE.x, y: LOOK_HOME.y + s.headY * HEAD_RANGE.y });
+    const want = clampLook({ x: LOOK_HOME.x + s.headX * HEAD_RANGE.x, y: LOOK_HOME.y + s.headY * HEAD_RANGE.y });
+    const t = target.current;
+    if (Math.hypot(want.x - t.x, want.y - t.y) < HEAD_DEADZONE) return;
+    target.current = { x: t.x + (want.x - t.x) * HEAD_EASE, y: t.y + (want.y - t.y) * HEAD_EASE };
   });
 
   useEffect(() => {
@@ -176,7 +190,7 @@ export default function Facade() {
         const ny = look.current.y + (target.current.y - look.current.y) * k;
         const speed = Math.hypot(nx - look.current.x, ny - look.current.y) / Math.max(dt, 0.001);
         look.current = { x: nx, y: ny };
-        const want = Math.min(1, speed / BLUR_SPEED);
+        const want = Math.min(1, Math.max(0, speed - SPEED_FLOOR) / BLUR_SPEED);
         // blurs at once when moving, comes into focus slowly when still
         blur.current += (want - blur.current) * (want > blur.current ? 0.5 : 1 - Math.pow(0.08, dt));
         r.set("lookX", look.current.x);
@@ -185,7 +199,7 @@ export default function Facade() {
         const { x, y } = look.current;
         const hit = WINDOWS.find((w) => x > w.x0 - LOOK_HIT && x < w.x1 + LOOK_HIT && y > w.y0 - LOOK_HIT && y < w.y1 + LOOK_HIT);
         setOver(hit?.key ?? null);
-        setFocused(blur.current < FOCUS_BELOW);
+        setFocused((f) => (f ? blur.current < FOCUS_OUT : blur.current < FOCUS_IN));
       }
       if (foundAt.current > 0) r.set("found", (now - foundAt.current) / 1000);
       if (glow.current > 0) {

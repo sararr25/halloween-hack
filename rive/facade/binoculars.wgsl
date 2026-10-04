@@ -22,7 +22,7 @@ struct Uniforms {
     figOn: f32,     // 0..1
     found: f32,     // seconds since 4A was found, < 0 before
     layer: f32,     // 0 light, 1 over
-    pad0: f32,
+    reveal: f32,    // 0..1 the watcher revealed (the host's photo cut-out takes over)
     pad1: f32,
     pad2: f32,
     pad3: f32,
@@ -127,11 +127,12 @@ fn lightOf(i: i32, t: f32) -> vec4<f32> {
         case 13: { level = 0.5 * on(c, 0.0, 20.0); }
         default: { level = 0.0; }
     }
-    // the watcher's window is lit, faintly cold, while it stands there
+    // the watcher's window is lit like any other room, so nothing gives it away; revealed,
+    // the light goes cold
     let w = win(i);
     if (u.figOn > 0.001 && u.figX > w.x && u.figX < w.z) {
-        level = max(level, 0.75 * u.figOn);
-        col = mix(col, COLD, 0.7);
+        level = max(level, 0.7 * u.figOn);
+        col = mix(col, COLD, 0.7 * u.reveal);
     }
     // 4A: dark, the phone lighting it for an instant; found, a tube that stutters on
     if (i == TARGET) {
@@ -206,6 +207,22 @@ fn shapes(pp: vec2<f32>) -> vec4<f32> {
     let reader = smin(sdEllipse(pp, vec2<f32>(1398.0, 372.0 + look), vec2<f32>(8.5, 10.5)),
                       sdEllipse(pp, vec2<f32>(1396.0, 410.0), vec2<f32>(17.0, 22.0)), 6.0);
     dst = over(dst, vec4<f32>(ink, 1.0) * cover(reader, 5.0) * inWin(pp, 8) * 0.5);
+    // the watcher, before it is revealed: one more shape pacing behind a curtain, stopping,
+    // swaying, going on
+    if (u.figOn > 0.001) {
+        let pace = sin(t * 0.33) * 16.0 + sin(t * 0.81) * 4.0;
+        let fx = u.figX + pace;
+        let sway = sin(t * 1.3) * 1.2;
+        let watcher = smin(sdEllipse(pp, vec2<f32>(fx + sway, 350.0), vec2<f32>(8.5, 10.5)),
+                           sdEllipse(pp, vec2<f32>(fx, 398.0), vec2<f32>(20.0, 34.0)), 6.0);
+        var wi = 0;
+        for (var i = 0; i < 9; i = i + 1) {
+            let w = win(i);
+            if (u.figX > w.x && u.figX < w.z) { wi = i; }
+        }
+        let a = cover(watcher, 6.0) * inWin(pp, wi) * 0.55 * u.figOn * (1.0 - u.reveal);
+        dst = over(dst, vec4<f32>(ink, 1.0) * a);
+    }
     // G2: a cat on the inside sill, its tail going
     let tail = 3.0 * sin(t * 2.1);
     let body = smin(sdEllipse(pp, vec2<f32>(392.0, 628.0), vec2<f32>(15.0, 8.0)),
