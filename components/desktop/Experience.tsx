@@ -5,7 +5,8 @@ import gsap from "gsap";
 import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay";
 import { drone, glitchSound, lightSwitch, unlockAudio } from "@/lib/audio/sfx";
 import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
-import { hideInviteParam, readInvite } from "@/lib/story/registry";
+import { hideInviteParam, passOnLink, readInvite } from "@/lib/story/registry";
+import { isNarrow, onNarrowChange } from "@/lib/viewport";
 import { enterFullscreen } from "@/lib/fullscreen";
 import { music, riser, type MusicMode } from "@/lib/audio/music";
 import { PresenceProvider, usePresenceEvent } from "@/lib/presence/context";
@@ -323,7 +324,60 @@ function Phases() {
   }
 }
 
+/**
+ * A shared link opened on a phone (round 8 B1): the DM plays there too, then the case asks
+ * for a computer and offers to send the link on. Most shared links are opened on a phone.
+ */
+function PhoneInvite({ token }: { token: string }) {
+  const [read, setRead] = useState<boolean | null>(null); // null while the DM plays
+  const [sent, setSent] = useState<"no" | "shared" | "copied" | "failed">("no");
+  const done = useCallback((played: boolean) => setRead(played), []);
+  useEffect(() => hideInviteParam(), []);
+  const url = passOnLink(token);
+  const send = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "case 0420", url });
+        setSent("shared");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setSent("copied");
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return; // share sheet closed
+      console.error(err);
+      setSent("failed");
+    }
+  };
+  if (read === null) return <InviteDM token={token} onDone={done} />;
+  // an unknown link: nothing was shown, it is just the small-screen notice
+  if (!read)
+    return (
+      <div className={styles.screen}>
+        <p className={styles.mono}>This device cannot run the recovery. Use a desktop.</p>
+      </div>
+    );
+  return (
+    <div className={styles.screen}>
+      <p className={styles.hint}>CASE 0420 · ASSIGNED</p>
+      <p className={styles.mono}>This case only opens on a computer, with headphones on.</p>
+      <p className={`${styles.mono} ${styles.neonLine}`}>we&apos;ll wait.</p>
+      <button className={styles.cta} onClick={send}>
+        send the link to myself
+      </button>
+      {sent === "copied" && <p className={styles.hint}>link copied</p>}
+      {sent === "failed" && <p className={styles.hint}>copy it by hand: {url}</p>}
+    </div>
+  );
+}
+
+const narrowSnapshot = () => isNarrow();
+const inviteSnapshot = () => readInviteOnce();
+
 export default function Experience() {
+  const narrow = useSyncExternalStore(onNarrowChange, narrowSnapshot, () => false);
+  const token = useSyncExternalStore(noSubscribe, inviteSnapshot, () => null);
+  if (narrow && token) return <PhoneInvite token={token} />;
   return (
     <StoryProvider>
       <PresenceProvider>

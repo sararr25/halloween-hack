@@ -15,7 +15,6 @@ Draw order in RML: the first element declared paints on top.
 """
 from pathlib import Path
 
-W, H = 900, 560
 FPS = 60
 _next = [100]
 
@@ -58,7 +57,6 @@ def kf(prop, frames):
     return f'<KeyedProperty propertyKey="{prop}">{k}</KeyedProperty>'
 
 
-X0, XV = 170, 400
 ROWS = [
     ("status", "reassigned", None, 1.2),
     ("operator", "you", None, 2.2),
@@ -69,39 +67,58 @@ STAMP_AT = 5.4
 LINE1_AT, LINE2_AT = 7.4, 9.4
 END_S = 12.5
 
+# two layouts of the same page: landscape for a computer, portrait for a phone (round 8 B1:
+# a shared link is mostly opened on a phone)
+LAYOUTS = {
+    "CaseFile": dict(w=900, h=560, x0=170, header=(92, 36, 8), tag=(730, 104, "right"), rule=(150, 560),
+                     row=lambda i: ((170, 182 + i * 44), (400, 182 + i * 44)), label=22, value=22,
+                     stamp=(700, 340, 1.0), lines=(392, 452, 44)),
+    "CaseFilePortrait": dict(w=420, h=760, x0=40, header=(110, 32, 6), tag=(40, 164, "left"), rule=(196, 340),
+                             row=lambda i: ((40, 222 + i * 78), (40, 248 + i * 78)), label=15, value=22,
+                             stamp=(290, 556, 0.8), lines=(606, 656, 34)),
+}
 
-def build():
+
+def artboard(name, ab_id, sm_id, L):
+    reveals.clear()
+    x0 = L["x0"]
     parts = []
     # the two lines, after a held silence: italic, larger
-    parts.append(text(X0, 392, "find her.", 44, TEXT, ITAL, 0, None, LINE1_AT, LINE1_AT + 1.0))
-    parts.append(text(X0, 452, "or you&apos;re next.", 44, TEXT, ITAL, 0, None, LINE2_AT, LINE2_AT + 1.2))
+    y1, y2, ls = L["lines"]
+    parts.append(text(x0, y1, "find her.", ls, TEXT, ITAL, 0, None, LINE1_AT, LINE1_AT + 1.0))
+    parts.append(text(x0, y2, "or you&apos;re next.", ls, TEXT, ITAL, 0, None, LINE2_AT, LINE2_AT + 1.2))
 
     # the stamp: a neon box, rotated, slams down from above the page
     stamp = nid()
+    sx, sy, sk = L["stamp"]
     parts.append(
-        f'<Node x="700" y="340" rotation="-0.16" opacity="0" name="Stamp" id="{stamp}">'
+        f'<Node x="{sx}" y="{sy}" rotation="-0.16" opacity="0" name="Stamp" id="{stamp}">'
+        + f'<Node scaleX="{sk}" scaleY="{sk}" name="Size">'
         + text(0, 0, "ASSIGNED", 30, NEON, MONO, 6, None, None, None, origin=(0.5, 0.5))
         + '<Shape name="Box"><Rectangle width="236" height="64" cornerRadiusTL="6" name="R"/>'
         f'<Stroke thickness="3" name="Stroke"><SolidColor colorValue="{NEON}" name="C"/></Stroke>'
         '<Stroke thickness="10" name="Glow"><SolidColor colorValue="5500F0FF" name="C"/><Feather strength="16" name="F"/></Stroke></Shape>'
-        + "</Node>"
+        + "</Node></Node>"
     )
 
     # the fields
     for i, (label, value, bindprop, at) in enumerate(ROWS):
-        y = 182 + i * 44
+        (lx, ly), (vx, vy) = L["row"](i)
         color = NEON if label == "remaining" else TEXT
-        parts.append(text(XV, y, value or "someone", 22, color, MONO, 1, bindprop, at + 0.15, at + 0.75))
-        parts.append(text(X0, y, label, 22, MUTED, MONO, 1, None, at, at + 0.4))
+        parts.append(text(vx, vy, value or "someone", L["value"], color, MONO, 1, bindprop, at + 0.15, at + 0.75))
+        parts.append(text(lx, ly, label, L["label"], MUTED, MONO, 1, None, at, at + 0.4))
 
     # the header and its rule
     rule = nid()
+    ry, rw = L["rule"]
     parts.append(
-        f'<Shape x="{X0}" y="150" scaleX="0" name="Rule" id="{rule}"><Rectangle x="0" y="0" width="560" height="1.5" originX="0" originY="0" name="R"/>'
+        f'<Shape x="{x0}" y="{ry}" scaleX="0" name="Rule" id="{rule}"><Rectangle x="0" y="0" width="{rw}" height="1.5" originX="0" originY="0" name="R"/>'
         '<Fill name="Fill"><SolidColor colorValue="66E6E8EE" name="C"/></Fill></Shape>'
     )
-    parts.append(text(X0, 92, "CASE 0420", 36, TEXT, MONO, 8, None, 0.0, 0.7))
-    parts.append(text(X0 + 560, 104, "RECOVERY/4", 14, MUTED, MONO, 3, None, 0.4, 0.9, origin=(1, 0)))
+    hy, hs, hsp = L["header"]
+    parts.append(text(x0, hy, "CASE 0420", hs, TEXT, MONO, hsp, None, 0.0, 0.7))
+    tx, ty, side = L["tag"]
+    parts.append(text(tx, ty, "RECOVERY/4", 14, MUTED, MONO, 3, None, 0.4, 0.9, origin=(1 if side == "right" else 0, 0)))
 
     page = nid()
     body = "".join(parts)
@@ -137,11 +154,10 @@ def build():
     idle_keys += f'<KeyedObject objectId="{stamp}">{kf(18, [(0, 0, "hold")])}</KeyedObject>'
     idle_keys += f'<KeyedObject objectId="{rule}">{kf(16, [(0, 0, "hold")])}</KeyedObject>'
 
-    doc = (
-        '<Rive version="1" kind="fragment">\n'
-        f'<Artboard defaultStateMachineId="0:7" viewModelId="{VM}" viewModelInstanceId="{VMI}" clip="true" width="{W}" height="{H}" name="CaseFile" id="0:2">\n'
+    return (
+        f'<Artboard defaultStateMachineId="{sm_id}" viewModelId="{VM}" viewModelInstanceId="{VMI}" clip="true" width="{L["w"]}" height="{L["h"]}" name="{name}" id="{ab_id}">\n'
         f'<Node x="0" y="0" name="Page" id="{page}">{body}</Node>\n'
-        '<StateMachine name="CaseFile" id="0:7"><StateMachineLayer name="Play">'
+        f'<StateMachine name="{name}" id="{sm_id}"><StateMachineLayer name="Play">'
         '<AnyState x="200" y="-120"/><ExitState x="400" y="-120"/>'
         f'<EntryState><StateTransition stateToId="{s_idle}"/></EntryState>'
         f'<AnimationState x="160" y="0" animationId="{idle}" id="{s_idle}"><StateTransition stateToId="{s_seq}">{cond}</StateTransition></AnimationState>'
@@ -150,7 +166,15 @@ def build():
         f'<LinearAnimation loopValue="oneShot" duration="6" name="Idle" id="{idle}">{idle_keys}</LinearAnimation>\n'
         f'<LinearAnimation loopValue="oneShot" duration="{round(END_S * FPS)}" name="Sequence" id="{seq}">{keyed}</LinearAnimation>\n'
         "</Artboard>\n"
-        f'<ViewModel defaultInstanceId="{VMI}" name="CaseFile" id="{VM}">'
+    )
+
+
+def build():
+    doc = (
+        '<Rive version="1" kind="fragment">\n'
+        + artboard("CaseFile", "0:2", "0:7", LAYOUTS["CaseFile"])
+        + artboard("CaseFilePortrait", "0:3", "0:8", LAYOUTS["CaseFilePortrait"])
+        + f'<ViewModel defaultInstanceId="{VMI}" name="CaseFile" id="{VM}">'
         f'<ViewModelPropertyString name="from" id="{P["from"]}"/><ViewModelPropertyString name="remaining" id="{P["remaining"]}"/>'
         f'<ViewModelPropertyNumber name="play" id="{P["play"]}"/>'
         f'<ViewModelInstance exports="true" name="Default" id="{VMI}">'

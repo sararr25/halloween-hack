@@ -154,6 +154,7 @@
 
 /* Sound */
 .hint { font-family: var(--font-mono), monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+.neonLine { color: var(--neon); text-shadow: 0 0 12px rgba(0, 240, 255, 0.5); }
 .soundMenu { font-family: var(--font-mono), monospace; font-size: 11px; color: var(--muted); transition: color 120ms; }
 .floatControls { position: fixed; right: 20px; bottom: 16px; z-index: 3000; display: flex; gap: 18px; }
 .soundMenu:hover { color: var(--text); }

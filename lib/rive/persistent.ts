@@ -2,6 +2,7 @@
 
 import { useEffect, type RefObject } from "react";
 import { Fit, Layout, Rive, RuntimeLoader } from "@rive-app/webgl2";
+import { isNarrow } from "@/lib/viewport";
 
 RuntimeLoader.setWasmUrl("/rive/rive.wasm");
 
@@ -129,12 +130,15 @@ export const facadeRive = () =>
     label: "17 Harrow Street at night, through binoculars",
   });
 
-/** The pass-it-on DM: the case file that takes the screen (rive/casefile, flat view model "CaseFile"). */
-export const casefileRive = () =>
-  persistentRive("casefile", {
+/** The pass-it-on DM: the case file that takes the screen (rive/casefile, flat view model
+ * "CaseFile"); a portrait page of the same file on a phone. */
+export const casefileRive = () => {
+  const portrait = isNarrow() && window.innerHeight > window.innerWidth;
+  return persistentRive(portrait ? "casefilePortrait" : "casefile", {
     src: "/rive/casefile.riv",
-    artboard: "CaseFile",
-    stateMachine: "CaseFile",
+    artboard: portrait ? "CaseFilePortrait" : "CaseFile",
+    stateMachine: portrait ? "CaseFilePortrait" : "CaseFile",
     prefix: "",
     label: "case 0420, assigned to you",
   });
+};

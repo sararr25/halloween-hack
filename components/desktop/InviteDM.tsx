@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { blip, glitchSound, key, subThud, tubeOff } from "@/lib/audio/sfx";
+import { blip, glitchSound, key, subThud, tubeOff, unlockAudio } from "@/lib/audio/sfx";
 import { dread, jumpStinger, ringNotify, slam } from "@/lib/audio/dread";
 import { casefileRive, useMountedRive } from "@/lib/rive/persistent";
 import { inviterOf } from "@/lib/story/registry";
@@ -60,7 +60,8 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Step = "lock" | "scare" | "thread";
 
-export default function InviteDM({ token, onDone }: { token: string; onDone: () => void }) {
+/** `onDone(played)`: false when the link is unknown or the registry failed (nothing was shown). */
+export default function InviteDM({ token, onDone }: { token: string; onDone: (played: boolean) => void }) {
   const [from, setFrom] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("lock");
   const done = useRef(onDone);
@@ -74,11 +75,11 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: () 
       (name) => {
         if (!live) return;
         if (name) setFrom(name);
-        else done.current();
+        else done.current(false);
       },
       (err: unknown) => {
         console.error(err);
-        if (live) done.current();
+        if (live) done.current(false);
       },
     );
     return () => {
@@ -97,11 +98,20 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: () 
   }, []);
   const threadDone = useCallback(() => {
     stopScore.current?.(2.5);
-    done.current();
+    done.current(true);
   }, []);
 
   if (!from) return <div className={styles.stage} />;
-  if (step === "lock") return <Notice from={from} onOpen={() => setStep("scare")} />;
+  if (step === "lock")
+    return (
+      <Notice
+        from={from}
+        onOpen={() => {
+          unlockAudio(); // on a phone there is no gate before this: this tap unlocks the sound
+          setStep("scare");
+        }}
+      />
+    );
   if (step === "scare") return <Scare onDone={scareDone} />;
   return <Thread from={from} onDone={threadDone} />;
 }
@@ -109,6 +119,8 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: () 
 function Notice({ from, onOpen }: { from: string; onOpen: () => void }) {
   const el = useRef<HTMLButtonElement>(null);
   const [now] = useState(() => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+  // rendered only on the client (after the registry answered), so matchMedia is safe here
+  const [verb] = useState(() => (matchMedia("(hover: none)").matches ? "tap" : "click"));
   // the ring and the buzz on one clock, so the sound and the tremor land together
   useEffect(() => {
     const ring = () => {
@@ -141,7 +153,7 @@ function Notice({ from, onOpen }: { from: string; onOpen: () => void }) {
           <span className={styles.blurred}>sent you something. don&apos;t show anyone.</span>
         </span>
       </button>
-      <p className={styles.tap}>1 new message · click to read</p>
+      <p className={styles.tap}>1 new message · {verb} to read</p>
     </div>
   );
 }

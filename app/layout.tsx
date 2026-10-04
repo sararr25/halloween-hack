@@ -10,8 +10,16 @@ const serif = Newsreader({ variable: "--font-serif", subsets: ["latin"], style: 
 const hand = Nothing_You_Could_Do({ variable: "--font-hand", weight: "400", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://halloween-hack.vercel.app"),
   title: "recovery",
   description: "File recovery session",
+  // the link preview in chats and DMs (app/opengraph-image.png, scripts/make-og.py)
+  openGraph: {
+    title: "case 0420",
+    description: "E.V. has been missing for 7 days. You have access now. Look carefully.",
+    siteName: "recovery",
+  },
+  twitter: { card: "summary_large_image", title: "case 0420", description: "E.V. has been missing for 7 days. Look carefully." },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
