@@ -6,6 +6,7 @@ import FxOverlay, { type FxLevels, type FxSetter } from "@/components/FxOverlay"
 import { drone, glitchSound, lightSwitch, unlockAudio } from "@/lib/audio/sfx";
 import { CRT_EVENT, GLITCH_EVENT, type GlitchRequest } from "@/lib/story/glitch";
 import { hideInviteParam, passOnLink, readInvite } from "@/lib/story/registry";
+import { caseId } from "@/lib/story/caseno";
 import { isNarrow, onNarrowChange } from "@/lib/viewport";
 import { enterFullscreen } from "@/lib/fullscreen";
 import { music, riser, type MusicMode } from "@/lib/audio/music";
@@ -282,7 +283,14 @@ function Phases() {
   const { state, dispatch } = useStory();
   const token = useSyncExternalStore(noSubscribe, readInviteOnce, () => null);
   const [dmRead, setDmRead] = useState(false);
-  const dmDone = useCallback(() => setDmRead(true), []);
+  // the DM hands over the case that is now this player's (lib/story/caseno.ts)
+  const dmDone = useCallback(
+    (caseNo: number | null) => {
+      if (caseNo !== null) dispatch({ type: "caseNo", caseNo });
+      setDmRead(true);
+    },
+    [dispatch],
+  );
   // camera, microphone, headphones and full screen come before anything (Gate.tsx)
   const [ready, setReady] = useState(false);
   const gateDone = useCallback(() => setReady(true), []);
@@ -329,15 +337,16 @@ function Phases() {
  * for a computer and offers to send the link on. Most shared links are opened on a phone.
  */
 function PhoneInvite({ token }: { token: string }) {
-  const [read, setRead] = useState<boolean | null>(null); // null while the DM plays
+  // undefined while the DM plays; then the case it handed over, or null if nothing was shown
+  const [read, setRead] = useState<number | null | undefined>(undefined);
   const [sent, setSent] = useState<"no" | "shared" | "copied" | "failed">("no");
-  const done = useCallback((played: boolean) => setRead(played), []);
+  const done = useCallback((caseNo: number | null) => setRead(caseNo), []);
   useEffect(() => hideInviteParam(), []);
   const url = passOnLink(token);
   const send = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: "case 0420", url });
+        await navigator.share({ title: read ? `case ${caseId(read)}` : "case", url });
         setSent("shared");
       } else {
         await navigator.clipboard.writeText(url);
@@ -349,9 +358,9 @@ function PhoneInvite({ token }: { token: string }) {
       setSent("failed");
     }
   };
-  if (read === null) return <InviteDM token={token} onDone={done} />;
+  if (read === undefined) return <InviteDM token={token} onDone={done} />;
   // an unknown link: nothing was shown, it is just the small-screen notice
-  if (!read)
+  if (read === null)
     return (
       <div className={styles.screen}>
         <p className={styles.mono}>This device cannot run the recovery. Use a desktop.</p>
@@ -359,7 +368,7 @@ function PhoneInvite({ token }: { token: string }) {
     );
   return (
     <div className={styles.screen}>
-      <p className={styles.hint}>CASE 0420 · ASSIGNED</p>
+      <p className={styles.hint}>CASE {caseId(read)} · ASSIGNED</p>
       <p className={styles.mono}>This case only opens on a computer, with headphones on.</p>
       <p className={`${styles.mono} ${styles.neonLine}`}>we&apos;ll wait.</p>
       <button className={styles.cta} onClick={send}>

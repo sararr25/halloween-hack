@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { scanRive, useMountedRive } from "@/lib/rive/persistent";
 import { clock } from "@/lib/story/time";
+import { useStory } from "@/lib/story/store";
+import { caseId } from "@/lib/story/caseno";
 import styles from "./reveal.module.css";
 
 // The end of S9: "View live" on the camera in flat 4A, and it is the user. The webcam frame
@@ -18,6 +20,7 @@ const H = 240;
 
 export default function LiveFeed() {
   const { tracker, video } = usePresence();
+  const id = caseId(useStory().state.caseNo);
   const [live] = useState(() => tracker.state.source === "camera" && !!video()?.srcObject);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -154,7 +157,7 @@ export default function LiveFeed() {
       {live && (
         <div ref={box} className={styles.faceBox} aria-hidden="true">
           <span>
-            ID 0418 · OPERATOR · MATCH <span ref={match}>98.1</span>%
+            ID {id} · OPERATOR · MATCH <span ref={match}>98.1</span>%
           </span>
         </div>
       )}
@@ -164,7 +167,7 @@ export default function LiveFeed() {
         </span>
         <span className={styles.hudRight}>{new Date(now).toLocaleDateString("en-GB").replaceAll("/", ".")} {clock(now, true)}</span>
         <span className={styles.hudBottom}>
-          {live ? "subject 0418 · operator · recording" : "subject 0418 · operator · signal reconstructed"}
+          {live ? `subject ${id} · operator · recording` : `subject ${id} · operator · signal reconstructed`}
         </span>
         {!live && <i className={styles.bracket} />}
       </div>

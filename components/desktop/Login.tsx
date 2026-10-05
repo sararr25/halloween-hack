@@ -12,6 +12,7 @@ import { reminderStart } from "@/lib/story/reminder";
 import { crtOff } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
 import { clock } from "@/lib/story/time";
+import { caseId, EV_CASE, passOnCase, tomorrowCase } from "@/lib/story/caseno";
 import { SignGlyph } from "./Decor";
 import styles from "./login.module.css";
 
@@ -22,6 +23,8 @@ import styles from "./login.module.css";
 // user's name on the open case, then the screen switches off like an old tube.
 // docs/desktop.md supersedes docs/scenes.md S10.
 const STILL_MS = 5000;
+// nothing typed for this long: the line under the field says what it wants
+const NAME_NUDGE_MS = 6000;
 // the case list types in over ~1.8 s; it then holds long enough to read the open case
 const CASES_HOLD_MS = 7000;
 const CASES_BLACK_MS = 8600;
@@ -44,7 +47,6 @@ const LATER_HOLD_MS = 2600;
 // the switch-off, then how long the black holds before the privacy link shows
 const OFF_MS = 1200;
 const PRIVACY_AFTER_MS = 3000;
-const REC_TITLE = "● REC · 0419";
 
 export default function Login() {
   const { state } = useStory();
@@ -55,6 +57,19 @@ export default function Login() {
   const input = useRef<HTMLInputElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   const camera = tracker.state.source === "camera";
+  // the chain (lib/story/caseno.ts): this case, tomorrow's, and the one passed on
+  const mine = caseId(state.caseNo);
+  const next = caseId(tomorrowCase(state.caseNo));
+  const passed = caseId(passOnCase(state.caseNo));
+  const recTitle = `● REC · ${next}`;
+
+  // nothing typed yet after a while: it asks, once, for a name
+  const [askName, setAskName] = useState(false);
+  useEffect(() => {
+    if (step !== "login" || name) return;
+    const t = setTimeout(() => setAskName(true), NAME_NUDGE_MS);
+    return () => clearTimeout(t);
+  }, [step, name]);
 
   // the caret waits for the face (camera) or for the hand (mouse)
   usePresenceEvent("change", (s) => {
@@ -121,13 +136,16 @@ export default function Login() {
   }, [step]);
 
   const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const download = async () => {
     const { openedAt, session, clues, wrongCodes, interruptions, blinks } = state;
     shutter();
     setSaving(true);
+    setSaveFailed(false);
     try {
       await downloadCaseFile({
         name: name.trim(),
+        caseNo: state.caseNo,
         openedAt,
         closedAt: Date.now(),
         camera: session.camera,
@@ -140,6 +158,10 @@ export default function Login() {
         call: "call_answered" in clues ? "answered" : "call_declined" in clues ? "declined" : "call_missed" in clues ? "missed" : null,
       });
       setStep("after");
+    } catch (err) {
+      // said on screen, not swallowed: the button stays so it can be tried again
+      console.error(err);
+      setSaveFailed(true);
     } finally {
       setSaving(false);
     }
@@ -147,19 +169,19 @@ export default function Login() {
 
   // undefined while filing, null when the registry could not be reached
   const [token, setToken] = useState<string | null | undefined>(undefined);
-  const [passed, setPassed] = useState<"no" | "yes" | "failed">("no");
+  const [shared, setShared] = useState<"no" | "yes" | "failed">("no");
   const passOn = async () => {
     if (!token) return;
     const url = passOnLink(token);
     try {
-      if (navigator.share) await navigator.share({ title: "case 0420", url });
+      if (navigator.share) await navigator.share({ title: `case ${passed}`, url });
       else await navigator.clipboard.writeText(url);
-      setPassed("yes");
+      setShared("yes");
       creepyMessage();
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return; // share sheet closed
       console.error(err);
-      setPassed("failed");
+      setShared("failed");
     }
   };
 
@@ -181,7 +203,7 @@ export default function Login() {
       }, AFTER_REC_MS),
       setTimeout(() => {
         setAfter(2);
-        typed.push(...typeOut("case 0418 · status: open"));
+        typed.push(...typeOut(`case ${mine} · status: open`));
       }, AFTER_LINE_MS),
       setTimeout(() => {
         setAfter(3);
@@ -194,7 +216,7 @@ export default function Login() {
       }, AFTER_PASS_MS),
     ];
     return () => [...t, ...typed].forEach(clearTimeout);
-  }, [step]);
+  }, [step, mine]);
   useEffect(() => {
     if (after !== 4) return;
     const t = setTimeout(
@@ -202,10 +224,10 @@ export default function Login() {
         setAfter(5);
         alertChime();
       },
-      passed === "yes" ? REMIND_AFTER_PASS_MS : REMIND_LATEST_MS,
+      shared === "yes" ? REMIND_AFTER_PASS_MS : REMIND_LATEST_MS,
     );
     return () => clearTimeout(t);
-  }, [after, passed]);
+  }, [after, shared]);
 
   // The reminder: "add" is only in the story (owner: no downloads), the alert turns into
   // "reminder set" under a music box winding down; "not now" gets one line back. Either way,
@@ -248,30 +270,30 @@ export default function Login() {
   useEffect(() => {
     if (after < 1) return;
     const hold = () => {
-      if (document.title !== REC_TITLE) document.title = REC_TITLE;
+      if (document.title !== recTitle) document.title = recTitle;
     };
     hold();
     const t = setInterval(hold, 500);
     return () => clearInterval(t);
-  }, [after]);
+  }, [after, recTitle]);
 
   // The pass-it-on button and, when sharing and the clipboard both refuse, the link itself
   // to copy by hand. Used on the after-screen and, if the case was not passed on, kept on
   // the black after the switch-off.
   const passBlock = (
     <div className={styles.passBlock}>
-      <button className={styles.passOn} onClick={passOn} disabled={!token || passed !== "no"}>
+      <button className={styles.passOn} onClick={passOn} disabled={!token || shared !== "no"}>
         {token === undefined
           ? "filing…"
           : token === null
             ? "registry offline"
-            : passed === "yes"
-              ? "link copied · send it to someone · case 0420 is theirs"
-              : passed === "failed"
+            : shared === "yes"
+              ? `link copied · send it to someone · case ${passed} is theirs`
+              : shared === "failed"
                 ? "copy it yourself:"
-                : "pass it on · case 0420"}
+                : `pass it on · case ${passed}`}
       </button>
-      {passed === "failed" && token && (
+      {shared === "failed" && token && (
         <input
           className={styles.passLink}
           readOnly
@@ -290,9 +312,9 @@ export default function Login() {
     return (
       <div key="dead" className={`${styles.black} ${styles.dead}`}>
         {/* not passed on: the case stays unassigned, and quietly says so */}
-        {privacy && token && passed !== "yes" && (
+        {privacy && token && shared !== "yes" && (
           <div className={styles.unassigned}>
-            <p>case 0420 is still unassigned.</p>
+            <p>case {passed} is still unassigned.</p>
             {passBlock}
           </div>
         )}
@@ -309,7 +331,7 @@ export default function Login() {
         {after >= 1 && <span className={styles.afterRec}>● REC</span>}
         <div className={styles.afterText}>
           <p>case file saved.</p>
-          {after >= 2 && <p className={styles.afterOpen}>case 0418 · status: open</p>}
+          {after >= 2 && <p className={styles.afterOpen}>case {mine} · status: open</p>}
         </div>
         {after >= 3 && (
           <div className={styles.afterNote}>
@@ -322,7 +344,7 @@ export default function Login() {
         {/* the way out that is not one, in the middle of the screen where nobody misses it */}
         {after >= 4 && !ending && passBlock}
         {after >= 5 && ending !== "later" && (
-          <ReminderPrompt at={reminderStart(state.openedAt)} set={ending === "remind"} onAnswer={answer} />
+          <ReminderPrompt caseNo={next} at={reminderStart(state.openedAt)} set={ending === "remind"} onAnswer={answer} />
         )}
       </div>
     );
@@ -334,8 +356,9 @@ export default function Login() {
           <p className={styles.credits}>No frames or audio left your device.</p>
           {/* the keepsake: the session as a case file, made here (lib/story/casefile.ts) */}
           <button className={styles.download} onClick={download} disabled={saving}>
-            {saving ? "writing case file…" : "download case file 0418"}
+            {saving ? "writing case file…" : `download case file ${mine}`}
           </button>
+          {saveFailed && <p className={styles.credits}>the case file could not be written. try again.</p>}
         </div>
       </div>
     );
@@ -368,24 +391,30 @@ export default function Login() {
           </label>
           {/* the one thing the screen asks: be seen. Away, it notices, and waits. */}
           <p className={styles.presence} data-waiting={waiting}>
-            {waiting ? "operator absent · the case is waiting" : camera ? "stay in frame." : "stay with the screen."}
+            {waiting
+              ? "operator absent · the case is waiting"
+              : askName && !name
+                ? "they want your name."
+                : camera
+                  ? "stay in frame."
+                  : "stay with the screen."}
           </p>
         </form>
       ) : (
         <ol className={styles.cases}>
           <li>RECOVERY/4 · cases</li>
-          <li><span>#0415</span><span>E.V.</span><span>missing · 7 days</span></li>
-          <li><span>#0416</span><span>redacted</span><span>closed</span></li>
-          <li><span>#0417</span><span>redacted</span><span>closed · operator unresponsive</span></li>
-          <li className={styles.open}><span>#0418</span><span>{name.trim()}</span><span>open</span></li>
+          <li><span>#{caseId(EV_CASE)}</span><span>E.V.</span><span>missing · 7 days</span></li>
+          <li><span>#{caseId(state.caseNo - 2)}</span><span>redacted</span><span>closed</span></li>
+          <li><span>#{caseId(state.caseNo - 1)}</span><span>redacted</span><span>closed · operator unresponsive</span></li>
+          <li className={styles.open}><span>#{mine}</span><span>{name.trim()}</span><span>open</span></li>
         </ol>
       )}
     </div>
   );
 }
 
-/** A calendar alert, as the system would show it: case 0419, tomorrow, the same minute. */
-function ReminderPrompt({ at, set, onAnswer }: { at: number; set: boolean; onAnswer: (remind: boolean) => void }) {
+/** A calendar alert, as the system would show it: tomorrow's case, the same minute. */
+function ReminderPrompt({ caseNo, at, set, onAnswer }: { caseNo: string; at: number; set: boolean; onAnswer: (remind: boolean) => void }) {
   const d = new Date(at);
   const month = d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
   return (
@@ -395,7 +424,7 @@ function ReminderPrompt({ at, set, onAnswer }: { at: number; set: boolean; onAns
         <b>{d.getDate()}</b>
       </div>
       <div className={styles.remindBody}>
-        <p id="remind-title">case 0419</p>
+        <p id="remind-title">case {caseNo}</p>
         <small>tomorrow · {clock(at)} · 17 Harrow St</small>
       </div>
       {set ? (

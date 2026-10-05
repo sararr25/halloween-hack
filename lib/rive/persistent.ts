@@ -151,7 +151,7 @@ export const casefileRive = () => {
     artboard: portrait ? "CaseFilePortrait" : "CaseFile",
     stateMachine: portrait ? "CaseFilePortrait" : "CaseFile",
     prefix: "",
-    label: "case 0420, assigned to you",
+    label: "a case file, assigned to you",
   });
 };
 

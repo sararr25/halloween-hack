@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useReducer, type ReactNode } from "react";
+import { FIRST_CASE } from "./caseno";
 
 // Story state machine — see docs/desktop.md. Client-side only: nothing leaves the browser.
 
@@ -42,6 +43,8 @@ type StoryState = {
   /** The menubar objective: the short form of the last notice that gave one, set just after
    * that notice (Desktop.tsx `post`). Never ahead of the notices. `until` says when it is done. */
   objective: { text: string; until?: Until } | null;
+  /** This player's case number (lib/story/caseno.ts): 418, or the case a link passed on. */
+  caseNo: number;
 };
 
 /** A step is done once this is true (clues found, wrong codes typed). */
@@ -77,7 +80,8 @@ type Action =
   | { type: "clearNotices" }
   | { type: "hint"; text: string; open?: AppId; item?: string; until?: Until }
   | { type: "objective"; text: string; until?: Until }
-  | { type: "blink" };
+  | { type: "blink" }
+  | { type: "caseNo"; caseNo: number };
 
 function reducer(s: StoryState, a: Action): StoryState {
   switch (a.type) {
@@ -125,6 +129,8 @@ function reducer(s: StoryState, a: Action): StoryState {
       return { ...s, objective: { text: a.text, until: a.until } };
     case "blink":
       return { ...s, blinks: s.blinks + 1 };
+    case "caseNo":
+      return { ...s, caseNo: a.caseNo };
   }
 }
 
@@ -157,6 +163,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     focus: {},
     hint: null,
     objective: null,
+    caseNo: FIRST_CASE,
   }));
 
   // Dev only: Alt+1/2/3 jumps stage, Alt+P/B/I/D/R/L jumps phase, Alt+F opens Find My.
@@ -187,7 +194,7 @@ export function useStory() {
 }
 
 /** How long after a notice its short form reaches the menubar (it is read on the right first). */
-export const OBJECTIVE_AFTER_MS = 1500;
+const OBJECTIVE_AFTER_MS = 1500;
 
 /**
  * Posts a notice and, once it has had time to be read, its short form as the objective

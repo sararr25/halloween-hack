@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Writes rive/casefile/scene.rml: the case file that takes the screen in the pass-it-on DM
-(docs/plan-round8.md A9 + A6.3). Owner's direction: the case-file look (fields and a stamp,
+(round 8). Owner's direction: the case-file look (fields and a stamp,
 mono, the countdown as data), with thriller motion. Every line types itself on with a Rive
 text modifier, the stamp slams down, then a held silence before the two last lines.
 
 The host (components/desktop/InviteDM.tsx) writes the view model "CaseFile":
+  case        the case passed on, "CASE 0420" (lib/story/caseno.ts: it moves along the chain)
   from        the name of whoever passed the case on
   remaining   the countdown, "11:59:58"
   play        0 / 1 (1 plays Sequence once)
@@ -25,7 +26,7 @@ def nid():
 
 
 VM, VMI = "0:10", "0:20"
-P = {"from": "0:11", "remaining": "0:12", "play": "0:13"}
+P = {"from": "0:11", "remaining": "0:12", "play": "0:13", "case": "0:14"}
 MONO, ITAL = "0:90", "0:91"
 TEXT, MUTED, NEON = "FFE6E8EE", "FF8A91A1", "FF00F0FF"
 
@@ -116,7 +117,7 @@ def artboard(name, ab_id, sm_id, L):
         '<Fill name="Fill"><SolidColor colorValue="66E6E8EE" name="C"/></Fill></Shape>'
     )
     hy, hs, hsp = L["header"]
-    parts.append(text(x0, hy, "CASE 0420", hs, TEXT, MONO, hsp, None, 0.0, 0.7))
+    parts.append(text(x0, hy, "CASE 0420", hs, TEXT, MONO, hsp, "case", 0.0, 0.7))
     tx, ty, side = L["tag"]
     parts.append(text(tx, ty, "RECOVERY/4", 14, MUTED, MONO, 3, None, 0.4, 0.9, origin=(1 if side == "right" else 0, 0)))
 
@@ -177,10 +178,12 @@ def build():
         + f'<ViewModel defaultInstanceId="{VMI}" name="CaseFile" id="{VM}">'
         f'<ViewModelPropertyString name="from" id="{P["from"]}"/><ViewModelPropertyString name="remaining" id="{P["remaining"]}"/>'
         f'<ViewModelPropertyNumber name="play" id="{P["play"]}"/>'
+        f'<ViewModelPropertyString name="case" id="{P["case"]}"/>'
         f'<ViewModelInstance exports="true" name="Default" id="{VMI}">'
         f'<ViewModelInstanceString propertyValue="someone · released" viewModelPropertyId="{P["from"]}"/>'
         f'<ViewModelInstanceString propertyValue="12:00:00" viewModelPropertyId="{P["remaining"]}"/>'
         f'<ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="{P["play"]}"/>'
+        f'<ViewModelInstanceString propertyValue="CASE 0420" viewModelPropertyId="{P["case"]}"/>'
         "</ViewModelInstance></ViewModel>\n"
         f'<FontAsset file="JetBrainsMono.ttf" name="JetBrains Mono" id="{MONO}"/>\n'
         f'<FontAsset file="JetBrainsMono-Italic.ttf" name="JetBrains Mono Italic" id="{ITAL}"/>\n'

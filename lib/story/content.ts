@@ -600,8 +600,9 @@ export const CALLS: Call[] = [
 export const TRASH: TrashFile[] = [
   {
     id: "log-0417",
-    name: "recovery_0417.log",
-    days: 30,
+    // the case just before the player's (Trash.tsx fills {prev}); after E.V.'s case 0415 opened
+    name: "recovery_{prev}.log",
+    days: 3,
     body: [
       "RECOVERY/4 · device image E.V. · 118.4 GB",
       "session opened 23:02:51",
@@ -654,7 +655,8 @@ export const INVITATION = {
     "You will not be told the rules. You will recognise them.",
     "Please do not try to contact us. We will know when you need us.",
   ],
-  footer: "enrolment 0418",
+  // followed by the player's case number (Docs.tsx)
+  footer: "enrolment",
 };
 
 /** operator_manual.pdf — the system's own voice: clinical, and about you. */

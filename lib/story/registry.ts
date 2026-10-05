@@ -39,15 +39,16 @@ export async function fileOperator(name: string, openedAt: number, invite: strin
   return token;
 }
 
-/** Who passed the case on, or null when the link is unknown. */
-export async function inviterOf(token: string): Promise<string | null> {
+export type Invite = { name: string; caseNo: number };
+
+/** Who passed the case on and the case they passed (now the player's), or null when the link is unknown. */
+export async function inviterOf(token: string): Promise<Invite | null> {
   // dev only: /?case=dev plays the DM from a made-up sender, without the registry
-  if (process.env.NODE_ENV === "development" && token === "dev") return "Giulia";
+  if (process.env.NODE_ENV === "development" && token === "dev") return { name: "Giulia", caseNo: 420 };
   const res = await fetch(`/api/operators?invite=${encodeURIComponent(token)}`);
   if (res.status === 404 || res.status === 400) return null;
   if (!res.ok) throw new Error(`registry: invite lookup failed (${res.status})`);
-  const { name } = (await res.json()) as { name: string };
-  return name;
+  return (await res.json()) as Invite;
 }
 
 export const passOnLink = (token: string) => `${window.location.origin}/?${INVITE_PARAM}=${token}`;

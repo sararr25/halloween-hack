@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useStory, type AppId, type WindowState } from "@/lib/story/store";
-import { APP } from "./apps";
+import { APP, titleOf } from "./apps";
 import styles from "./desktop.module.css";
 
 gsap.registerPlugin(useGSAP);
@@ -22,6 +22,7 @@ export default function Window({ win }: { win: WindowState }) {
   const el = useRef<HTMLDivElement>(null);
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const app = APP[win.id];
+  const title = titleOf(app, state.caseNo);
   // the second click of a double click on the icon must not land inside the new window
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function Window({ win }: { win: WindowState }) {
     <div
       ref={el}
       role="dialog"
-      aria-label={app.title}
+      aria-label={title}
       data-win={win.id}
       // the windows behind dim, so the one in front reads at once
       data-behind={win.z < Math.max(...state.windows.map((w) => w.z)) || undefined}
@@ -71,8 +72,8 @@ export default function Window({ win }: { win: WindowState }) {
       onPointerDown={() => dispatch({ type: "focus", id: win.id })}
     >
       <div className={styles.titlebar} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
-        <button className={styles.close} aria-label={`Close ${app.title}`} onClick={close} />
-        <span>{app.title}</span>
+        <button className={styles.close} aria-label={`Close ${title}`} onClick={close} />
+        <span>{title}</span>
       </div>
       <div className={styles.body} style={ready ? undefined : { pointerEvents: "none" }}>
         {app.body}

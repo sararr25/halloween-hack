@@ -6,12 +6,13 @@ import { useGSAP } from "@gsap/react";
 import { blip, glitchSound, key, subThud, tubeOff, unlockAudio } from "@/lib/audio/sfx";
 import { dread, jumpStinger, ringNotify, slam } from "@/lib/audio/dread";
 import { casefileRive, prewarmRive, useMountedRive } from "@/lib/rive/persistent";
-import { inviterOf } from "@/lib/story/registry";
+import { inviterOf, type Invite } from "@/lib/story/registry";
+import { caseId } from "@/lib/story/caseno";
 import styles from "./invite.module.css";
 
 gsap.registerPlugin(useGSAP);
 
-// The Ring, as a DM (docs/plan-round6.md, "pass it on"). Someone who finished passed the
+// The Ring, as a DM ("pass it on"). Someone who finished passed the
 // case on; whoever opens their link is met, before anything else, by a message from them.
 //  (Sound is already unlocked: the gate before it, Gate.tsx, took the first click.)
 //  1. The lock screen. The notification rings like the phone in The Ring, in time with the
@@ -29,7 +30,7 @@ type Bubble = { kind: "bubble"; text: string; typing: number; style?: "case" };
 type Card = { kind: "case"; hold: number };
 type Line = Bubble | Card;
 
-const script = (from: string): Line[] => [
+const script = (from: string, caseNo: number): Line[] => [
   { kind: "bubble", text: "it's me.", typing: 1300 },
   { kind: "bubble", text: "don't close this. please. read all of it.", typing: 2000 },
   { kind: "case", hold: 13_500 },
@@ -37,7 +38,7 @@ const script = (from: string): Line[] => [
   { kind: "bubble", text: "it was the only way to save myself.", typing: 2000 },
   { kind: "bubble", text: "if you survive this, i hope one day you'll forgive me.", typing: 2900 },
   { kind: "bubble", text: `love you. ${from}`, typing: 1900 },
-  { kind: "bubble", text: "case 0420", typing: 1100, style: "case" },
+  { kind: "bubble", text: `case ${caseId(caseNo)}`, typing: 1100, style: "case" },
 ];
 
 // The case file's beats in seconds, mirrored from scripts/gen-casefile-rml.py: when each line
@@ -60,9 +61,10 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Step = "lock" | "scare" | "thread";
 
-/** `onDone(played)`: false when the link is unknown or the registry failed (nothing was shown). */
-export default function InviteDM({ token, onDone }: { token: string; onDone: (played: boolean) => void }) {
-  const [from, setFrom] = useState<string | null>(null);
+/** `onDone(caseNo)`: the case now the player's once the DM played; null when the link is
+ * unknown or the registry failed (nothing was shown). */
+export default function InviteDM({ token, onDone }: { token: string; onDone: (caseNo: number | null) => void }) {
+  const [invite, setInvite] = useState<Invite | null>(null);
   const [step, setStep] = useState<Step>("lock");
   // the case file loads while the lock screen rings
   useEffect(() => prewarmRive(casefileRive), []);
@@ -76,12 +78,12 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: (pl
     inviterOf(token).then(
       (name) => {
         if (!live) return;
-        if (name) setFrom(name);
-        else done.current(false);
+        if (name) setInvite(name);
+        else done.current(null);
       },
       (err: unknown) => {
         console.error(err);
-        if (live) done.current(false);
+        if (live) done.current(null);
       },
     );
     return () => {
@@ -98,12 +100,14 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: (pl
     stopScore.current = dread();
     setStep("thread");
   }, []);
+  const caseNo = invite?.caseNo ?? null;
   const threadDone = useCallback(() => {
     stopScore.current?.(2.5);
-    done.current(true);
-  }, []);
+    done.current(caseNo);
+  }, [caseNo]);
 
-  if (!from) return <div className={styles.stage} />;
+  if (!invite) return <div className={styles.stage} />;
+  const { name: from } = invite;
   if (step === "lock")
     return (
       <Notice
@@ -115,7 +119,7 @@ export default function InviteDM({ token, onDone }: { token: string; onDone: (pl
       />
     );
   if (step === "scare") return <Scare onDone={scareDone} />;
-  return <Thread from={from} onDone={threadDone} />;
+  return <Thread from={from} caseNo={invite.caseNo} onDone={threadDone} />;
 }
 
 function Notice({ from, onOpen }: { from: string; onOpen: () => void }) {
@@ -219,9 +223,9 @@ function Countdown({ from }: { from: number }) {
   );
 }
 
-function Thread({ from, onDone }: { from: string; onDone: () => void }) {
+function Thread({ from, caseNo, onDone }: { from: string; caseNo: number; onDone: () => void }) {
   const root = useRef<HTMLDivElement>(null);
-  const [lines] = useState(() => script(from));
+  const [lines] = useState(() => script(from, caseNo));
   const bubbles = lines.filter((l): l is Bubble => l.kind === "bubble");
   const [shown, setShown] = useState(0); // bubbles on screen
   const [typing, setTyping] = useState(false);
@@ -371,7 +375,7 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
           {seen && <small className={styles.seen}>seen just now</small>}
         </div>
       </div>
-      {card && <CaseFile from={from} />}
+      {card && <CaseFile from={from} caseNo={caseNo} />}
     </div>
   );
 }
@@ -380,11 +384,12 @@ function Thread({ from, onDone }: { from: string; onDone: () => void }) {
  * The case file, full screen (rive/casefile): Rive types every field on, slams the stamp and
  * holds the silence; this adds the sound on the same beats and keeps the countdown live.
  */
-function CaseFile({ from }: { from: string }) {
+function CaseFile({ from, caseNo }: { from: string; caseNo: number }) {
   const host = useRef<HTMLDivElement>(null);
   useMountedRive(host, casefileRive);
   useEffect(() => {
     const r = casefileRive();
+    r.set("case", `CASE ${caseId(caseNo)}`);
     r.set("from", `${from} · released`);
     r.set("remaining", "12:00:00");
     r.set("play", 1);
@@ -421,6 +426,8 @@ function CaseFile({ from }: { from: string }) {
       t.forEach(clearTimeout);
       clearInterval(clock);
     };
-  }, [from]);
-  return <div ref={host} className={styles.card} role="alert" aria-label="case 0420. assigned to you. find her, or you're next." />;
+  }, [from, caseNo]);
+  return (
+    <div ref={host} className={styles.card} role="alert" aria-label={`case ${caseId(caseNo)}. assigned to you. find her, or you're next.`} />
+  );
 }

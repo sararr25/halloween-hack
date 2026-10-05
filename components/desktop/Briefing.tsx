@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import { blip, key } from "@/lib/audio/sfx";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
+import { caseId } from "@/lib/story/caseno";
 import { clock } from "@/lib/story/time";
 import { SignGlyph } from "./Decor";
 import desk from "./desktop.module.css";
@@ -117,7 +118,7 @@ export default function Briefing() {
       <div ref={win} className={`${desk.glass} ${styles.window}`} style={{ opacity: 0 }}>
         <div className={styles.titlebar}>
           <i />
-          <span>case_0418 · RECOVERY/4</span>
+          <span>case_{caseId(state.caseNo)} · RECOVERY/4</span>
         </div>
         <div className={styles.body}>
           <div className={styles.file}>

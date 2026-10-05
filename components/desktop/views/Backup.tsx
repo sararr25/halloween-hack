@@ -6,6 +6,7 @@ import { BACKUP_README } from "@/lib/story/content";
 import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { useStory } from "@/lib/story/store";
 import { clock, duration, entryCode } from "@/lib/story/time";
+import { caseId } from "@/lib/story/caseno";
 import styles from "./views.module.css";
 
 // S7 · backup_you. Four digits: the local time the user opened the site (HHMM).
@@ -79,17 +80,17 @@ export default function Backup() {
         </div>
         <ul className={styles.files}>
           <li>
-            <span>session_0416.log</span>
+            <span>session_{caseId(state.caseNo - 2)}.log</span>
             <span className={styles.meta}>closed</span>
           </li>
           <li>
-            <span>session_0417.log</span>
+            <span>session_{caseId(state.caseNo - 1)}.log</span>
             <span className={styles.meta}>closed · operator unresponsive</span>
           </li>
           <li className={styles.neonText}>
             {/* S8: the one file that is about the user */}
             <button className={styles.fileOpen} onClick={() => dispatch({ type: "open", id: "session" })}>
-              session_0418.log
+              session_{caseId(state.caseNo)}.log
             </button>
             <span>
               {/* the interlude pretends the review is over */}

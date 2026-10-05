@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Writes app/opengraph-image.png (1200 x 630): the link preview in chats and DMs (round 8 B2).
 Same case-file language as the pass-it-on DM (rive/casefile): mono, black, one neon.
+The case number is redacted: one image serves every link, and the number moves along the chain
+(lib/story/caseno.ts), so the game says it, not the preview.
 Run: python3 scripts/make-og.py
 """
 from pathlib import Path
@@ -21,7 +23,12 @@ def font(path, size):
 img = Image.new("RGB", (W, H), BG)
 d = ImageDraw.Draw(img)
 x0 = 110
-d.text((x0, 110), "CASE 0420", font=font(FONT, 64), fill=TEXT)
+head = font(FONT, 64)
+d.text((x0, 110), "CASE ", font=head, fill=TEXT)
+# a redaction bar where the digits would be
+bx = x0 + d.textlength("CASE ", font=head)
+l, t, r, b = d.textbbox((bx, 110), "0420", font=head)
+d.rectangle((l - 4, t - 6, r + 4, b + 6), fill=TEXT)
 d.text((W - 110, 132), "RECOVERY/4", font=font(FONT, 22), fill=MUTED, anchor="ra")
 d.rectangle((x0, 205, W - 110, 207), fill=(80, 84, 92))
 rows = [("missing", "E.V. · 7 days"), ("status", "open"), ("operator", "unassigned")]
@@ -42,5 +49,5 @@ img.paste(stamp, (W - 110 - stamp.width + 20, 400), stamp)
 
 out = ROOT / "app" / "opengraph-image.png"
 img.save(out, optimize=True)
-(ROOT / "app" / "opengraph-image.alt.txt").write_text("Case 0420. E.V., missing for 7 days. Status open, operator unassigned. Look carefully.")
+(ROOT / "app" / "opengraph-image.alt.txt").write_text("Case number redacted. E.V., missing for 7 days. Status open, operator unassigned. Look carefully.")
 print(f"wrote {out}")

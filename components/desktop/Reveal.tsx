@@ -31,9 +31,10 @@ import styles from "./reveal.module.css";
 
 const LINE_MIN_MS = 1200;
 const LINE_MAX_MS = 4200;
-const HAND_WAIT_MS = 10_000;
+// long enough to understand what is asked and do it (owner, 2026-10-05: it was easy to miss)
+const HAND_WAIT_MS = 18_000;
 // without a camera, the hand on the mouse raises it: the cursor near the top, or a long press
-const LIFT_TOP = 0.15;
+const LIFT_TOP = 0.25;
 const LIFT_HOLD_MS = 600;
 const ROOM_MS = 3000;
 const FEED_MS = 8000;
@@ -246,7 +247,7 @@ export default function Reveal() {
       const camera = tracker.state.source === "camera";
       // close enough now to see it clearly
       to({ zoom: 1 }, 4, "power2.inOut");
-      say("raise your hand.", { order: true, hint: camera ? undefined : "move the mouse up." });
+      say("raise your hand.", { order: true, hint: camera ? "raise it where the camera can see it." : "↑ move the mouse to the top of the screen" });
       const raised = await until(camera ? palm : lift, HAND_WAIT_MS);
       if (!alive) return;
       if (raised) {
@@ -313,6 +314,7 @@ export default function Reveal() {
       alive = false;
       advance.current = null;
       palm.current = null;
+      lift.current = null;
       timers.forEach(clearTimeout);
       tweens.forEach((t) => t.kill());
       cancelAnimationFrame(raf);
@@ -342,7 +344,12 @@ export default function Reveal() {
       <p className={styles.line} aria-live="polite" data-order={!!line?.order} key={line?.text ?? "none"}>
         {line?.text}
       </p>
-      {(line?.hint || line?.next) && <span className={styles.next}>{line.hint ?? "click to go on"}</span>}
+      {(line?.hint || line?.next) && (
+        // a hint asks for something (the hand): larger, sooner, in the neon
+        <span className={styles.next} data-action={!!line.hint}>
+          {line.hint ?? "click to go on"}
+        </span>
+      )}
     </div>
   );
 }

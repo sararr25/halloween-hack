@@ -7,6 +7,7 @@ import { grabFrame } from "@/lib/story/frames";
 import { blackout, glitchNow } from "@/lib/story/glitch";
 import { usePost, useStory, type AppId, type Until } from "@/lib/story/store";
 import { clock, duration } from "@/lib/story/time";
+import { caseId } from "@/lib/story/caseno";
 import { APPS, type AppDef } from "./apps";
 import BlinkCapture from "./BlinkCapture";
 import IncomingCall, { CALL_EVENT } from "./IncomingCall";
@@ -277,7 +278,7 @@ function useDirector() {
     if (stage !== 3) return;
     const t = setTimeout(() => {
       if (!calm.current) say("idle3", "anon", "…open the one in progress.", 0, "backup", undefined, {
-        text: "backup_you · open session_0418.log",
+        text: `backup_you · open session_${caseId(state.caseNo)}.log`,
         until: (c) => "session_open" in c,
       });
     }, IDLE_NUDGE_MS);
@@ -303,6 +304,7 @@ function useInterlude() {
   const wasOpen = useRef(false);
   const started = useRef(false);
   const sessionOpen = state.windows.some((w) => w.id === "session");
+  const { caseNo } = state;
 
   useEffect(() => {
     if (sessionOpen) wasOpen.current = true;
@@ -317,7 +319,7 @@ function useInterlude() {
         dispatch({ type: "calm", calm: true });
         // the case seems over: no task until the story gives one again (after Mara's call)
         dispatch({ type: "objective", text: "" });
-        dispatch({ type: "notify", from: "system", text: "operator review 0418 · closed · nothing found" });
+        dispatch({ type: "notify", from: "system", text: `operator review ${caseId(caseNo)} · closed · nothing found` });
       }),
       at(3200, () => dispatch({ type: "notify", from: "system", text: "case reopened · E.V. · new signal" })),
       at(6500, () => dispatch({ type: "notify", from: "mara", text: "ev?? your phone just came on" })),
@@ -325,7 +327,7 @@ function useInterlude() {
       at(9500, () => window.dispatchEvent(new Event(CALL_EVENT))),
     ];
     return () => timers.forEach(clearTimeout);
-  }, [sessionOpen, dispatch]);
+  }, [sessionOpen, caseNo, dispatch]);
 
   const called = "call_done" in state.clues;
   useEffect(() => {
@@ -398,7 +400,7 @@ function RecoveryMenu() {
       </button>
       {open && (
         <ul className={`${styles.menuList} ${styles.glass}`}>
-          <li>RECOVERY/4 · case 0418</li>
+          <li>RECOVERY/4 · case {caseId(state.caseNo)}</li>
           <li>session opened {clock(state.openedAt, true)}</li>
           {verifiedAt && (
             <li>
@@ -525,7 +527,7 @@ export default function Desktop() {
   }, [stage, dispatch]);
 
   return (
-    <div className={styles.desktop} data-stage={stage} data-glitch>
+    <div className={styles.desktop} data-stage={stage} data-notices={state.notices.length > 0} data-glitch>
       <Wallpaper />
 
       <TheSign />

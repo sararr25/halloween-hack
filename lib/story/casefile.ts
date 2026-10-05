@@ -1,13 +1,16 @@
-// The keepsake at the end: "case file 0418", a one-page PDF made in the browser from the
+// The keepsake at the end: "case file 0418" (the player's own case, lib/story/caseno.ts), a one-page PDF made in the browser from the
 // player's own session, in the project's look (ink background, grain, mono metadata, the
 // serif of the mails, the PARALLAX V, E.V.'s badge, the Sign, one cyan). The page is drawn
 // on a canvas and wrapped in a minimal PDF by hand: no library, no server, nothing sent.
 
 import { pickFrames, type Frame } from "./frames";
 import { clock, duration } from "./time";
+import { caseId, EV_CASE, tomorrowCase } from "./caseno";
 
 export type CaseFacts = {
   name: string;
+  /** the player's case number along the chain */
+  caseNo: number;
   openedAt: number;
   closedAt: number;
   camera: "granted" | "denied" | null;
@@ -113,7 +116,7 @@ async function drawEvidence(f: CaseFacts, shots: Frame[]): Promise<HTMLCanvasEle
   };
   t("EVIDENCE", L, 170, `20px ${mono}`, MUTED, 6);
   t("The operator, as recorded", L, 260, `400 64px ${serif}`, TEXT);
-  t(`case 0418 · ${shots.length || "no"} frames · 17 Harrow St · flat 4A · cam 2`, L, 310, `22px ${mono}`, NEON, 1);
+  t(`case ${caseId(f.caseNo)} · ${shots.length || "no"} frames · 17 Harrow St · flat 4A · cam 2`, L, 310, `22px ${mono}`, NEON, 1);
 
   // a contact sheet, 3 x 2 (owner playtest: with 2 columns the third row ran into the text)
   const cols = 3;
@@ -139,7 +142,7 @@ async function drawEvidence(f: CaseFacts, shots: Frame[]): Promise<HTMLCanvasEle
   x.fillRect(L, by - 60, W - 2 * L, 1.5);
   const tomorrow = new Date(f.openedAt + 86_400_000).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
   t("NEXT", L, by, `20px ${mono}`, MUTED, 6);
-  t(`case 0419 · operator: ${f.name}`, L, by + 56, `28px ${mono}`, TEXT, 1);
+  t(`case ${caseId(tomorrowCase(f.caseNo))} · operator: ${f.name}`, L, by + 56, `28px ${mono}`, TEXT, 1);
   t(`session scheduled · ${tomorrow} · ${clock(f.openedAt)}`, L, by + 100, `28px ${mono}`, NEON, 1);
   t("“You came in at the same minute as the last one.”", L, by + 190, `italic 400 34px ${serif}`, TEXT);
   grain(x);
@@ -210,12 +213,12 @@ async function draw(f: CaseFacts): Promise<HTMLCanvasElement> {
   text("PARALLAX", L + 118, 152, `500 26px ${mono}`, ACCENT, 8);
   text("private experiences", L + 118, 186, `20px ${mono}`, MUTED, 1);
   right("RECOVERY/4", W - L, 150, `22px ${mono}`, MUTED, 4);
-  right("CASE 0418 · OPEN", W - L, 186, `22px ${mono}`, NEON, 4);
+  right(`CASE ${caseId(f.caseNo)} · OPEN`, W - L, 186, `22px ${mono}`, NEON, 4);
   x.fillStyle = "rgba(255,255,255,0.1)";
   x.fillRect(L, 250, W - 2 * L, 1.5);
 
   // title, in her world's serif
-  text("Case file 0418", L, 380, `400 92px ${serif}`, TEXT);
+  text(`Case file ${caseId(f.caseNo)}`, L, 380, `400 92px ${serif}`, TEXT);
   text(`operator · ${f.name}`, L, 440, `26px ${mono}`, ACCENT, 1);
   const date = new Date(f.closedAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   text(date, L, 480, `22px ${mono}`, MUTED, 1);
@@ -258,7 +261,7 @@ async function draw(f: CaseFacts): Promise<HTMLCanvasElement> {
     ["E.V.", "photographer · 16 Harrow St"],
     ["status", "missing · 7 days"],
     ["last seen", "at the window"],
-    ["case", "#0415 · open"],
+    ["case", `#${caseId(EV_CASE)} · open`],
   ];
   known.forEach(([label, val], i) => {
     const y = sy + 64 + i * 42;
@@ -268,7 +271,7 @@ async function draw(f: CaseFacts): Promise<HTMLCanvasElement> {
 
   // one line from the invitation
   text("“It ends when you stop looking for the edges.”", L, 1520, `italic 400 38px ${serif}`, TEXT);
-  text("PARALLAX · enrolment 0418", L, 1566, `20px ${mono}`, MUTED, 2);
+  text(`PARALLAX · enrolment ${caseId(f.caseNo)}`, L, 1566, `20px ${mono}`, MUTED, 2);
 
   // footer
   x.drawImage(sign, L - 4, H - 150, 44, 44);
@@ -281,7 +284,7 @@ async function draw(f: CaseFacts): Promise<HTMLCanvasElement> {
 }
 
 /** One JPEG per page, A4: the smallest PDF that holds the drawings. */
-function pdf(pages: Uint8Array[], w: number, h: number): Blob {
+function pdf(pages: Uint8Array[], w: number, h: number, title: string): Blob {
   const enc = new TextEncoder();
   const parts: Uint8Array[] = [];
   const offsets: number[] = [];
@@ -306,7 +309,7 @@ function pdf(pages: Uint8Array[], w: number, h: number): Blob {
   push("%PDF-1.4\n");
   obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
   obj(2, `<< /Type /Pages /Kids [${pages.map((_, i) => `${page(i)} 0 R`).join(" ")}] /Count ${pages.length} >>`);
-  obj(3, "<< /Title (Case file 0418) /Creator (RECOVERY/4) >>");
+  obj(3, `<< /Title (${title}) /Creator (RECOVERY/4) >>`);
   pages.forEach((jpeg, i) => {
     const n = page(i);
     obj(n, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pw} ${ph}] /Resources << /XObject << /Im0 ${n + 1} 0 R >> >> /Contents ${n + 2} 0 R >>`);
@@ -340,12 +343,12 @@ export async function downloadCaseFile(f: CaseFacts) {
         ),
     ),
   );
-  const file = pdf(jpegs, W, H);
+  const file = pdf(jpegs, W, H, `Case file ${caseId(f.caseNo)}`);
   const url = URL.createObjectURL(file);
   const a = document.createElement("a");
   a.href = url;
   const slug = f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "operator";
-  a.download = `case-file-0418-${slug}.pdf`;
+  a.download = `case-file-${caseId(f.caseNo)}-${slug}.pdf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -15,11 +15,11 @@ export const metadata: Metadata = {
   description: "File recovery session",
   // the link preview in chats and DMs (app/opengraph-image.png, scripts/make-og.py)
   openGraph: {
-    title: "case 0420",
+    title: "case ████",
     description: "E.V. has been missing for 7 days. You have access now. Look carefully.",
     siteName: "recovery",
   },
-  twitter: { card: "summary_large_image", title: "case 0420", description: "E.V. has been missing for 7 days. Look carefully." },
+  twitter: { card: "summary_large_image", title: "case ████", description: "E.V. has been missing for 7 days. Look carefully." },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

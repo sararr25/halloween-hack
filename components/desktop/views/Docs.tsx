@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { INVITATION, MANUAL } from "@/lib/story/content";
 import { useStory } from "@/lib/story/store";
+import { caseId } from "@/lib/story/caseno";
 import { APP } from "../apps";
 import { when } from "./shared";
 import styles from "./views.module.css";
@@ -11,6 +12,7 @@ import styles from "./views.module.css";
 // voice) and a screenshot of this very screen (Black Mirror).
 
 export function Invitation() {
+  const { state } = useStory();
   return (
     <article className={styles.letter}>
       <Image src="/parallax.webp" alt="" width={72} height={72} className={styles.letterMark} />
@@ -24,7 +26,7 @@ export function Invitation() {
         ))}
       </div>
       <p className={styles.byline} style={{ marginTop: 22 }}>
-        {INVITATION.footer} · {when(INVITATION.days)}
+        {INVITATION.footer} {caseId(state.caseNo)} · {when(INVITATION.days)}
       </p>
     </article>
   );

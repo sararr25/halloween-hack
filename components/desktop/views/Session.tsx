@@ -8,6 +8,7 @@ import { usePresence, usePresenceEvent } from "@/lib/presence/context";
 import { acrossRive, scanRive, useMountedRive } from "@/lib/rive/persistent";
 import { glitchNow } from "@/lib/story/glitch";
 import { useStory } from "@/lib/story/store";
+import { caseId } from "@/lib/story/caseno";
 import { clock, duration } from "@/lib/story/time";
 import { fadeClose } from "../Window";
 import styles from "./session.module.css";
@@ -68,7 +69,7 @@ export default function Session() {
   const [facts] = useState(() => {
     const verified = session.verifiedAt ? clock(session.verifiedAt, true) : "never asked";
     return [
-      "case 0418 · operator session · in progress",
+      `case ${caseId(state.caseNo)} · operator session · in progress`,
       row("opened", clock(openedAt, true)),
       row(
         "verification",

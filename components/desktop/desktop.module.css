@@ -1,4 +1,4 @@
-/* Desktop shell — tokens from app/globals.css, look from prototype/design-mockup.html */
+/* Desktop shell: tokens from app/globals.css */
 
 .glass {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 40%), var(--glass);
@@ -175,8 +175,11 @@
 /* calendar widget */
 .widget {
   position: absolute; top: 44px; right: 24px; z-index: 4; width: 250px; border-radius: 14px; padding: 12px 14px;
-  font-size: 12px;
+  font-size: 12px; transition: opacity 300ms ease;
 }
+/* a notification takes the calendar's corner: the calendar steps back until it is gone,
+   so the two texts never mix (while a notice fades in, or when it is shorter) */
+.desktop[data-notices="true"] .widget { opacity: 0; }
 .widget header { font-family: var(--font-mono), monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 .widget ul { list-style: none; display: grid; gap: 6px; }
 .widget li { display: grid; grid-template-columns: 78px 1fr; gap: 8px; color: var(--text); }

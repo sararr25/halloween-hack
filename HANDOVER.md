@@ -1,5 +1,15 @@
 # Handover
 
+> **2026-10-05 · round 11 (full check + owner answers).**
+> - **Case numbers follow the chain** (`lib/story/caseno.ts`): E.V. is always #0415. A player without a link is case 0418; their reminder is case + 1, the case they pass on is case + 2, and that becomes the friend's own case (0418 → 0420 → 0422…). `GET /api/operators?invite=` walks `invited_by` up (recursive CTE, no schema change) and returns `caseNo`; `InviteDM` hands it to the story state (`caseNo`). Briefing, Recovery menu, session log (window title too), backup files (case − 2, − 1), Trash log (case − 1, now 3 days old), invitation enrolment, live feed, case list, after-screen, reminder, pass-on button, PDF and its file name all read it. The DM's Rive case file binds its header to a new `case` string (`scripts/gen-casefile-rml.py`, `pnpm rive:casefile`). The link preview redacts the number (`scripts/make-og.py`), since one image serves every link.
+> - **Login readable:** larger, higher-contrast type; after 6 s with nothing typed the line under the field says "they want your name."
+> - **Raise your hand (S9):** 18 s to do it, the mouse counts anywhere in the top quarter, the hint is larger and breathes in the neon.
+> - **Calendar** fades out while a notification is in its corner, so the texts never mix.
+> - **Case file download:** a failure now shows "the case file could not be written. try again." (and logs the error).
+> - **`/lab` answers 404 in production** (`app/lab/layout.tsx`).
+> - **Removed:** `public/figure/raise/`, `public/figure/arm.webp`, `rive/facade/figure_hand.png`, `assets/`, `prototype/`, `docs/plan-round5…8.md`, the unused `phonePing()`.
+> - Checked and left as is (owner): window placement (fits the owner's 11" laptop).
+
 > **2026-10-04 · round 10 (owner feedback).**
 > - **Find My:** after Mark As Lost the reply thread scrolls inside the card, so View live is always on screen without scrolling the window (`locate.module.css`).
 > - **Binoculars, 4A found:** no cut-out with a raised hand any more; someone stands in the light as a black, feathered shape drawn as paths in `rive/facade/facade.luau` (`shapeIn`), swaying with the head. `figure_hand.png` is no longer used.
@@ -15,7 +25,7 @@
 > - **Binoculars tuned (round 9b):** ~10° of head turn crosses the street (`HEAD_RANGE`), a 14 px deadzone + easing absorbs tracker tremble, speeds under 40 px/s never blur, focus has hysteresis (in at 0.18, out at 0.42). The watcher is a pacing shadow in a warm window like the neighbours (shader); only after a 1.2 s steady focused look is it revealed (cold light, the photo cut-out facing you).
 > - Both files carry the free-plan Rive mark: they are prewarmed (the facade at the interlude, S9 fades in late as before).
 
-> **2026-10-04 · round 8 (owner feedback), live.** Plan, answers and status in `docs/plan-round8.md`.
+> **2026-10-04 · round 8 (owner feedback), live.**
 > - **Gate first** (`Gate.tsx`): camera + microphone asked the moment the link opens; a refusal is asked once more ("are you sure… no data leaves your computer"), a second no plays on with the mouse and S1/S9 remember it. Then headphones (a whisper left, then right, `sideWhisper`) and full screen. S1 no longer prompts; the DM lost its "click to wake".
 > - **Stage 1 hints:** first after 45 s, then every 50 s; the welcome says the notes lead to a photo; Photos gets a red badge once Theo's chat is read; the app a hint points at glows.
 > - **Reminder:** no `.ics` download any more, only "reminder set · tomorrow · HH:MM" in the alert. The share sheet sends only the title and the link.
@@ -29,7 +39,7 @@
 > - Dev: `Alt+F` opens Find My, `/?case=dev` plays the DM from a made-up sender without the registry.
 > - **Not verified here (no camera/mic/sound in the in-app browser):** the hand steering the binoculars, the headphone whisper, all sounds. Everything else was clicked through in the browser.
 
-> **2026-10-04 · round 7 (playtest feedback), live.** Plan and causes in `docs/plan-round7.md`.
+> **2026-10-04 · round 7 (playtest feedback), live.**
 > - **Objectives follow the notices:** the menubar objective is set only by `usePost()` (`lib/story/store.tsx`), 1.5 s after the notice it shortens, and names the app and the item ("Photos · open IMG_0418, the photo she sent Theo"). Once its step is done it reads "keep looking". Empty before the first notice and during the interlude until Find My. The Recovery menu hint only at the third wrong code.
 > - **Mara's call:** declined once, she writes and calls back 5 s later ringing like the phone in The Ring (`ringBell`), "calling again".
 > - **Find My, active:** Play Sound → the ping comes from behind, closer each time, the pin crosses the road onto This Mac (0 m · with you), a breath → Mark As Lost: the player types a lock-screen message, the phone answers ("i can see you typing." · "you write like she did." · "i'm not behind you. look across the road.") → View live: `views/Facade.tsx`, the front of 17 Harrow St through binoculars (mouse, or head with the camera); the ping gets louder and pans towards 4A; 2B's figure turns round; resting 1.5 s on 4A (or clicking it) lights it, shows the raised hand, and starts the reveal. Nudges at 40 s and 80 s. Interlude timeout 300 s.
@@ -42,7 +52,7 @@
 > - **The DM for the friend (`InviteDM.tsx`), rebuilt:** "click to wake the screen" (needed to unlock sound) → lock screen whose notification rings like the phone in The Ring, in sync with the buzz → one jump scare (white flash, the figure lunging with an RGB split, a cluster stab) → the thread under a Shining-style score (string clusters sliding apart, Dies Irae low, a heart) → "it's me." · "don't close this…" → full-screen lines YOU HAVE 12 HOURS / TO FIND HER. / OR YOU'RE NEXT. (a countdown from 12:00:00 stays in the header) → "i'm sorry. i had to pass it to you." · "it was the only way to save myself." · "if you survive this, i hope one day you'll forgive me." · "love you. <name>" · case 0420 → seen, E.V., switch-off. Note: this adds one jump scare, which the old design rule excluded; owner's call.
 > - Verified in the in-app browser (pane hidden, so animations checked with them frozen): whole DM to the end with a faked registry answer, stage 1 and 2 paths, the after-screen to the switch-off with the PDF and `.ics` downloads intercepted. Sound not heard (the pane has no audio).
 
-> **2026-10-04 · round 6, live.** Plan in `docs/plan-round6.md` (playtest fixes A1-A7, a new second half B1-B7, Rive and `/genjutsu:paint` usage). Built so far, all of it on production:
+> **2026-10-04 · round 6, live.** Playtest fixes, a new second half, the registry. Built so far, all of it on production:
 > - **Case registry** (B7) on Neon Postgres: operator name, session start and end, a random token, who invited them. No frames, audio or face data. Entries older than 12 months are removed on every new filing.
 > - **Pass it on** ("The Ring"): at the end, `pass it on · case 0420` shares a link (`/?case=<token>`, system share sheet, clipboard, or the link shown to copy by hand). Whoever opens it first gets an **animated DM** (`InviteDM.tsx`): a lock-screen notification that buzzes, a creepy message tone on click, a thread with three bubbles torn in by an RGB split ("i opened it." · "now it's yours." · "case 0420"), "seen", the sender's name scrambling into "E.V. · last seen 7 days ago", then the thread switches off and the story starts.
 > - **Real ending:** after "see you tomorrow at HH:MM" and the pass-it-on line, a calendar alert `case 0419 · tomorrow · HH:MM`. `add reminder` downloads a real `.ics` (alarm 5 min before) and plays a music box winding down; `not now` answers "we'll remind you."; either way everything switches off, the floating controls too, and only a small `privacy` link appears bottom right.
@@ -55,7 +65,7 @@
 
 Status as of 2026-10-04 · live at **https://halloween-hack.vercel.app** · one branch, `main` (GitHub default and Vercel production).
 
-Read in this order: this file → `docs/plan-round6.md` (current round: playtest fixes, new second half, the registry) → `docs/roadmap.md` (the current improvement pass, from the first real playtests) → `docs/walkthrough.md` (the story step by step, how to play it) → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
+Read in this order: this file → `docs/roadmap.md` (the current improvement pass, from the first real playtests) → `docs/walkthrough.md` (the story step by step, how to play it) → `project.md` (concept, twist, scene outline, checklist) → `docs/desktop.md` (experience decisions, desktop structure, decor, sound, copy rules) → `docs/scenes.md` (per-scene spec + implementation status) → `docs/tech-setup.md` (install, Rive CLI, WGSL traps, MediaPipe, troubleshooting) → `docs/image-prompts.md` (photos to generate).
 
 ## TL;DR
 
@@ -234,7 +244,7 @@ Overlay (Experience.tsx): glitch scheduler → fx/pulse (shader tear) + body.gli
 
 ## Next steps (recommended order)
 
-**Current: `docs/plan-round6.md`, "Order of work".** Next up is A1-A7 (the seven playtest notes, each traced to its cause in the plan), then B2 watcher's notes, B3 fake credits, `/genjutsu:paint` partial on Act 3, B1 cursor takeover, the Rive scenes (`EndCard`, the loop in `Across`, `Facade`, `Operators`), B5 "say her name".
+**Current:** a full playtest on the live site with webcam and headphones, then a two-step chain test (pass it on, open the link in incognito, check the friend is case 0420 everywhere).
 
 The list below is older, kept for reference.
 
@@ -260,7 +270,6 @@ Superseded by `docs/roadmap.md` (2026-09-30), which folds in the owner's playtes
 - After any Rive build on the Mac, `scene.rml` may change (the CLI writes ids back). Commit it along with the `.riv`.
 - If a push is rejected on the Mac: `git stash && git pull --rebase && git push && git stash pop`.
 - `next dev` rewrites the `AGENTS.md` Next block. Commit it as is.
-- `prototype/design-mockup.html` is the old static mockup (placeholder content), reference only.
 
 ## Design direction
 
