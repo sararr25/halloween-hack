@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useStory, type AppId, type WindowState } from "@/lib/story/store";
@@ -8,6 +8,12 @@ import { APP, titleOf } from "./apps";
 import styles from "./desktop.module.css";
 
 gsap.registerPlugin(useGSAP);
+
+// Small screens (owner, 2026-10-05: tested at 1024 x 768): a window that would open past the
+// edge is moved inside it, so Find My and its binoculars are always whole. A window that
+// already fits opens exactly where it always did.
+const EDGE = 8;
+const MENUBAR = 36;
 
 /** Closes a window with the same short fade wherever the close comes from (dot, Esc, a link). */
 export function fadeClose(id: AppId, dispatch: ReturnType<typeof useStory>["dispatch"]) {
@@ -28,6 +34,21 @@ export default function Window({ win }: { win: WindowState }) {
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 350);
     return () => clearTimeout(t);
+  }, []);
+
+  // Before the open animation measures it: pulled inside the screen if it would cross an edge.
+  useLayoutEffect(() => {
+    const node = el.current;
+    if (!node) return;
+    const { width, height } = node.getBoundingClientRect();
+    const x = Math.max(EDGE, Math.min(win.x, window.innerWidth - width - EDGE));
+    const y = Math.max(MENUBAR, Math.min(win.y, window.innerHeight - height - EDGE));
+    if (x === win.x && y === win.y) return;
+    node.style.left = `${x}px`;
+    node.style.top = `${y}px`;
+    dispatch({ type: "move", id: win.id, x, y });
+    // once, as it opens: after that the player moves it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Open: grow out of the icon (280 ms — docs/scenes.md motion table).
@@ -68,7 +89,16 @@ export default function Window({ win }: { win: WindowState }) {
       // the windows behind dim, so the one in front reads at once
       data-behind={win.z < Math.max(...state.windows.map((w) => w.z)) || undefined}
       className={`${styles.window} ${styles.glass}`}
-      style={{ left: win.x, top: win.y, width: app.size.w, height: app.size.h, zIndex: win.z }}
+      style={{
+        left: win.x,
+        top: win.y,
+        width: app.size.w,
+        height: app.size.h,
+        // a screen smaller than the window: the window shrinks to it (no effect when it fits)
+        maxWidth: `calc(100vw - ${2 * EDGE}px)`,
+        maxHeight: `calc(100vh - ${MENUBAR + EDGE}px)`,
+        zIndex: win.z,
+      }}
       onPointerDown={() => dispatch({ type: "focus", id: win.id })}
     >
       <div className={styles.titlebar} onPointerDown={down} onPointerMove={move} onPointerUp={up}>

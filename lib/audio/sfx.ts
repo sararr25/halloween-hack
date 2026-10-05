@@ -2,6 +2,8 @@
 // Rules (docs/desktop.md): rich but never loud, no sudden peaks, a mute toggle.
 // Everything goes through one compressor so stacked sounds cannot spike.
 
+import { borrowMic } from "./mic";
+
 export type Engine = {
   ctx: AudioContext;
   master: GainNode;
@@ -329,12 +331,13 @@ export const RAW_MIC: MediaTrackConstraints = { echoCancellation: false, noiseSu
 export async function recordRoom(ms = 1200): Promise<AudioBuffer | null> {
   const e = engine;
   if (!e || typeof MediaRecorder === "undefined") return null;
-  let stream: MediaStream;
+  let mic: Awaited<ReturnType<typeof borrowMic>>;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_MIC });
+    mic = await borrowMic(RAW_MIC);
   } catch {
     return null;
   }
+  const { stream } = mic;
   const chunks: Blob[] = [];
   const rec = new MediaRecorder(stream);
   rec.ondataavailable = (ev) => chunks.push(ev.data);
@@ -343,7 +346,7 @@ export async function recordRoom(ms = 1200): Promise<AudioBuffer | null> {
   await new Promise((r) => setTimeout(r, ms));
   rec.stop();
   await done;
-  stream.getTracks().forEach((t) => t.stop());
+  mic.release();
   const bytes = await new Blob(chunks, { type: rec.mimeType }).arrayBuffer();
   return e.ctx.decodeAudioData(bytes);
 }

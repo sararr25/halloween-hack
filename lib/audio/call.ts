@@ -5,6 +5,7 @@
 // the browser would send the audio to a server.
 
 import { audioEngine, isMuted, RAW_MIC } from "./sfx";
+import { borrowMic } from "./mic";
 
 let voice: AudioBuffer | null = null;
 
@@ -69,12 +70,13 @@ const TICK_MS = 60;
 export async function recordVoice(ms: number, onLevel: (level: number) => void): Promise<AudioBuffer | null> {
   const e = audioEngine();
   if (!e || typeof MediaRecorder === "undefined") return null;
-  let stream: MediaStream;
+  let mic: Awaited<ReturnType<typeof borrowMic>>;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: RAW_MIC });
+    mic = await borrowMic(RAW_MIC);
   } catch {
     return null;
   }
+  const { stream } = mic;
   const analyser = e.ctx.createAnalyser();
   analyser.fftSize = 512;
   const tap = e.ctx.createMediaStreamSource(stream);
@@ -108,7 +110,7 @@ export async function recordVoice(ms: number, onLevel: (level: number) => void):
   clearInterval(meter);
   onLevel(0);
   tap.disconnect();
-  stream.getTracks().forEach((t) => t.stop());
+  mic.release();
   if (spoken < SPEECH_MS) return null;
   const bytes = await new Blob(chunks, { type: rec.mimeType }).arrayBuffer();
   voice = await e.ctx.decodeAudioData(bytes);

@@ -3,6 +3,8 @@
 // Everything degrades to the mouse when the camera or the worker is unavailable.
 
 import { encodeFace } from "./face";
+import { keepMic } from "@/lib/audio/mic";
+import { RAW_MIC } from "@/lib/audio/sfx";
 
 export type Gesture = "none" | "palm" | "fist" | "point" | "victory" | "thumbUp" | "thumbDown" | "love";
 
@@ -150,14 +152,15 @@ export class PresenceTracker {
 
   /**
    * Must be called from a user gesture. Resolves false if the camera is refused or unsupported.
-   * With `withMic`, camera and microphone are asked in one prompt; the audio track is stopped
-   * right away, only the permission is kept for S9. If the combined request fails, the camera
-   * alone is tried (e.g. no microphone on the device).
+   * With `withMic`, camera and microphone are asked in one prompt; the microphone is kept open
+   * for the recordings later on (lib/audio/mic.ts: Safari and Firefox would ask again) and is
+   * never sent anywhere. If the combined request fails, the camera alone is tried (e.g. no
+   * microphone on the device).
    */
   async startCamera(video: HTMLVideoElement, { withMic = false }: { withMic?: boolean } = {}): Promise<boolean> {
     const videoConstraints = { width: 640, height: 480, facingMode: "user" };
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: withMic });
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: withMic ? RAW_MIC : false });
       this.micGranted = withMic;
     } catch {
       if (!withMic) return false;
@@ -167,10 +170,10 @@ export class PresenceTracker {
         return false;
       }
     }
-    this.stream.getAudioTracks().forEach((t) => {
-      t.stop();
-      this.stream?.removeTrack(t);
-    });
+    // the microphone lives apart from the video the tracker reads
+    const audio = this.stream.getAudioTracks();
+    audio.forEach((t) => this.stream?.removeTrack(t));
+    keepMic(audio.length ? new MediaStream(audio) : null);
     video.srcObject = this.stream;
     video.muted = true;
     video.playsInline = true;
@@ -183,6 +186,7 @@ export class PresenceTracker {
       this.state.debug.hands = gestures ? "ready" : `off (${handsError || "unknown"})`;
     } catch {
       this.stream.getTracks().forEach((t) => t.stop());
+      keepMic(null); // the session plays as refused: the microphone closes too
       return false;
     }
     this.worker.onmessage = ({ data }: MessageEvent<WorkerResult>) => {
@@ -209,6 +213,7 @@ export class PresenceTracker {
     this.running = false;
     this.stopMouse?.();
     this.stream?.getTracks().forEach((t) => t.stop());
+    keepMic(null);
     this.worker?.postMessage({ type: "close" });
   }
 
