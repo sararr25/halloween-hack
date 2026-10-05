@@ -9,7 +9,7 @@ import { glitchNow } from "@/lib/story/glitch";
 import { usePost, useStory } from "@/lib/story/store";
 import styles from "./facade.module.css";
 
-// Find My's "View live", Rear Window style (docs/plan-round8.md, round 9). The real photo of
+// Find My's "View live", Rear Window style (round 9). The real photo of
 // the terrace across (the IMG_0413 view, rive/photo/plate_*.jpg) seen through binoculars,
 // drawn by Rive (rive/facade: facade.luau draws the photo magnified, binoculars.wgsl the light
 // in the windows on their timers, the shapes behind the curtains, rain, the lenses, grain).

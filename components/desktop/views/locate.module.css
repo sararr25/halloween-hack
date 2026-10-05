@@ -112,7 +112,7 @@
 
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 
-/* the phone coming to you, and the lock-screen message (docs/plan-round7.md §6) */
+/* the phone coming to you, and the lock-screen message */
 .wide { grid-column: 1 / -1; }
 .danger { background: #ff453a; }
 .danger:hover, .danger:focus-visible { background: #ff6259; }

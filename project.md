@@ -98,7 +98,7 @@ Tre agganci reali, tutti banali in JS vanilla, zero backend:
 
 ## 8. Stato del progetto / prossimi passi
 
-Aggiornato il 2026-10-04. Dettagli in `HANDOVER.md`, piano corrente in `docs/plan-round6.md`.
+Aggiornato il 2026-10-04. Dettagli in `HANDOVER.md`.
 
 **Round 6 (2026-10-04)**
 

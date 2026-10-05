@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 
 // Server only (imported by app/api/operators/route.ts, never by a client component).
-// The operator registry (docs/plan-round6.md B7): name, session times, an opaque token for
+// The operator registry: name, session times, an opaque token for
 // the "pass it on" link, and who passed it. Never frames, audio or face data.
 // Table: operators (id serial, name text, opened_at timestamptz, closed_at timestamptz,
 // token text unique, invited_by int references operators on delete set null).

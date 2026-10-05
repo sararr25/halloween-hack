@@ -15,7 +15,7 @@ import styles from "./locate.module.css";
 // again, across the road. Drawn like the real Find My (dark map, devices on the left): this
 // Mac is at number 16, her flat, and her phone is 20 m away at number 17. The phone drifts
 // a little when the user moves (nobody says why). The player has to act (owner playtest,
-// docs/plan-round7.md §6):
+// round 7):
 //  1. "Play Sound": the ping is not across the road, it is behind you, coming closer. The
 //     distance counts down by itself and the pin crosses the road onto This Mac. 0 m.
 //  2. "Mark As Lost": a message for the lock screen. The phone writes back.
